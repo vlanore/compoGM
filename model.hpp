@@ -3,6 +3,7 @@
 #include <vector>
 #include <memory>
 #include <string>
+#include <iostream>
 
 
 // ######################################
@@ -10,7 +11,7 @@
 // ######################################
 class Instance {
 public:
-    virtual void hello() { printf("Base class.\n"); }
+    virtual void hello() { printf("Empty instance"); }
 };
 
 
@@ -25,6 +26,7 @@ public:
         for (auto i : instances) {
             printf("%s: ", i.first.c_str());
             i.second->hello();
+            std::cout << "." << std::endl;
         }
     }
 
@@ -64,8 +66,12 @@ public:
     }
 
     void hello () {
-        for (auto i: vec)
+        printf("Array : [");
+        for (auto i: vec) {
             i.hello();
+            std::cout << ", ";
+        }
+        std::cout << "]";
     }
 };
 
