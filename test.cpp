@@ -3,6 +3,8 @@
 #include <memory>
 #include <string>
 
+#include "model.hpp"
+
 
 // ######################################
 //                INTERFACES
@@ -16,11 +18,6 @@ public:
 // ######################################
 //                INSTANCES
 // ######################################
-class Instance {
-public:
-    virtual void hello() { printf("Base class.\n"); }
-};
-
 class SuperInstance : public Instance, public Message {
 public:
     std::string name;
@@ -39,48 +36,20 @@ public:
 
 
 // ######################################
-//                  MODEL
-// ######################################
-class Model {
-public:
-    std::map<std::string, std::shared_ptr<Instance> > instances;
-
-    void print_all() {
-        for (auto i : instances) {
-            printf("%s: ", i.first.c_str());
-            i.second->hello();
-        }
-    }
-
-    template <class T, class... Args>
-    void instantiate(std::string name, Args &&... args) {
-        instances.emplace(name, std::make_shared<T>(std::forward<Args>(args)...));
-    }
-
-    template <class I, typename V>
-    void set(std::string name, V I::* member, V value) {
-        dynamic_cast<I*>(instances[name].get())->*member = value;
-    }
-
-    template <class O, class D>
-    void connect(std::string i1, std::string i2, D* O::* member) {
-        set<O,D*>(i1, member, dynamic_cast<D*>(instances[i2].get()));
-    }
-
-};
-
-
-// ######################################
 //                  TEST
 // ######################################
 int main() {
     Model mymodel;
 
+    typedef UseProvide<SuperInstance, Message> UseMessage;
+
     mymodel.instantiate<Instance>("I1");
     mymodel.instantiate<SuperInstance>("I2", "alice", 7);
     mymodel.instantiate<SuperInstance>("I3", "bob", 8);
+
     mymodel.set<SuperInstance, int>("I2", &SuperInstance::size, 37);
-    mymodel.connect<SuperInstance, Message>("I2", "I3", &SuperInstance::Out);
+
+    mymodel.connect<UseMessage>("I2", "I3", &SuperInstance::Out);
 
     mymodel.print_all();
 
