@@ -57,9 +57,9 @@ public:
 // ######################################
 template <class E>
 class Array : public Instance {
+public:
     std::vector<E> vec;
 
-public:
     Array(int size, E (*init)(int)) {
         for (int i=0; i<size; i++)
             vec.push_back(init(i));
@@ -86,3 +86,16 @@ public:
         model.point_connect<User, Provider>(i1, i2, member);
     }
 };
+
+template <class User, class Provider, class Interface>
+class UseProvideArray {
+public:
+    static void _connect(Assembly& model, std::string i1, std::string i2, Interface* User::* member) {
+        auto refUser = dynamic_cast<Array<User>*>(model.instances[i1].get());
+        auto refProvider = dynamic_cast<Array<Provider>*>(model.instances[i2].get());
+        for (unsigned int i=0; i<refUser->vec.size(); i++) {
+            refUser->vec[i].*member = &refProvider->vec[i];
+        }
+    }
+};
+
