@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <map>
+#include <vector>
 #include <memory>
 #include <string>
 
@@ -13,12 +14,10 @@ public:
 };
 
 
-
-
 // ######################################
 //                  MODEL
 // ######################################
-class Model {
+class Assembly {
 public:
     std::map<std::string, std::shared_ptr<Instance> > instances;
 
@@ -48,14 +47,36 @@ public:
     void connect(Args &&... args) {
         Connector::_connect(*this, std::forward<Args>(args)...);
     }
-
 };
 
 
+// ######################################
+//            SPECIAL INSTANCES
+// ######################################
+template <class E>
+class Array : public Instance {
+    std::vector<E> vec;
+
+public:
+    Array(int size, E (*init)(int)) {
+        for (int i=0; i<size; i++)
+            vec.push_back(init(i));
+    }
+
+    void hello () {
+        for (auto i: vec)
+            i.hello();
+    }
+};
+
+
+// ######################################
+//               CONNECTORS
+// ######################################
 template <class User, class Provider>
 class UseProvide {
 public:
-    static void _connect(Model& model, std::string i1, std::string i2, Provider* User::* member) {
+    static void _connect(Assembly& model, std::string i1, std::string i2, Provider* User::* member) {
         model.point_connect<User, Provider>(i1, i2, member);
     }
 };
