@@ -43,17 +43,17 @@ class I_IntProxy : public Instance {
 int main() {
     Assembly mymodel;
 
-    typedef UseProvide< I_IntProxy, GetInt > ProxyToGetInt;
-    typedef UseProvideArray< I_IntProxy, I_Int, GetInt > ProxyArrayToGetInt;
+    typedef UseProvide<I_IntProxy, GetInt> ProxyToGetInt;
+    typedef UseProvideArray<I_IntProxy, I_Int, GetInt> ProxyArrayToGetInt;
 
-    mymodel.node< Instance >("I1");
-    mymodel.node< I_IntProxy >("I2");
-    mymodel.node< Array< I_Int > >("IArray", 5, [](int i) { return I_Int(2 * i); });
-    mymodel.node< Array< I_IntProxy > >("IArray2", 5, [](int) { return I_IntProxy(); });
-    mymodel.node< I_Int >("I4", 8);
+    mymodel.node<Instance>("I1");
+    mymodel.node<I_IntProxy>("I2");
+    mymodel.node<Array<I_Int> >("IArray", 5, [](int i) { return I_Int(2 * i); });
+    mymodel.node<Array<I_IntProxy> >("IArray2", 5, [](int) { return I_IntProxy(); });
+    mymodel.node<I_Int>("I4", 8);
 
-    mymodel.connection< ProxyToGetInt >("I2", "I4", &I_IntProxy::use);
-    mymodel.connection< ProxyArrayToGetInt >("IArray2", "IArray", &I_IntProxy::use);
+    mymodel.connection<ProxyToGetInt>("I2", "I4", &I_IntProxy::use);
+    mymodel.connection<ProxyArrayToGetInt>("IArray2", "IArray", &I_IntProxy::use);
 
     mymodel.instantiate();
 

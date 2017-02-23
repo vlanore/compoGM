@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-template < typename T >
+template <typename T>
 struct Type {};
 
 
@@ -25,30 +25,29 @@ class Instance {
 class Assembly;
 
 class _Connection {
-    std::function< void(Assembly&) > _connector;
+    std::function<void(Assembly&)> _connector;
 
   public:
-    template < class T, class... Args >
-    _Connection(Type< T >, Args&&... args)
+    template <class T, class... Args>
+    _Connection(Type<T>, Args&&... args)
         : _connector([=](Assembly& a) { T::_connect(a, args...); }) {}
 
     void _connect(Assembly& a) { _connector(a); }
 };
 
 class _Node {
-    std::function< std::unique_ptr< Instance >() > _constructor;
+    std::function<std::unique_ptr<Instance>()> _constructor;
 
   public:
     std::string name;
 
-    template < class T, class... Args >
-    _Node(Type< T >, std::string name, Args&&... args)
-        : _constructor([=]() {
-              return std::unique_ptr< Instance >(dynamic_cast< Instance* >(new T(args...)));
-          }),
+    template <class T, class... Args>
+    _Node(Type<T>, std::string name, Args&&... args)
+        : _constructor(
+              [=]() { return std::unique_ptr<Instance>(dynamic_cast<Instance*>(new T(args...))); }),
           name(name) {}
 
-    std::unique_ptr< Instance > _instantiate() { return _constructor(); }
+    std::unique_ptr<Instance> _instantiate() { return _constructor(); }
 };
 
 
@@ -58,12 +57,12 @@ class _Node {
 class Assembly {
   private:
     // Model
-    std::vector< _Node > nodes;
-    std::vector< _Connection > connections;
+    std::vector<_Node> nodes;
+    std::vector<_Connection> connections;
 
   public:
     // Actual instances
-    std::map< std::string, std::unique_ptr< Instance > > instances;
+    std::map<std::string, std::unique_ptr<Instance> > instances;
 
     void print_all() {
         for (auto& i : instances) {
@@ -73,14 +72,14 @@ class Assembly {
         }
     }
 
-    template < class InstanceType, class... Args >
+    template <class InstanceType, class... Args>
     void node(std::string name, Args&&... args) {
-        nodes.emplace_back(Type< InstanceType >(), name, std::forward< Args >(args)...);
+        nodes.emplace_back(Type<InstanceType>(), name, std::forward<Args>(args)...);
     }
 
-    template < class Connector, class... Args >
+    template <class Connector, class... Args>
     void connection(Args&&... args) {
-        connections.emplace_back(Type< Connector >(), std::forward< Args >(args)...);
+        connections.emplace_back(Type<Connector>(), std::forward<Args>(args)...);
     }
 
     void instantiate() {
@@ -92,14 +91,14 @@ class Assembly {
         }
     }
 
-    template < class I, typename V >
+    template <class I, typename V>
     void set(std::string name, V I::*member, V value) {
-        dynamic_cast< I* >(instances[name].get())->*member = value;
+        dynamic_cast<I*>(instances[name].get())->*member = value;
     }
 
-    template < class O, class D >
+    template <class O, class D>
     void point_connect(std::string i1, std::string i2, D* O::*member) {
-        set< O, D* >(i1, member, dynamic_cast< D* >(instances[i2].get()));
+        set<O, D*>(i1, member, dynamic_cast<D*>(instances[i2].get()));
     }
 };
 
@@ -107,10 +106,10 @@ class Assembly {
 // ######################################
 //            SPECIAL INSTANCES
 // ######################################
-template < class E >
+template <class E>
 class Array : public Instance {
   public:
-    std::vector< E > vec;
+    std::vector<E> vec;
 
     Array(int size, E (*init)(int)) {
         for (int i = 0; i < size; i++) vec.push_back(init(i));
@@ -130,22 +129,22 @@ class Array : public Instance {
 // ######################################
 //               CONNECTORS
 // ######################################
-template < class User, class Interface >
+template <class User, class Interface>
 class UseProvide {
   public:
     static void _connect(Assembly& model, std::string i1, std::string i2,
                          Interface* User::*member) {
-        model.point_connect< User, Interface >(i1, i2, member);
+        model.point_connect<User, Interface>(i1, i2, member);
     }
 };
 
-template < class User, class Provider, class Interface >
+template <class User, class Provider, class Interface>
 class UseProvideArray {
   public:
     static void _connect(Assembly& model, std::string i1, std::string i2,
                          Interface* User::*member) {
-        auto ptrUser = dynamic_cast< Array< User >* >(model.instances[i1].get());
-        auto ptrProvider = dynamic_cast< Array< Provider >* >(model.instances[i2].get());
+        auto ptrUser = dynamic_cast<Array<User>*>(model.instances[i1].get());
+        auto ptrProvider = dynamic_cast<Array<Provider>*>(model.instances[i2].get());
 
         for (unsigned int i = 0; i < ptrUser->vec.size(); i++) {
             ptrUser->vec[i].*member = &ptrProvider->vec[i];
