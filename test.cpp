@@ -52,10 +52,10 @@ int main() {
     mymodel.node< Array< I_IntProxy > >("IArray2", 5, [](int) { return I_IntProxy(); });
     mymodel.node< I_Int >("I4", 8);
 
-    mymodel.instantiate();
+    mymodel.connection< ProxyToGetInt >("I2", "I4", &I_IntProxy::use);
+    mymodel.connection< ProxyArrayToGetInt >("IArray2", "IArray", &I_IntProxy::use);
 
-    mymodel.connect< ProxyToGetInt >("I2", "I4", &I_IntProxy::use);
-    mymodel.connect< ProxyArrayToGetInt >("IArray2", "IArray", &I_IntProxy::use);
+    mymodel.instantiate();
 
     mymodel.set("I4", &I_Int::val, 37);
 

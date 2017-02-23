@@ -7,7 +7,7 @@
 #include <vector>
 
 template < typename T >
-struct encodeType {};
+struct Type {};
 
 
 // ######################################
@@ -22,7 +22,18 @@ class Instance {
 // ######################################
 //                  MODEL
 // ######################################
-class _Connection {};
+class Assembly;
+
+class _Connection {
+    std::function< void(Assembly&) > _connector;
+
+  public:
+    template < class T, class... Args >
+    _Connection(Type< T >, Args&&... args)
+        : _connector([=](Assembly& a) { T::_connect(a, args...); }) {}
+
+    void _connect(Assembly& a) { _connector(a); }
+};
 
 class _Node {
     std::function< std::unique_ptr< Instance >() > _constructor;
@@ -31,13 +42,13 @@ class _Node {
     std::string name;
 
     template < class T, class... Args >
-    _Node(encodeType< T >, std::string name, Args&&... args)
+    _Node(Type< T >, std::string name, Args&&... args)
         : _constructor([=]() {
               return std::unique_ptr< Instance >(dynamic_cast< Instance* >(new T(args...)));
           }),
           name(name) {}
 
-    std::unique_ptr< Instance > instantiate() { return _constructor(); }
+    std::unique_ptr< Instance > _instantiate() { return _constructor(); }
 };
 
 
@@ -62,24 +73,24 @@ class Assembly {
         }
     }
 
-    template < class T, class... Args >
+    template < class InstanceType, class... Args >
     void node(std::string name, Args&&... args) {
-        nodes.emplace_back(encodeType< T >(), name, std::forward< Args >(args)...);
+        nodes.emplace_back(Type< InstanceType >(), name, std::forward< Args >(args)...);
+    }
+
+    template < class Connector, class... Args >
+    void connection(Args&&... args) {
+        connections.emplace_back(Type< Connector >(), std::forward< Args >(args)...);
     }
 
     void instantiate() {
         for (auto& n : nodes) {
-            instances.emplace(n.name, n.instantiate());
+            instances.emplace(n.name, n._instantiate());
+        }
+        for (auto& n : connections) {
+            n._connect(*this);
         }
     }
-
-    // template < class T, class... Args >
-    // void instantiate(std::string name, Args&&... args) {
-    //     for (auto& n: nodes) {
-    //         instances.emplace(n->name, n->instantiate());
-    //     }
-    //     // instances.emplace(name, std::make_unique< T >(std::forward< Args >(args)...));
-    // }
 
     template < class I, typename V >
     void set(std::string name, V I::*member, V value) {
@@ -89,11 +100,6 @@ class Assembly {
     template < class O, class D >
     void point_connect(std::string i1, std::string i2, D* O::*member) {
         set< O, D* >(i1, member, dynamic_cast< D* >(instances[i2].get()));
-    }
-
-    template < class Connector, class... Args >
-    void connect(Args&&... args) {
-        Connector::_connect(*this, std::forward< Args >(args)...);
     }
 };
 
