@@ -6,7 +6,8 @@
 #include <string>
 #include <vector>
 
-template<typename T> struct encodeType {};
+template < typename T >
+struct encodeType {};
 
 
 // ######################################
@@ -30,9 +31,10 @@ class _Node {
     std::string name;
 
     template < class T, class... Args >
-    _Node(encodeType<T>, std::string name, Args&&... args)
-        : _constructor(
-              [=]() { return std::unique_ptr< Instance >(dynamic_cast< Instance* >(new T(args...))); }),
+    _Node(encodeType< T >, std::string name, Args&&... args)
+        : _constructor([=]() {
+              return std::unique_ptr< Instance >(dynamic_cast< Instance* >(new T(args...)));
+          }),
           name(name) {}
 
     std::unique_ptr< Instance > instantiate() { return _constructor(); }
@@ -62,11 +64,11 @@ class Assembly {
 
     template < class T, class... Args >
     void node(std::string name, Args&&... args) {
-        nodes.emplace_back(encodeType<T>(), name, std::forward< Args >(args)...);
+        nodes.emplace_back(encodeType< T >(), name, std::forward< Args >(args)...);
     }
 
     void instantiate() {
-        for (auto& n: nodes) {
+        for (auto& n : nodes) {
             instances.emplace(n.name, n.instantiate());
         }
     }
