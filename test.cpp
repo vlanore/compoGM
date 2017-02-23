@@ -17,7 +17,7 @@ class I_Int : public Instance, public GetInt {
   public:
     int val;
 
-    I_Int(int val) : val(val) {}
+    I_Int(int val) : val(val) { printf("I_Int constructor.\n"); }
 
     void _debug() override { printf("I_Int(%d)", val); }
 
@@ -43,19 +43,22 @@ class I_IntProxy : public Instance {
 int main() {
     Assembly mymodel;
 
-    typedef UseProvide< I_IntProxy, GetInt > ProxyToGetInt;
-    typedef UseProvideArray< I_IntProxy, I_Int, GetInt > ProxyArrayToGetInt;
+    // typedef UseProvide< I_IntProxy, GetInt > ProxyToGetInt;
+    // typedef UseProvideArray< I_IntProxy, I_Int, GetInt > ProxyArrayToGetInt;
 
-    mymodel.instantiate< Instance >("I1");
-    mymodel.instantiate< I_IntProxy >("I2");
-    mymodel.instantiate< Array< I_Int > >("IArray", 5, [](int i) { return I_Int(2 * i); });
-    mymodel.instantiate< Array< I_IntProxy > >("IArray2", 5, [](int) { return I_IntProxy(); });
-    mymodel.instantiate< I_Int >("I4", 8);
+    Node< I_Int > test(1);
+    test.instantiate();
 
-    mymodel.connect< ProxyToGetInt >("I2", "I4", &I_IntProxy::use);
-    mymodel.connect< ProxyArrayToGetInt >("IArray2", "IArray", &I_IntProxy::use);
+    // mymodel.instantiate< Instance >("I1");
+    // mymodel.instantiate< I_IntProxy >("I2");
+    // mymodel.instantiate< Array< I_Int > >("IArray", 5, [](int i) { return I_Int(2 * i); });
+    // mymodel.instantiate< Array< I_IntProxy > >("IArray2", 5, [](int) { return I_IntProxy(); });
+    // mymodel.instantiate< I_Int >("I4", 8);
 
-    mymodel.set< I_Int, int >("I4", &I_Int::val, 37);
+    // mymodel.connect< ProxyToGetInt >("I2", "I4", &I_IntProxy::use);
+    // mymodel.connect< ProxyArrayToGetInt >("IArray2", "IArray", &I_IntProxy::use);
+
+    // mymodel.set< I_Int, int >("I4", &I_Int::val, 37);
 
     mymodel.print_all();
 

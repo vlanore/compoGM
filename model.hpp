@@ -4,19 +4,39 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <functional>
 
 
 // ######################################
 //                INSTANCES
 // ######################################
 class Instance {
-  public:
+public:
     virtual void _debug() { printf("Empty instance"); }
 };
 
 
 // ######################################
 //                  MODEL
+// ######################################
+template < class T >
+class Node {
+    std::function<std::shared_ptr<T>()> _constructor;
+
+    // template < class... Args >
+    // std::shared_ptr<T> _factory(Args... args) { return std::make_shared<T>(std::forward<Args>(args)...); }
+
+public:
+    template < class... Args >
+    Node(Args&&... args): _constructor( [=]() { return std::make_shared<T>(args...); } )
+    {}
+
+    std::shared_ptr<Instance> instantiate() { return _constructor(); }
+};
+
+
+// ######################################
+//                 ASSEMBLY
 // ######################################
 class Assembly {
   public:
@@ -92,11 +112,11 @@ class UseProvideArray {
   public:
     static void _connect(Assembly& model, std::string i1, std::string i2,
                          Interface* User::*member) {
-        auto refUser = dynamic_cast< Array< User >* >(model.instances[i1].get());
-        auto refProvider = dynamic_cast< Array< Provider >* >(model.instances[i2].get());
+        auto ptrUser = dynamic_cast< Array< User >* >(model.instances[i1].get());
+        auto ptrProvider = dynamic_cast< Array< Provider >* >(model.instances[i2].get());
 
-        for (unsigned int i = 0; i < refUser->vec.size(); i++) {
-            refUser->vec[i].*member = &refProvider->vec[i];
+        for (unsigned int i = 0; i < ptrUser->vec.size(); i++) {
+            ptrUser->vec[i].*member = &ptrProvider->vec[i];
         }
     }
 };
