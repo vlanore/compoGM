@@ -1,17 +1,19 @@
 #include <cstdio>
+#include <functional>
 #include <iostream>
 #include <map>
 #include <memory>
 #include <string>
 #include <vector>
-#include <functional>
+
+template<typename T> struct encodeType {};
 
 
 // ######################################
 //                INSTANCES
 // ######################################
 class Instance {
-public:
+  public:
     virtual void _debug() { printf("Empty instance"); }
 };
 
@@ -19,19 +21,21 @@ public:
 // ######################################
 //                  MODEL
 // ######################################
-template < class T >
-class Node {
-    std::function<std::shared_ptr<T>()> _constructor;
+class _Connection {};
 
-    // template < class... Args >
-    // std::shared_ptr<T> _factory(Args... args) { return std::make_shared<T>(std::forward<Args>(args)...); }
+class _Node {
+    std::function< std::unique_ptr< Instance >() > _constructor;
 
-public:
-    template < class... Args >
-    Node(Args&&... args): _constructor( [=]() { return std::make_shared<T>(args...); } )
-    {}
+  public:
+    std::string name;
 
-    std::shared_ptr<Instance> instantiate() { return _constructor(); }
+    template < class T, class... Args >
+    _Node(encodeType<T>, std::string name, Args&&... args)
+        : _constructor(
+              [=]() { return std::unique_ptr< Instance >(dynamic_cast< Instance* >(new T(args...))); }),
+          name(name) {}
+
+    std::unique_ptr< Instance > instantiate() { return _constructor(); }
 };
 
 
@@ -39,11 +43,17 @@ public:
 //                 ASSEMBLY
 // ######################################
 class Assembly {
+  private:
+    // Model
+    std::vector< _Node > nodes;
+    std::vector< _Connection > connections;
+
   public:
-    std::map< std::string, std::shared_ptr< Instance > > instances;
+    // Actual instances
+    std::map< std::string, std::unique_ptr< Instance > > instances;
 
     void print_all() {
-        for (auto i : instances) {
+        for (auto& i : instances) {
             printf("%s: ", i.first.c_str());
             i.second->_debug();
             std::cout << "." << std::endl;
@@ -51,9 +61,23 @@ class Assembly {
     }
 
     template < class T, class... Args >
-    void instantiate(std::string name, Args&&... args) {
-        instances.emplace(name, std::make_shared< T >(std::forward< Args >(args)...));
+    void node(std::string name, Args&&... args) {
+        nodes.emplace_back(encodeType<T>(), name, std::forward< Args >(args)...);
     }
+
+    void instantiate() {
+        for (auto& n: nodes) {
+            instances.emplace(n.name, n.instantiate());
+        }
+    }
+
+    // template < class T, class... Args >
+    // void instantiate(std::string name, Args&&... args) {
+    //     for (auto& n: nodes) {
+    //         instances.emplace(n->name, n->instantiate());
+    //     }
+    //     // instances.emplace(name, std::make_unique< T >(std::forward< Args >(args)...));
+    // }
 
     template < class I, typename V >
     void set(std::string name, V I::*member, V value) {
