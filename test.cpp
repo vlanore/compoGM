@@ -41,7 +41,11 @@ class I_IntProxy : public Instance {
 //                  TEST
 // ######################################
 int main() {
+#ifndef USE_MPI
     Assembly mymodel;
+#else
+    MPI_Assembly mymodel;
+#endif
 
     typedef UseProvide<I_IntProxy, GetInt> ProxyToGetInt;
     typedef UseProvideArray<I_IntProxy, I_Int, GetInt> ProxyArrayToGetInt;

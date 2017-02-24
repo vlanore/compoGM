@@ -1,7 +1,7 @@
 all: test_bin
 
 test_bin: test.cpp model.hpp
-	$(CXX) -std=gnu++11 $< -o test_bin
+	mpic++ -std=gnu++11 $< -o test_bin
 
 test: test_bin
 	./test_bin

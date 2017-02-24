@@ -1,3 +1,4 @@
+#include <mpi.h>
 #include <cstdio>
 #include <functional>
 #include <iostream>
@@ -99,6 +100,30 @@ class Assembly {
     template <class O, class D>
     void point_connect(std::string i1, std::string i2, D* O::*member) {
         set<O, D*>(i1, member, dynamic_cast<D*>(instances[i2].get()));
+    }
+};
+
+class MPI_Assembly : public Assembly {
+public:
+    MPI_Assembly() {
+        MPI_Init(NULL, NULL);
+
+        int world_size;
+        MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+        int world_rank;
+        MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+
+        char processor_name[MPI_MAX_PROCESSOR_NAME];
+        int name_len;
+        MPI_Get_processor_name(processor_name, &name_len);
+
+        printf(
+            "Hello world from processor %s, rank %d"
+            " out of %d processors\n",
+            processor_name, world_rank, world_size);
+
+        MPI_Finalize();
     }
 };
 
