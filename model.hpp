@@ -29,13 +29,16 @@ class Assembly;
 
 class _Connection {
     std::function<void(Assembly&)> _connector;
-    std::map<std::string, std::string> _info;
 
   public:
+    std::map<std::string, std::string> info;
+    std::string name;
+
     template <class T, class... Args>
     _Connection(_Type<T>, Args&&... args)
         : _connector([=](Assembly& a) { T::_connect(a, args...); }) {
-        _info = T::_info(args...);
+        info = T::_info(args...);
+        name = T::_name();
     }
 
     void _connect(Assembly& a) { _connector(a); }
@@ -103,10 +106,16 @@ class Assembly {
 
     void to_dot() {
         std::ofstream myfile("tmp.dot");
-        myfile << "digraph {" << std::endl;
+        myfile << "graph {" << std::endl;
         for (auto i : nodes) {
             myfile << "\t" << i.name << "[shape=rectangle;label=\"" << i.name << ":\n" << instances[i.name]->_sdebug() << "\"]"
                    << std::endl;
+        }
+        for (auto& i : connections) {
+            myfile << i.name << "_" << &(i.info) << "[label=\"" << i.name << "\"]" << std::endl;
+            for (auto j : i.info) {
+                myfile << i.name << "_" << &(i.info) << " -- " << j.second << "[label=\"" << j.first << "\"]" << std::endl;
+            }
         }
         myfile << "}";
         myfile.close();
@@ -178,6 +187,8 @@ class Array : public Instance {
 template <class User, class Interface>
 class UseProvide {
   public:
+    static std::string _name() { return "UseProvide"; };
+
     static void _connect(Assembly& model, std::string i1, std::string i2,
                          Interface* User::*member) {
         model.point_connect<User, Interface>(i1, i2, member);
@@ -192,6 +203,8 @@ class UseProvide {
 template <class User, class Provider, class Interface>
 class UseProvideArray {
   public:
+    static std::string _name() { return "UseProvideArray"; };
+
     static void _connect(Assembly& model, std::string i1, std::string i2,
                          Interface* User::*member) {
         auto ptrUser = dynamic_cast<Array<User>*>(model.instances[i1].get());
@@ -211,6 +224,8 @@ class UseProvideArray {
 template <class User, class Provider, class Interface>
 class MultiUseArray {
   public:
+    static std::string _name() { return "MultiUseArray"; };
+
     static void _connect(Assembly& model, std::string i1, std::string i2,
                          std::vector<Interface*> User::*member) {
         auto ptrUser = dynamic_cast<User*>(model.instances[i1].get());
