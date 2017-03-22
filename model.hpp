@@ -29,11 +29,14 @@ class Assembly;
 
 class _Connection {
     std::function<void(Assembly&)> _connector;
+    std::map<std::string, std::string> _info;
 
   public:
     template <class T, class... Args>
     _Connection(_Type<T>, Args&&... args)
-        : _connector([=](Assembly& a) { T::_connect(a, args...); }) {}
+        : _connector([=](Assembly& a) { T::_connect(a, args...); }) {
+        _info = T::_info(args...);
+    }
 
     void _connect(Assembly& a) { _connector(a); }
 };
@@ -179,6 +182,11 @@ class UseProvide {
                          Interface* User::*member) {
         model.point_connect<User, Interface>(i1, i2, member);
     }
+
+    static std::map<std::string, std::string> _info(std::string i1, std::string i2,
+                      Interface* User::*) {
+        return {{"user", i1}, {"provider", i2}};
+    }
 };
 
 template <class User, class Provider, class Interface>
@@ -193,6 +201,11 @@ class UseProvideArray {
             ptrUser->vec[i].*member = &ptrProvider->vec[i];
         }
     }
+
+    static std::map<std::string, std::string> _info(std::string i1, std::string i2,
+                                                    Interface* User::*) {
+        return {{"user", i1}, {"provider", i2}};
+    }
 };
 
 template <class User, class Provider, class Interface>
@@ -206,5 +219,10 @@ class MultiUseArray {
         for (unsigned int i = 0; i < ptrProvider->vec.size(); i++) {
             (ptrUser->*member).push_back(&ptrProvider->vec[i]);
         }
+    }
+
+    static std::map<std::string, std::string> _info(std::string i1, std::string i2,
+                                                    std::vector<Interface*> User::*) {
+        return {{"user", i1}, {"provider", i2}};
     }
 };
