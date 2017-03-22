@@ -8,7 +8,7 @@
 #include <vector>
 
 template <typename T>
-struct Type {};
+struct _Type {};
 
 
 // ######################################
@@ -30,7 +30,7 @@ class _Connection {
 
   public:
     template <class T, class... Args>
-    _Connection(Type<T>, Args&&... args)
+    _Connection(_Type<T>, Args&&... args)
         : _connector([=](Assembly& a) { T::_connect(a, args...); }) {}
 
     void _connect(Assembly& a) { _connector(a); }
@@ -43,7 +43,7 @@ class _Node {
     std::string name;
 
     template <class T, class... Args>
-    _Node(Type<T>, std::string name, Args&&... args)
+    _Node(_Type<T>, std::string name, Args&&... args)
         : _constructor(
               [=]() { return std::unique_ptr<Instance>(dynamic_cast<Instance*>(new T(args...))); }),
           name(name) {}
@@ -62,6 +62,29 @@ class Assembly {
     std::vector<_Connection> connections;
 
   public:
+    Assembly() {
+#ifdef USE_MPI
+        MPI_Init(NULL, NULL);
+
+        int world_size;
+        MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+        int world_rank;
+        MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+
+        char processor_name[MPI_MAX_PROCESSOR_NAME];
+        int name_len;
+        MPI_Get_processor_name(processor_name, &name_len);
+
+        printf(
+            "Hello world from processor %s, rank %d"
+            " out of %d processors\n",
+            processor_name, world_rank, world_size);
+
+        MPI_Finalize();
+#endif
+    }
+
     // Actual instances
     std::map<std::string, std::unique_ptr<Instance> > instances;
 
@@ -73,14 +96,14 @@ class Assembly {
         }
     }
 
-    template <class InstanceType, class... Args>
+    template <class Instance_Type, class... Args>
     void node(std::string name, Args&&... args) {
-        nodes.emplace_back(Type<InstanceType>(), name, std::forward<Args>(args)...);
+        nodes.emplace_back(_Type<Instance_Type>(), name, std::forward<Args>(args)...);
     }
 
     template <class Connector, class... Args>
     void connection(Args&&... args) {
-        connections.emplace_back(Type<Connector>(), std::forward<Args>(args)...);
+        connections.emplace_back(_Type<Connector>(), std::forward<Args>(args)...);
     }
 
     void instantiate() {
@@ -103,28 +126,10 @@ class Assembly {
     }
 };
 
+
 class MPI_Assembly : public Assembly {
-public:
-    MPI_Assembly() {
-        MPI_Init(NULL, NULL);
-
-        int world_size;
-        MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-
-        int world_rank;
-        MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-
-        char processor_name[MPI_MAX_PROCESSOR_NAME];
-        int name_len;
-        MPI_Get_processor_name(processor_name, &name_len);
-
-        printf(
-            "Hello world from processor %s, rank %d"
-            " out of %d processors\n",
-            processor_name, world_rank, world_size);
-
-        MPI_Finalize();
-    }
+  public:
+    MPI_Assembly() {}
 };
 
 
