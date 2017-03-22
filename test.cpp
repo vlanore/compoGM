@@ -1,5 +1,5 @@
 #include "model.hpp"
-
+#include <sstream>
 
 // ######################################
 //                INTERFACES
@@ -22,7 +22,11 @@ class I_Int : public Instance, public GetInt {
         // printf("I_Int constructor: %d[%d].\n", val, (int)flag);
     }
 
-    void _debug() override { printf("I_Int: %d[%d]", val, (int)flag); }
+    std::string _sdebug() override {
+        std::stringstream result;
+        result << "I_Int: " << val << "[" << flag << "]";
+        return result.str();
+        }
 
     int getInt() override { return val; }
 };
@@ -31,12 +35,11 @@ class I_IntProxy : public Instance, public GetInt {
   public:
     GetInt* use;
 
-    void _debug() override {
-        if (use != nullptr)
-            printf("I_IntProxy: %d", use->getInt());
-        else
-            printf("I_IntProxy: INVALID");
-    }
+    std::string _sdebug() override {
+        std::stringstream result;
+        result << "I_IntProxy: " << ((use!=nullptr)?use->getInt():-1) ;
+        return result.str();
+        }
 
     int getInt() final {
         if (use != nullptr) {
