@@ -15,6 +15,10 @@ test: test_bin
 testmpi: test_mpi_bin
 	mpirun -np 2 ./$<
 
+dot: tmp.dot
+	@dot -Tps $< -o tmp.ps
+	@evince tmp.ps &
+
 clean:
 	rm -rf *_bin *.o
 

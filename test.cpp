@@ -86,7 +86,7 @@ int main() {
 
     mymodel.instantiate();
 
-    mymodel.set("I4", &I_Int::val, 37);
-
     mymodel.print_all();
+
+    mymodel.to_dot();
 }
