@@ -181,3 +181,18 @@ class UseProvideArray {
         }
     }
 };
+
+template <class User, class Provider, class Interface>
+class MultiUseArray {
+public:
+    static void _connect(Assembly& model, std::string i1, std::string i2, std::vector<Interface*> User::*member) {
+
+        auto ptrUser = dynamic_cast<User*>(model.instances[i1].get());
+        auto ptrProvider = dynamic_cast<Array<Provider>*>(model.instances[i2].get());
+
+        for (unsigned int i = 0; i < ptrProvider->vec.size(); i++) {
+            (ptrUser->*member).push_back(&ptrProvider->vec[i]);
+        }
+
+    }
+};

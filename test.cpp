@@ -82,6 +82,8 @@ int main() {
     mymodel.connection<UseProvideArray<I_IntProxy, I_IntProxy, GetInt>>("IArray3", "IArray2",
                                                                         &I_IntProxy::use);
 
+    mymodel.connection<MultiUseArray<I_Reducer, I_IntProxy, GetInt>>("Reducer", "IArray3", &I_Reducer::use);
+
     mymodel.instantiate();
 
     mymodel.set("I4", &I_Int::val, 37);
