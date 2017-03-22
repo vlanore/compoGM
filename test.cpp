@@ -27,7 +27,7 @@ class I_Int : public Instance, public GetInt {
     int getInt() override { return val; }
 };
 
-class I_IntProxy : public Instance {
+class I_IntProxy : public Instance, public GetInt {
   public:
     GetInt* use;
 
@@ -37,8 +37,15 @@ class I_IntProxy : public Instance {
         else
             printf("I_IntProxy: INVALID");
     }
-};
 
+    int getInt() final {
+        if (use != nullptr) {
+            return use->getInt();
+        } else {
+            return -1;
+        }
+    }
+};
 
 // ######################################
 //                  TEST
@@ -50,6 +57,7 @@ int main() {
     mymodel.node<I_IntProxy>("I2");
     mymodel.node<Array<I_Int> >("IArray", 5, [](int i) { return I_Int(2 * i, false); });
     mymodel.node<Array<I_IntProxy> >("IArray2", 5, [](int) { return I_IntProxy(); });
+    mymodel.node<Array<I_IntProxy> >("IArray3", 5, [](int) { return I_IntProxy(); });
     mymodel.node<I_Int>("I4", 8, true);
 
     typedef UseProvide<I_IntProxy, GetInt> ProxyToGetInt;
@@ -57,6 +65,7 @@ int main() {
 
     mymodel.connection<ProxyToGetInt>("I2", "I4", &I_IntProxy::use);
     mymodel.connection<ProxyArrayToGetInt>("IArray2", "IArray", &I_IntProxy::use);
+    mymodel.connection<UseProvideArray<I_IntProxy, I_IntProxy, GetInt>>("IArray3", "IArray2", &I_IntProxy::use);
 
     mymodel.instantiate();
 
