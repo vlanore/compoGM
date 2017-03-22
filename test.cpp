@@ -47,6 +47,19 @@ class I_IntProxy : public Instance, public GetInt {
     }
 };
 
+class I_Reducer : public Instance {
+  public:
+    std::vector<GetInt*> use;
+
+    void _debug() {
+        int sum = 0;
+        for (auto i : use) {
+            sum += i->getInt();
+        }
+        printf("SUM = %d", sum);
+    }
+};
+
 // ######################################
 //                  TEST
 // ######################################
@@ -55,17 +68,19 @@ int main() {
 
     mymodel.node<Instance>("I1");
     mymodel.node<I_IntProxy>("I2");
-    mymodel.node<Array<I_Int> >("IArray", 5, [](int i) { return I_Int(2 * i, false); });
-    mymodel.node<Array<I_IntProxy> >("IArray2", 5, [](int) { return I_IntProxy(); });
-    mymodel.node<Array<I_IntProxy> >("IArray3", 5, [](int) { return I_IntProxy(); });
+    mymodel.node<Array<I_Int>>("IArray", 5, [](int i) { return I_Int(2 * i, false); });
+    mymodel.node<Array<I_IntProxy>>("IArray2", 5, [](int) { return I_IntProxy(); });
+    mymodel.node<Array<I_IntProxy>>("IArray3", 5, [](int) { return I_IntProxy(); });
     mymodel.node<I_Int>("I4", 8, true);
+    mymodel.node<I_Reducer>("Reducer");
 
     typedef UseProvide<I_IntProxy, GetInt> ProxyToGetInt;
     typedef UseProvideArray<I_IntProxy, I_Int, GetInt> ProxyArrayToGetInt;
 
     mymodel.connection<ProxyToGetInt>("I2", "I4", &I_IntProxy::use);
     mymodel.connection<ProxyArrayToGetInt>("IArray2", "IArray", &I_IntProxy::use);
-    mymodel.connection<UseProvideArray<I_IntProxy, I_IntProxy, GetInt>>("IArray3", "IArray2", &I_IntProxy::use);
+    mymodel.connection<UseProvideArray<I_IntProxy, I_IntProxy, GetInt>>("IArray3", "IArray2",
+                                                                        &I_IntProxy::use);
 
     mymodel.instantiate();
 
