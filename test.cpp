@@ -1,5 +1,4 @@
 #include "model.hpp"
-#include <sstream>
 
 // ######################################
 //                INTERFACES
@@ -54,12 +53,14 @@ class I_Reducer : public Instance {
   public:
     std::vector<GetInt*> use;
 
-    void _debug() {
+    std::string _sdebug() override {
         int sum = 0;
         for (auto i : use) {
             sum += i->getInt();
         }
-        printf("SUM = %d", sum);
+        std::stringstream ss;
+        ss << "SUM = " << sum;
+        return ss.str();
     }
 };
 

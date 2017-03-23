@@ -7,6 +7,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <sstream>
 
 template <typename T>
 struct _Type {};
@@ -170,16 +171,16 @@ class Array : public Instance {
         for (int i = 0; i < size; i++) vec.push_back(init(i));
     }
 
-    void _debug() {
-        printf("Array : [");
+    std::string _sdebug() {
+        std::stringstream ss;
+        ss << "[";
         for (auto i : vec) {
-            i._debug();
-            std::cout << ", ";
+            ss << i._sdebug() << ", ";
         }
-        std::cout << "]";
+        ss << "]";
+        return ss.str();
     }
 };
-
 
 // ######################################
 //               CONNECTORS
