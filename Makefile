@@ -1,15 +1,18 @@
-all: test_bin
+all: test_bin poisson_bin
 mpi: test_mpi_bin
 
 .PHONY: all mpi test testmpi clean
 
 test_bin: test.cpp model.hpp
-	mpic++ -std=gnu++11 $< -o test_bin
+	$(CXX) -std=gnu++11 $< -o $@
+
+poisson_bin: poissonGamma.cpp model.hpp
+	$(CXX) -std=gnu++11 $< -o $@
 
 test_mpi_bin: test.cpp model.hpp
 	mpic++ -std=gnu++11 $< -o test_mpi_bin -DUSE_MPI
 
-test: test_bin
+test: poisson_bin
 	./$<
 
 testmpi: test_mpi_bin

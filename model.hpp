@@ -1,13 +1,16 @@
+#if USE_MPI
 #include <mpi.h>
+#endif
+
 #include <cstdio>
 #include <fstream>
 #include <functional>
 #include <iostream>
 #include <map>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <vector>
-#include <sstream>
 
 template <typename T>
 struct _Type {};
@@ -109,13 +112,14 @@ class Assembly {
         std::ofstream myfile("tmp.dot");
         myfile << "graph {" << std::endl;
         for (auto i : nodes) {
-            myfile << "\t" << i.name << "[shape=rectangle;label=\"" << i.name << ":\n" << instances[i.name]->_sdebug() << "\"]"
-                   << std::endl;
+            myfile << "\t" << i.name << "[shape=rectangle;label=\"" << i.name << ":\n"
+                   << instances[i.name]->_sdebug() << "\"]" << std::endl;
         }
         for (auto& i : connections) {
             myfile << i.name << "_" << &(i.info) << "[label=\"" << i.name << "\"]" << std::endl;
             for (auto j : i.info) {
-                myfile << i.name << "_" << &(i.info) << " -- " << j.second << "[label=\"" << j.first << "\"]" << std::endl;
+                myfile << i.name << "_" << &(i.info) << " -- " << j.second << "[label=\"" << j.first
+                       << "\"]" << std::endl;
             }
         }
         myfile << "}";
@@ -196,7 +200,7 @@ class UseProvide {
     }
 
     static std::map<std::string, std::string> _info(std::string i1, std::string i2,
-                      Interface* User::*) {
+                                                    Interface* User::*) {
         return {{"user", i1}, {"provider", i2}};
     }
 };

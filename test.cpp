@@ -12,31 +12,31 @@ class GetInt {
 // ######################################
 //                INSTANCES
 // ######################################
-class I_Int : public Instance, public GetInt {
+class MyInt : public Instance, public GetInt {
   public:
     int val;
     bool flag;
 
-    I_Int(int val, bool flag) : val(val), flag(flag) {
-        // printf("I_Int constructor: %d[%d].\n", val, (int)flag);
+    MyInt(int val, bool flag) : val(val), flag(flag) {
+        // printf("MyInt constructor: %d[%d].\n", val, (int)flag);
     }
 
     std::string _sdebug() override {
         std::stringstream result;
-        result << "I_Int: " << val << "[" << flag << "]";
+        result << "MyInt: " << val << "[" << flag << "]";
         return result.str();
         }
 
     int getInt() override { return val; }
 };
 
-class I_IntProxy : public Instance, public GetInt {
+class MyIntProxy : public Instance, public GetInt {
   public:
     GetInt* use;
 
     std::string _sdebug() override {
         std::stringstream result;
-        result << "I_IntProxy: " << ((use!=nullptr)?use->getInt():-1) ;
+        result << "MyIntProxy: " << ((use!=nullptr)?use->getInt():-1) ;
         return result.str();
         }
 
@@ -49,7 +49,7 @@ class I_IntProxy : public Instance, public GetInt {
     }
 };
 
-class I_Reducer : public Instance {
+class MyReducer : public Instance {
   public:
     std::vector<GetInt*> use;
 
@@ -71,22 +71,22 @@ int main() {
     Assembly mymodel;
 
     mymodel.node<Instance>("I1");
-    mymodel.node<I_IntProxy>("I2");
-    mymodel.node<Array<I_Int>>("IArray", 5, [](int i) { return I_Int(2 * i, false); });
-    mymodel.node<Array<I_IntProxy>>("IArray2", 5, [](int) { return I_IntProxy(); });
-    mymodel.node<Array<I_IntProxy>>("IArray3", 5, [](int) { return I_IntProxy(); });
-    mymodel.node<I_Int>("I4", 8, true);
-    mymodel.node<I_Reducer>("Reducer");
+    mymodel.node<MyIntProxy>("I2");
+    mymodel.node<Array<MyInt>>("IArray", 5, [](int i) { return MyInt(2 * i, false); });
+    mymodel.node<Array<MyIntProxy>>("IArray2", 5, [](int) { return MyIntProxy(); });
+    mymodel.node<Array<MyIntProxy>>("IArray3", 5, [](int) { return MyIntProxy(); });
+    mymodel.node<MyInt>("I4", 8, true);
+    mymodel.node<MyReducer>("Reducer");
 
-    typedef UseProvide<I_IntProxy, GetInt> ProxyToGetInt;
-    typedef UseProvideArray<I_IntProxy, I_Int, GetInt> ProxyArrayToGetInt;
+    using ProxyToGetInt = UseProvide<MyIntProxy, GetInt>;
+    using ProxyArrayToGetInt = UseProvideArray<MyIntProxy, MyInt, GetInt>;
 
-    mymodel.connection<ProxyToGetInt>("I2", "I4", &I_IntProxy::use);
-    mymodel.connection<ProxyArrayToGetInt>("IArray2", "IArray", &I_IntProxy::use);
-    mymodel.connection<UseProvideArray<I_IntProxy, I_IntProxy, GetInt>>("IArray3", "IArray2",
-                                                                        &I_IntProxy::use);
+    mymodel.connection<ProxyToGetInt>("I2", "I4", &MyIntProxy::use);
+    mymodel.connection<ProxyArrayToGetInt>("IArray2", "IArray", &MyIntProxy::use);
+    mymodel.connection<UseProvideArray<MyIntProxy, MyIntProxy, GetInt>>("IArray3", "IArray2",
+                                                                        &MyIntProxy::use);
 
-    mymodel.connection<MultiUseArray<I_Reducer, I_IntProxy, GetInt>>("Reducer", "IArray3", &I_Reducer::use);
+    mymodel.connection<MultiUseArray<MyReducer, MyIntProxy, GetInt>>("Reducer", "IArray3", &MyReducer::use);
 
     mymodel.instantiate();
 
