@@ -74,29 +74,6 @@ class Assembly {
     std::vector<_Connection> connections;
 
   public:
-    Assembly() {
-#ifdef USE_MPI
-        MPI_Init(NULL, NULL);
-
-        int world_size;
-        MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-
-        int world_rank;
-        MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-
-        char processor_name[MPI_MAX_PROCESSOR_NAME];
-        int name_len;
-        MPI_Get_processor_name(processor_name, &name_len);
-
-        printf(
-            "Hello world from processor %s, rank %d"
-            " out of %d processors\n",
-            processor_name, world_rank, world_size);
-
-        MPI_Finalize();
-#endif
-    }
-
     // Actual instances
     std::map<std::string, std::unique_ptr<Instance> > instances;
 
@@ -243,6 +220,27 @@ class MultiUseArray {
 
     static std::map<std::string, std::string> _info(std::string i1, std::string i2,
                                                     std::vector<Interface*> User::*) {
+        return {{"user", i1}, {"provider", i2}};
+    }
+};
+
+template <class User, class Interface>
+class MultiProvideArray {
+public:
+    static std::string _name() { return "MultiProvideArray"; };
+
+    static void _connect(Assembly& model, std::string i1, std::string i2,
+                         Interface* User::*member) {
+
+        auto ptrUser = dynamic_cast<Array<User>*>(model.instances[i1].get());
+
+        for (unsigned int i = 0; i < ptrUser->vec.size(); i++) {
+            ptrUser->vec[i].*member = dynamic_cast<Interface*>(model.instances[i2].get());
+        }
+    }
+
+    static std::map<std::string, std::string> _info(std::string i1, std::string i2,
+                                                    Interface* User::*) {
         return {{"user", i1}, {"provider", i2}};
     }
 };
