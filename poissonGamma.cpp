@@ -65,6 +65,11 @@ class Gamma_C : public UnaryReal_C {
     explicit Gamma_C() : UnaryReal_C("Gamma") {}
 };
 
+class Poisson_C : public UnaryReal_C {
+  public:
+    explicit Poisson_C() : UnaryReal_C("Poisson") {}
+};
+
 class Product_C : public Component, public Real_I {
     RealProp a{};
     RealProp b{};
@@ -109,7 +114,10 @@ int main() {
 
     model.component<Array<Product_C, 5>>("rate");
     model.connect<ArrayOneToOne<Real_I>>("rate", "aPtr", "Omega");
-    model.connect<ArrayOneToOne<Real_I>>("rate", "bPtr", "Omega");
+    model.connect<Map<Real_I>>("Sigma", "rate", "bPtr");
+
+    model.component<Array<Poisson_C, 5>>("X");
+    model.connect<ArrayOneToOne<Real_I>>("X", "paramPtr", "rate");
 
     model.instantiate();
     model.print_all();
