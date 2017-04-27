@@ -1,21 +1,21 @@
 #include "model.hpp"
 
 // interface to get a Real
-class Real_I {
+class Real {
   public:
     virtual double getValue() const = 0;
 };
 
-// little object to encapsulate having a constant OR a pointer to Real_I
+// little object to encapsulate having a constant OR a pointer to Real
 class RealProp {
     int mode{0};  // 0:unset, 1:constant, 2:pointer
-    Real_I *ptr{nullptr};
+    Real *ptr{nullptr};
     double value{0};
 
   public:
     RealProp() = default;
     explicit RealProp(double value) : mode(1), value(value) {}
-    explicit RealProp(Real_I *ptr) : mode(2), ptr(ptr) {}
+    explicit RealProp(Real *ptr) : mode(2), ptr(ptr) {}
     double getValue() const {
         if (mode == 1) {
             return value;
@@ -28,17 +28,17 @@ class RealProp {
     }
 };
 
-class UnaryReal_C : public Component, public Real_I {
+class UnaryReal : public Component, public Real {
     RealProp param{};
     double value{0.0};
 
   public:
     std::string name{};
 
-    UnaryReal_C() = delete;
-    explicit UnaryReal_C(const std::string &name) : name(name) {
-        port("paramConst", &UnaryReal_C::setLambda<double>);
-        port("paramPtr", &UnaryReal_C::setLambda<Real_I *>);
+    UnaryReal() = delete;
+    explicit UnaryReal(const std::string &name) : name(name) {
+        port("paramConst", &UnaryReal::setLambda<double>);
+        port("paramPtr", &UnaryReal::setLambda<Real *>);
     };
 
     std::string _debug() const override {
@@ -55,30 +55,30 @@ class UnaryReal_C : public Component, public Real_I {
     }
 };
 
-class Exponential_C : public UnaryReal_C {
+class Exponential : public UnaryReal {
   public:
-    explicit Exponential_C(double value = 0.0) : UnaryReal_C("Exponential") { setValue(value); }
+    explicit Exponential(double value = 0.0) : UnaryReal("Exponential") { setValue(value); }
 };
 
-class Gamma_C : public UnaryReal_C {
+class Gamma : public UnaryReal {
   public:
-    explicit Gamma_C() : UnaryReal_C("Gamma") {}
+    explicit Gamma() : UnaryReal("Gamma") {}
 };
 
-class Poisson_C : public UnaryReal_C {
+class Poisson : public UnaryReal {
   public:
-    explicit Poisson_C() : UnaryReal_C("Poisson") {}
+    explicit Poisson() : UnaryReal("Poisson") {}
 };
 
-class Product_C : public Component, public Real_I {
+class Product : public Component, public Real {
     RealProp a{};
     RealProp b{};
 
   public:
-    Product_C() {
-        port("aPtr", &Product_C::setA<Real_I *>);
-        port("bPtr", &Product_C::setB<Real_I *>);
-        port("bConst", &Product_C::setB<double>);
+    Product() {
+        port("aPtr", &Product::setA<Real *>);
+        port("bPtr", &Product::setB<Real *>);
+        port("bConst", &Product::setB<double>);
     }
 
     template <class... Args>
@@ -91,7 +91,7 @@ class Product_C : public Component, public Real_I {
         b = RealProp(std::forward<Args>(args)...);
     }
 
-    void setA(Real_I *ptr) { a = RealProp(ptr); }
+    void setA(Real *ptr) { a = RealProp(ptr); }
     double getValue() const override { return a.getValue() * b.getValue(); }
     std::string _debug() const override {
         std::stringstream ss;
@@ -103,21 +103,21 @@ class Product_C : public Component, public Real_I {
 int main() {
     Assembly model;
 
-    model.component<Exponential_C>("Sigma");
+    model.component<Exponential>("Sigma");
     model.property("Sigma", "paramConst", 1.0);
 
-    model.component<Exponential_C>("Theta");
+    model.component<Exponential>("Theta");
     model.property("Theta", "paramConst", 1.0);
 
-    model.component<Array<Gamma_C, 5>>("Omega");
-    model.connect<Map<Real_I>>("Theta", "Omega", "paramPtr");
+    model.component<Array<Gamma, 5>>("Omega");
+    model.connect<MultiUse<Real>>("Omega", "paramPtr", "Theta");
 
-    model.component<Array<Product_C, 5>>("rate");
-    model.connect<ArrayOneToOne<Real_I>>("rate", "aPtr", "Omega");
-    model.connect<Map<Real_I>>("Sigma", "rate", "bPtr");
+    model.component<Array<Product, 5>>("rate");
+    model.connect<ArrayOneToOne<Real>>("rate", "aPtr", "Omega");
+    model.connect<MultiUse<Real>>("rate", "bPtr", "Sigma");
 
-    model.component<Array<Poisson_C, 5>>("X");
-    model.connect<ArrayOneToOne<Real_I>>("X", "paramPtr", "rate");
+    model.component<Array<Poisson, 5>>("X");
+    model.connect<ArrayOneToOne<Real>>("X", "paramPtr", "rate");
 
     model.instantiate();
     model.print_all();
