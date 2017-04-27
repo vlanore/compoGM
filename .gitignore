@@ -1,2 +1,4 @@
 *_bin
 tmp*
+model.hpp
+doctest.h
