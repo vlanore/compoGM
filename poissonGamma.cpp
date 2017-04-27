@@ -60,6 +60,11 @@ class Exponential_C : public UnaryReal_C {
     explicit Exponential_C(double value = 0.0) : UnaryReal_C("Exponential") { setValue(value); }
 };
 
+class Gamma_C : public UnaryReal_C {
+  public:
+    explicit Gamma_C() : UnaryReal_C("Gamma") {}
+};
+
 class Product_C : public Component, public Real_I {
     RealProp a{};
     RealProp b{};
@@ -90,27 +95,21 @@ class Product_C : public Component, public Real_I {
     }
 };
 
-// class Gamma_C : public Component {
-//   public:
-//     Real_I *k, *theta;
-//     std::string _debug() const override { return "Gamma"; }
-// };
-
 int main() {
     Assembly model;
 
-    model.component<Exponential_C>("Exp", 2.0);
-    model.component<Exponential_C>("Exp2", 4.0);
-    model.property("Exp", "paramConst", 1.0);
-    model.connect<UseProvide<Real_I>>("Exp2", "paramPtr", "Exp");
+    model.component<Exponential_C>("Sigma");
+    model.property("Sigma", "paramConst", 1.0);
 
-    model.component<Product_C>("ProductExp");
-    model.connect<UseProvide<Real_I>>("ProductExp", "aPtr", "Exp");
-    model.connect<UseProvide<Real_I>>("ProductExp", "bPtr", "Exp2");
+    model.component<Exponential_C>("Theta");
+    model.property("Theta", "paramConst", 1.0);
 
-    model.component<Product_C>("Product3");
-    model.connect<UseProvide<Real_I>>("Product3", "aPtr", "Exp");
-    model.property("Product3", "bConst", 3.0);
+    model.component<Array<Gamma_C, 5>>("Omega");
+    model.connect<Map<Real_I>>("Theta", "Omega", "paramPtr");
+
+    model.component<Array<Product_C, 5>>("rate");
+    model.connect<ArrayOneToOne<Real_I>>("rate", "aPtr", "Omega");
+    model.connect<ArrayOneToOne<Real_I>>("rate", "bPtr", "Omega");
 
     model.instantiate();
     model.print_all();
