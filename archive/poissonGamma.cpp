@@ -6,8 +6,8 @@ class Real_I {
 };
 
 class Constant_C : public Instance, public Real_I {
-  public:
     double value;
+  public:
     Constant_C(double value) : value(value) {}
     double getValue() override { return value; }
     std::string _sdebug() override { return "Constant"; }

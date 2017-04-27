@@ -25,7 +25,7 @@ class MyInt : public Instance, public GetInt {
         std::stringstream result;
         result << "MyInt: " << val << "[" << flag << "]";
         return result.str();
-        }
+    }
 
     int getInt() override { return val; }
 };
@@ -36,9 +36,9 @@ class MyIntProxy : public Instance, public GetInt {
 
     std::string _sdebug() override {
         std::stringstream result;
-        result << "MyIntProxy: " << ((use!=nullptr)?use->getInt():-1) ;
+        result << "MyIntProxy: " << ((use != nullptr) ? use->getInt() : -1);
         return result.str();
-        }
+    }
 
     int getInt() final {
         if (use != nullptr) {
@@ -86,7 +86,8 @@ int main() {
     mymodel.connection<UseProvideArray<MyIntProxy, MyIntProxy, GetInt>>("IArray3", "IArray2",
                                                                         &MyIntProxy::use);
 
-    mymodel.connection<MultiUseArray<MyReducer, MyIntProxy, GetInt>>("Reducer", "IArray3", &MyReducer::use);
+    mymodel.connection<MultiUseArray<MyReducer, MyIntProxy, GetInt>>("Reducer", "IArray3",
+                                                                     &MyReducer::use);
 
     mymodel.instantiate();
 

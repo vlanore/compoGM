@@ -17,19 +17,10 @@ struct _Type {};
 
 
 // ######################################
-//                INSTANCES
-// ######################################
-class Instance {
-  public:
-    virtual void _debug() { std::cout << _sdebug(); }
-    virtual std::string _sdebug() { return "Empty instance"; }
-};
-
-
-// ######################################
 //                  MODEL
 // ######################################
 class Assembly;
+class Instance;
 
 class _Connection {
     std::function<void(Assembly&)> _connector;
@@ -61,6 +52,21 @@ class _Node {
           name(name) {}
 
     std::unique_ptr<Instance> _instantiate() { return _constructor(); }
+};
+
+
+// ######################################
+//                INSTANCES
+// ######################################
+class Instance {
+  public:
+    void _debug() { std::cout << _sdebug(); }
+    virtual std::string _sdebug() { return "Empty instance"; }
+
+
+    template <class C, class V>
+    void port(std::string s, void (C::*prop)(V)) {
+    }
 };
 
 
@@ -226,12 +232,11 @@ class MultiUseArray {
 
 template <class User, class Interface>
 class MultiProvideArray {
-public:
+  public:
     static std::string _name() { return "MultiProvideArray"; };
 
     static void _connect(Assembly& model, std::string i1, std::string i2,
                          Interface* User::*member) {
-
         auto ptrUser = dynamic_cast<Array<User>*>(model.instances[i1].get());
 
         for (unsigned int i = 0; i < ptrUser->vec.size(); i++) {
