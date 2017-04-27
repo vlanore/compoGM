@@ -4,6 +4,7 @@
 class Real {
   public:
     virtual double getValue() const = 0;
+    virtual void setValue(double value) = 0;
 };
 
 // little object to encapsulate having a constant OR a pointer to Real
@@ -47,7 +48,7 @@ class UnaryReal : public Component, public Real {
         return ss.str();
     }
     double getValue() const override { return value; }
-    void setValue(double valuein) { value = valuein; }
+    void setValue(double valuein) override { value = valuein; }
 
     template <class... Args>
     void setLambda(Args... args) {
@@ -93,6 +94,9 @@ class Product : public Component, public Real {
 
     void setA(Real *ptr) { a = RealProp(ptr); }
     double getValue() const override { return a.getValue() * b.getValue(); }
+    void setValue(double) override {
+        std::cerr << "-- Warning! Trying to set a deterministic node!\n";
+    }
     std::string _debug() const override {
         std::stringstream ss;
         ss << "Product(" << a.getValue() << "," << b.getValue() << "):" << getValue();
