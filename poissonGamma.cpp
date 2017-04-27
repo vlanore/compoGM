@@ -28,27 +28,36 @@ class RealProp {
     }
 };
 
-class Exponential_C : public Component, public Real_I {
-    RealProp lambda{};
+class UnaryReal_C : public Component, public Real_I {
+    RealProp param{};
     double value{0.0};
 
   public:
-    explicit Exponential_C(double value = 0.0) : value(value) {
-        port("lambdaConst", &Exponential_C::setLambda<double>);
-        port("lambdaPtr", &Exponential_C::setLambda<Real_I *>);
+    std::string name{};
+
+    UnaryReal_C() = delete;
+    explicit UnaryReal_C(const std::string &name) : name(name) {
+        port("paramConst", &UnaryReal_C::setLambda<double>);
+        port("paramPtr", &UnaryReal_C::setLambda<Real_I *>);
     };
 
     std::string _debug() const override {
         std::stringstream ss;
-        ss << "Exponential(" << lambda.getValue() << "):" << value;
+        ss << name << "(" << param.getValue() << "):" << value;
         return ss.str();
     }
     double getValue() const override { return value; }
+    void setValue(double valuein) { value = valuein; }
 
     template <class... Args>
     void setLambda(Args... args) {
-        lambda = RealProp(std::forward<Args>(args)...);
+        param = RealProp(std::forward<Args>(args)...);
     }
+};
+
+class Exponential_C : public UnaryReal_C {
+  public:
+    explicit Exponential_C(double value = 0.0) : UnaryReal_C("Exponential") { setValue(value); }
 };
 
 class Product_C : public Component, public Real_I {
@@ -92,8 +101,8 @@ int main() {
 
     model.component<Exponential_C>("Exp", 2.0);
     model.component<Exponential_C>("Exp2", 4.0);
-    model.property("Exp", "lambdaConst", 1.0);
-    model.connect<UseProvide<Real_I>>("Exp2", "lambdaPtr", "Exp");
+    model.property("Exp", "paramConst", 1.0);
+    model.connect<UseProvide<Real_I>>("Exp2", "paramPtr", "Exp");
 
     model.component<Product_C>("ProductExp");
     model.connect<UseProvide<Real_I>>("ProductExp", "aPtr", "Exp");
