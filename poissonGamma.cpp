@@ -51,19 +51,57 @@ class Exponential_C : public Component, public Real_I {
     }
 };
 
-class Gamma_C : public Component {
+class Product_C : public Component, public Real_I {
+    RealProp a{};
+    RealProp b{};
+
   public:
-    Real_I *k, *theta;
-    std::string _debug() const override { return "Gamma"; }
+    Product_C() {
+        port("aPtr", &Product_C::setA<Real_I *>);
+        port("bPtr", &Product_C::setB<Real_I *>);
+        port("bConst", &Product_C::setB<double>);
+    }
+
+    template <class... Args>
+    void setA(Args... args) {
+        a = RealProp(std::forward<Args>(args)...);
+    }
+
+    template <class... Args>
+    void setB(Args... args) {
+        b = RealProp(std::forward<Args>(args)...);
+    }
+
+    void setA(Real_I *ptr) { a = RealProp(ptr); }
+    double getValue() const override { return a.getValue() * b.getValue(); }
+    std::string _debug() const override {
+        std::stringstream ss;
+        ss << "Product(" << a.getValue() << "," << b.getValue() << "):" << getValue();
+        return ss.str();
+    }
 };
+
+// class Gamma_C : public Component {
+//   public:
+//     Real_I *k, *theta;
+//     std::string _debug() const override { return "Gamma"; }
+// };
 
 int main() {
     Assembly model;
 
     model.component<Exponential_C>("Exp", 2.0);
-    model.component<Exponential_C>("Exp2");
+    model.component<Exponential_C>("Exp2", 4.0);
     model.property("Exp", "lambdaConst", 1.0);
     model.connect<UseProvide<Real_I>>("Exp2", "lambdaPtr", "Exp");
+
+    model.component<Product_C>("ProductExp");
+    model.connect<UseProvide<Real_I>>("ProductExp", "aPtr", "Exp");
+    model.connect<UseProvide<Real_I>>("ProductExp", "bPtr", "Exp2");
+
+    model.component<Product_C>("Product3");
+    model.connect<UseProvide<Real_I>>("Product3", "aPtr", "Exp");
+    model.property("Product3", "bConst", 3.0);
 
     model.instantiate();
     model.print_all();
