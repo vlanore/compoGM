@@ -220,6 +220,31 @@ class MultiSample : public Go {
     void registerNode(RandomNode *ptr) { nodes.push_back(ptr); }
 };
 
+class RejectionSampling : public Go {
+    std::vector<RandomNode *> observedData;
+    Go *sampler{nullptr};
+    int nbIter{0};
+
+  public:
+    explicit RejectionSampling(int iter = 5) {
+        nbIter = iter;
+        port("sampler", &RejectionSampling::setSampler);
+        port("data", &RejectionSampling::addData);
+    }
+
+    void setSampler(Go *ptr) { sampler = ptr; }
+    void addData(RandomNode *ptr) { observedData.push_back(ptr); }
+
+    std::string _debug() const override { return "RejectionSampling"; }
+    void go() override {
+        std::cout << "-- Starting rejection sampling!\n";
+        for (auto i = 0; i < nbIter; i++) {
+            std::cout << "-- Iteration " << i << ". Sampling!\n";
+            sampler->go();
+        }
+    }
+};
+
 /*
 
 ===================================================================================================

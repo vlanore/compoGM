@@ -21,17 +21,21 @@ int main() {
     model.connect<ArrayOneToOne<Real>>("X", "paramPtr", "rate");
 
     // moves part
-    model.component<SimpleMove>("Move1");
-    model.connect<UseProvide<RandomNode>>("Move1", "target", "Theta");
-
-    model.component<SimpleMove>("Move2");
-    model.connect<UseProvide<RandomNode>>("Move2", "target", "Sigma");
-
     model.component<MultiSample>("Sampler");
     model.connect<UseProvide<RandomNode>>("Sampler", "register", "Sigma");
     model.connect<UseProvide<RandomNode>>("Sampler", "register", "Theta");
     model.connect<MultiUse<RandomNode>>("Sampler", "register", "Omega");
     model.connect<MultiUse<RandomNode>>("Sampler", "register", "X");
+
+    model.component<RejectionSampling>("RS");
+    model.connect<UseProvide<Go>>("RS", "sampler", "Sampler");
+    model.connect<MultiUse<RandomNode>>("RS", "data", "X");
+
+    // model.component<SimpleMove>("Move1");
+    // model.connect<UseProvide<RandomNode>>("Move1", "target", "Theta");
+
+    // model.component<SimpleMove>("Move2");
+    // model.connect<UseProvide<RandomNode>>("Move2", "target", "Sigma");
 
     // model.component<Array<SimpleMove, 5>>("MoveArray");
     // model.connect<ArrayOneToOne<RandomNode>>("MoveArray", "target", "Omega");
@@ -53,8 +57,7 @@ int main() {
     Xref.get_ref_at<RandomNode>(4).clamp(2);
 
     // do some things
-    model.call("Sampler", "go");
-    model.call("Sampler", "go");
+    model.call("RS", "go");
 
     model.print_all();
 }
