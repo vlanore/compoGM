@@ -8,7 +8,7 @@ model.hpp:
 doctest.h:
 	curl "https://raw.githubusercontent.com/onqtam/doctest/master/doctest/doctest.h" > doctest.h
 
-poisson_bin: poissonGamma.cpp model.hpp doctest.h
+poisson_bin: poissonGamma.cpp model.hpp doctest.h graphicalModel.hpp
 	$(CXX) -std=gnu++11 $< -o $@ -DDOCTEST_CONFIG_DISABLE
 
 test: poisson_bin
