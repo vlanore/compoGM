@@ -27,7 +27,7 @@ int main() {
     model.connect<MultiUse<RandomNode>>("Sampler", "register", "Omega");
     model.connect<MultiUse<RandomNode>>("Sampler", "register", "X");
 
-    model.component<RejectionSampling>("RS");
+    model.component<RejectionSampling>("RS", 10000);
     model.connect<UseProvide<Go>>("RS", "sampler", "Sampler");
     model.connect<MultiUse<RandomNode>>("RS", "data", "X");
 
@@ -54,7 +54,7 @@ int main() {
     Xref.get_ref_at<RandomNode>(1).clamp(0);
     Xref.get_ref_at<RandomNode>(2).clamp(1);
     Xref.get_ref_at<RandomNode>(3).clamp(0);
-    Xref.get_ref_at<RandomNode>(4).clamp(2);
+    Xref.get_ref_at<RandomNode>(4).clamp(0);
 
     // do some things
     model.call("RS", "go");

@@ -237,11 +237,24 @@ class RejectionSampling : public Go {
 
     std::string _debug() const override { return "RejectionSampling"; }
     void go() override {
+        int accepted = 0;
         std::cout << "-- Starting rejection sampling!\n";
         for (auto i = 0; i < nbIter; i++) {
-            std::cout << "-- Iteration " << i << ". Sampling!\n";
+            // std::cout << "\t* Iteration " << i << ". Sampling!\n";
             sampler->go();
+            // std::cout << "\t* Sampling done. Checking validity.\n";
+            bool valid = true;
+            for (auto node : observedData) {
+                valid = valid && node->isConsistent();
+            }
+            if (valid) {  // accept
+                accepted++;
+                // std::cout << "\t* Sample is valid!\n";
+            } else {  // reject
+                // std::cout << "\t* Sample is not valid :(\n";
+            }
         }
+        std::cout << "-- Done. Accepted " << accepted << " points.\n\n";
     }
 };
 
