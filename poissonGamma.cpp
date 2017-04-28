@@ -28,8 +28,11 @@ int main() {
     model.connect<MultiUse<RandomNode>>("Sampler", "register", "X");
 
     model.component<RejectionSampling>("RS", 10000);
-    model.connect<UseProvide<Go>>("RS", "sampler", "Sampler");
+    model.connect<UseProvide<Sampler>>("RS", "sampler", "Sampler");
     model.connect<MultiUse<RandomNode>>("RS", "data", "X");
+
+    model.component<ConsoleOutput>("Console");
+    model.connect<UseProvide<DataStream>>("RS", "output", "Console");
 
     // model.component<SimpleMove>("Move1");
     // model.connect<UseProvide<RandomNode>>("Move1", "target", "Theta");

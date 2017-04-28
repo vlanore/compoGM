@@ -12,6 +12,11 @@ class Go : public Component {
     virtual void go() = 0;
 };
 
+class Sampler : public Go {
+  public:
+    virtual std::vector<double> getSample() const = 0;
+};
+
 class Real {
   public:
     virtual double getValue() const = 0;
@@ -29,11 +34,30 @@ class RandomNode : public Real {
     virtual bool isConsistent() const { return clampedVal == getValue(); }
 };
 
+class DataStream {
+  public:
+    virtual void header(const std::string &str) = 0;
+    virtual void dataLine(const std::vector<double> &line) = 0;
+};
+
 /*
 
 ===================================================================================================
   Helper classes
 =================================================================================================*/
+class ConsoleOutput : public Component, public DataStream {
+  public:
+    std::string _debug() const override { return "ConsoleOutput"; }
+    void header(const std::string &str) override { std::cout << str << std::endl; }
+    void dataLine(const std::vector<double> &line) override {
+        for (auto e : line) {
+            std::cout << e << '\t';
+        }
+        std::cout << std::endl;
+    }
+};
+
+
 // little object to encapsulate having a constant OR a pointer to Real
 class RealProp {
     int mode{0};  // 0:unset, 1:constant, 2:pointer
@@ -203,7 +227,7 @@ class Scheduler : public Go {
     void registerMove(SimpleMove *ptr) { moves.push_back(ptr); }
 };
 
-class MultiSample : public Go {
+class MultiSample : public Sampler {
     std::vector<RandomNode *> nodes;
 
   public:
@@ -218,21 +242,32 @@ class MultiSample : public Go {
     std::string _debug() const override { return "MultiSample"; }
 
     void registerNode(RandomNode *ptr) { nodes.push_back(ptr); }
+
+    std::vector<double> getSample() const override {
+        std::vector<double> tmp{};
+        for (auto node : nodes) {
+            tmp.push_back(node->getValue());
+        }
+        return tmp;
+    }
 };
 
 class RejectionSampling : public Go {
     std::vector<RandomNode *> observedData;
-    Go *sampler{nullptr};
+    Sampler *sampler{nullptr};
     int nbIter{0};
+    DataStream *output{nullptr};
 
   public:
     explicit RejectionSampling(int iter = 5) {
         nbIter = iter;
         port("sampler", &RejectionSampling::setSampler);
         port("data", &RejectionSampling::addData);
+        port("output", &RejectionSampling::setOutput);
     }
 
-    void setSampler(Go *ptr) { sampler = ptr; }
+    void setSampler(Sampler *ptr) { sampler = ptr; }
+    void setOutput(DataStream *out) { output = out; }
     void addData(RandomNode *ptr) { observedData.push_back(ptr); }
 
     std::string _debug() const override { return "RejectionSampling"; }
@@ -249,6 +284,7 @@ class RejectionSampling : public Go {
             }
             if (valid) {  // accept
                 accepted++;
+                output->dataLine(sampler->getSample());
                 // std::cout << "\t* Sample is valid!\n";
             } else {  // reject
                 // std::cout << "\t* Sample is not valid :(\n";
