@@ -196,3 +196,27 @@ class Scheduler : public Go {
 
     void registerMove(SimpleMove *ptr) { moves.push_back(ptr); }
 };
+
+class MultiSample : public Go {
+    std::vector<RandomNode *> nodes;
+
+  public:
+    MultiSample() { port("register", &MultiSample::registerNode); }
+
+    void go() override {
+        for (auto &node : nodes) {
+            node->sample();
+        }
+    }
+
+    std::string _debug() const override { return "MultiSample"; }
+
+    void registerNode(RandomNode *ptr) { nodes.push_back(ptr); }
+};
+
+/*
+
+===================================================================================================
+  Plates and custom connectors
+=================================================================================================*/
+class GraphicalModel : public Assembly {};

@@ -27,19 +27,24 @@ int main() {
     model.component<SimpleMove>("Move2");
     model.connect<UseProvide<RandomNode>>("Move2", "target", "Sigma");
 
-    model.component<Array<SimpleMove, 5>>("MoveArray");
-    model.connect<ArrayOneToOne<RandomNode>>("MoveArray", "target", "Omega");
+    model.component<MultiSample>("Sampler");
+    model.connect<UseProvide<RandomNode>>("Sampler", "register", "Sigma");
+    model.connect<UseProvide<RandomNode>>("Sampler", "register", "Theta");
+    model.connect<MultiUse<RandomNode>>("Sampler", "register", "Omega");
 
-    model.component<Scheduler>("Scheduler");
-    model.connect<UseProvide<SimpleMove>>("Scheduler", "register", "Move1");
-    model.connect<UseProvide<SimpleMove>>("Scheduler", "register", "Move2");
-    model.connect<MultiUse<SimpleMove>>("Scheduler", "register", "MoveArray");
+    // model.component<Array<SimpleMove, 5>>("MoveArray");
+    // model.connect<ArrayOneToOne<RandomNode>>("MoveArray", "target", "Omega");
+
+    // model.component<Scheduler>("Scheduler");
+    // model.connect<UseProvide<SimpleMove>>("Scheduler", "register", "Move1");
+    // model.connect<UseProvide<SimpleMove>>("Scheduler", "register", "Move2");
+    // model.connect<MultiUse<SimpleMove>>("Scheduler", "register", "MoveArray");
 
     // instantiate everything!
     model.instantiate();
 
     // do some things
-    model.call("Scheduler", "go");
+    model.call("Sampler", "go");
 
     model.print_all();
 }
