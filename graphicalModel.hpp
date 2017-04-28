@@ -26,7 +26,7 @@ class RandomNode : public Real {
     virtual void sample() = 0;
     void clamp(double val) { clampedVal = val; }
     double clampedValue() const { return clampedVal; }
-    virtual bool isConsistent() const { return true; }
+    virtual bool isConsistent() const { return clampedVal == getValue(); }
 };
 
 /*

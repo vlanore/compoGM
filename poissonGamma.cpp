@@ -31,6 +31,7 @@ int main() {
     model.connect<UseProvide<RandomNode>>("Sampler", "register", "Sigma");
     model.connect<UseProvide<RandomNode>>("Sampler", "register", "Theta");
     model.connect<MultiUse<RandomNode>>("Sampler", "register", "Omega");
+    model.connect<MultiUse<RandomNode>>("Sampler", "register", "X");
 
     // model.component<Array<SimpleMove, 5>>("MoveArray");
     // model.connect<ArrayOneToOne<RandomNode>>("MoveArray", "target", "Omega");
@@ -45,13 +46,14 @@ int main() {
 
     // hacking the model to clamp observed data
     auto &Xref = model.get_ref<ComponentArray>("X");
-    Xref.get_ref_at<RandomNode>(0).clamp(0.25);
-    Xref.get_ref_at<RandomNode>(1).clamp(0.32);
-    Xref.get_ref_at<RandomNode>(2).clamp(1.23);
-    Xref.get_ref_at<RandomNode>(3).clamp(0.78);
-    Xref.get_ref_at<RandomNode>(4).clamp(1.35);
+    Xref.get_ref_at<RandomNode>(0).clamp(1);
+    Xref.get_ref_at<RandomNode>(1).clamp(0);
+    Xref.get_ref_at<RandomNode>(2).clamp(1);
+    Xref.get_ref_at<RandomNode>(3).clamp(0);
+    Xref.get_ref_at<RandomNode>(4).clamp(2);
 
     // do some things
+    model.call("Sampler", "go");
     model.call("Sampler", "go");
 
     model.print_all();
