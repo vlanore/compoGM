@@ -18,7 +18,7 @@ clean:
 	rm -rf *_bin *.o model.hpp
 
 format:
-	@clang-format -i poissonGamma.cpp
+	@clang-format -i poissonGamma.cpp graphicalModel.hpp
 
 ready: format test
 	git status

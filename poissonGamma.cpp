@@ -22,15 +22,15 @@ int main() {
 
     // moves part
     model.component<SimpleMove>("Move1");
-    model.connect<UseProvide<Real>>("Move1", "target", "Theta");
+    model.connect<UseProvide<RandomNode>>("Move1", "target", "Theta");
 
     model.component<SimpleMove>("Move2");
-    model.connect<UseProvide<Real>>("Move2", "target", "Sigma");
+    model.connect<UseProvide<RandomNode>>("Move2", "target", "Sigma");
 
     model.component<Array<SimpleMove, 5>>("MoveArray");
-    model.connect<ArrayOneToOne<Real>>("MoveArray", "target", "Omega");
+    model.connect<ArrayOneToOne<RandomNode>>("MoveArray", "target", "Omega");
 
-    model.component<MCMCScheduler>("Scheduler");
+    model.component<Scheduler>("Scheduler");
     model.connect<UseProvide<SimpleMove>>("Scheduler", "register", "Move1");
     model.connect<UseProvide<SimpleMove>>("Scheduler", "register", "Move2");
     model.connect<MultiUse<SimpleMove>>("Scheduler", "register", "MoveArray");
@@ -39,9 +39,7 @@ int main() {
     model.instantiate();
 
     // do some things
-    model.call("Theta", "sample");
     model.call("Scheduler", "go");
-
 
     model.print_all();
 }

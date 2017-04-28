@@ -12,11 +12,15 @@ class Go : public Component {
     virtual void go() = 0;
 };
 
-// interface to get a Real
 class Real {
   public:
     virtual double getValue() const = 0;
     virtual void setValue(double value) = 0;
+};
+
+class RandomNode {
+  public:
+    virtual void sample() = 0;
 };
 
 /*
@@ -51,7 +55,7 @@ class RealProp {
 ===================================================================================================
   Graphical model nodes
 =================================================================================================*/
-class UnaryReal : public Component, public Real {
+class UnaryReal : public Component, public Real, public RandomNode {
   protected:
     RealProp param{};
     double value{0.0};
@@ -81,8 +85,6 @@ class UnaryReal : public Component, public Real {
     void setParam(Args... args) {
         param = RealProp(std::forward<Args>(args)...);
     }
-
-    virtual void sample() = 0;
 };
 
 class Exponential : public UnaryReal {
@@ -160,25 +162,37 @@ class Product : public Component, public Real {
   Moves and MCMC-related things
 =================================================================================================*/
 class SimpleMove : public Go {
-    Real *target{nullptr};
+    RandomNode *target{nullptr};
 
   public:
     SimpleMove() { port("target", &SimpleMove::setTarget); }
 
     std::string _debug() const override { return "SimpleMove"; }
-    void go() override {}
+    void go() override { target->sample(); }
 
-    void setTarget(Real *targetin) { target = targetin; }
+    void setTarget(RandomNode *targetin) { target = targetin; }
 };
 
-class MCMCScheduler : public Go {
+class Scheduler : public Go {
     std::vector<SimpleMove *> moves;
 
   public:
-    MCMCScheduler() { port("register", &MCMCScheduler::registerMove); }
+    Scheduler() { port("register", &Scheduler::registerMove); }
 
-    void go() override { std::cout << "MCMCScheduler started!\n"; }
-    std::string _debug() const override { return "MCMCScheduler"; }
+    void go() override {
+        std::cout << "\n-- Scheduler started!\n"
+                  << "-- Sampling everything!\n";
+        for (auto &move : moves) {
+            move->go();
+        }
+        std::cout << "-- Done.\n\n";
+    }
+
+    std::string _debug() const override {
+        std::stringstream ss;
+        ss << "Scheduler[" << moves.size() << "]";
+        return ss.str();
+    }
 
     void registerMove(SimpleMove *ptr) { moves.push_back(ptr); }
 };
