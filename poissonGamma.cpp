@@ -43,6 +43,14 @@ int main() {
     // instantiate everything!
     model.instantiate();
 
+    // hacking the model to clamp observed data
+    auto &Xref = model.get_ref<ComponentArray>("X");
+    Xref.get_ref_at<RandomNode>(0).clamp(0.25);
+    Xref.get_ref_at<RandomNode>(1).clamp(0.32);
+    Xref.get_ref_at<RandomNode>(2).clamp(1.23);
+    Xref.get_ref_at<RandomNode>(3).clamp(0.78);
+    Xref.get_ref_at<RandomNode>(4).clamp(1.35);
+
     // do some things
     model.call("Sampler", "go");
 

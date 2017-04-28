@@ -18,9 +18,15 @@ class Real {
     virtual void setValue(double value) = 0;
 };
 
-class RandomNode {
+class RandomNode : public Real {
+    double clampedVal{0.0};
+
   public:
+    RandomNode() = default;
     virtual void sample() = 0;
+    void clamp(double val) { clampedVal = val; }
+    double clampedValue() const { return clampedVal; }
+    virtual bool isConsistent() const { return true; }
 };
 
 /*
@@ -55,7 +61,7 @@ class RealProp {
 ===================================================================================================
   Graphical model nodes
 =================================================================================================*/
-class UnaryReal : public Component, public Real, public RandomNode {
+class UnaryReal : public Component, public RandomNode {
   protected:
     RealProp param{};
     double value{0.0};
@@ -74,7 +80,7 @@ class UnaryReal : public Component, public Real, public RandomNode {
     // methods required from parent classes
     std::string _debug() const override {
         std::stringstream ss;
-        ss << name << "(" << param.getValue() << "):" << value;
+        ss << name << "(" << param.getValue() << "):" << value << "[" << clampedValue() << "]";
         return ss.str();
     }
     double getValue() const override { return value; }
@@ -113,7 +119,7 @@ class Gamma : public UnaryReal {
 
 class Poisson : public UnaryReal {
   public:
-    explicit Poisson() : UnaryReal("Poisson") {}
+    explicit Poisson(double value = 0.0) : UnaryReal("Poisson") { setValue(value); }
 
     void sample() override {
         std::random_device rd;
