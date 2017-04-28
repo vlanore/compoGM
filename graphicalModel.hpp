@@ -23,6 +23,7 @@ more generally, to use and operate it in the same conditions as regards security
 The fact that you are presently reading this means that you have had knowledge of the CeCILL license
 and that you accept its terms.*/
 
+#include <fstream>
 #include <random>
 #include "model.hpp"
 
@@ -76,9 +77,25 @@ class ConsoleOutput : public Component, public DataStream {
     void header(const std::string &str) override { std::cout << str << std::endl; }
     void dataLine(const std::vector<double> &line) override {
         for (auto e : line) {
-            std::cout << e << '\t';
+            std::cout << e << "  ";
         }
         std::cout << std::endl;
+    }
+};
+
+class FileOutput : public Component, public DataStream {
+    std::ofstream file{};
+
+  public:
+    explicit FileOutput(const std::string &filename) { file.open(filename); }
+    ~FileOutput() { file.close(); }
+    std::string _debug() const override { return "FileOutput"; }
+    void header(const std::string &str) override { file << str << std::endl; }
+    void dataLine(const std::vector<double> &line) override {
+        for (auto e : line) {
+            file << e << "  ";
+        }
+        file << std::endl;
     }
 };
 
@@ -299,6 +316,9 @@ class RejectionSampling : public Go {
     void go() override {
         int accepted = 0;
         std::cout << "-- Starting rejection sampling!\n";
+        std::stringstream ss;
+        ss << "# Rejection sampling with " << nbIter << " iterations.";
+        output->header(ss.str());
         for (auto i = 0; i < nbIter; i++) {
             // std::cout << "\t* Iteration " << i << ". Sampling!\n";
             sampler->go();

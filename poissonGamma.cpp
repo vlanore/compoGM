@@ -56,8 +56,10 @@ int main() {
     model.connect<UseProvide<Sampler>>("RS", "sampler", "Sampler");
     model.connect<MultiUse<RandomNode>>("RS", "data", "X");
 
-    model.component<ConsoleOutput>("Console");
-    model.connect<UseProvide<DataStream>>("RS", "output", "Console");
+    // model.component<ConsoleOutput>("Console");
+    model.component<FileOutput>("TraceFile", "tmp.trace");
+    // model.connect<UseProvide<DataStream>>("RS", "output", "Console");
+    model.connect<UseProvide<DataStream>>("RS", "output", "TraceFile");
 
     // model.component<SimpleMove>("Move1");
     // model.connect<UseProvide<RandomNode>>("Move1", "target", "Theta");
