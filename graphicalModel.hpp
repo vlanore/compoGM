@@ -28,7 +28,7 @@ license and that you accept its terms.*/
 
 #include <fstream>
 #include <random>
-#include "model.hpp"
+#include "tinycompo.hpp"
 
 /*
 

@@ -1,3 +1,4 @@
 *_bin
 tmp*
-model.hpp
+tinycompo.hpp
+arrays.hpp
