@@ -354,7 +354,7 @@ class RejectionSampling : public Go {
 =================================================================================================*/
 // GraphicalModel is a specialized Assembly which provides graphical-model-specific functionalities
 // such as giving a way to differentiate between random and deterministic nodes.
-class GraphicalModel : public Assembly, public Component {
+class GraphicalModel : public Assembly<>, public Component {
   public:
     std::string _debug() const override { return "GraphicalModel"; }
 
@@ -365,13 +365,13 @@ class GraphicalModel : public Assembly, public Component {
             if (ptr != nullptr) {  // node is a lone RandomNode
                 result.push_back(ptr);
             } else {  // try to see if it's an array
-                auto ptr2 = dynamic_cast<ComponentArray *>(node.second.get());
+                auto ptr2 = dynamic_cast<Assembly<int> *>(node.second.get());
                 if (ptr2 != nullptr) {
                     // std::cout << "Found an array\n";
-                    auto ptr3 = dynamic_cast<RandomNode *>(&ptr2->get_ref_at(0));
+                    auto ptr3 = dynamic_cast<RandomNode *>(&ptr2->at(0));
                     if (ptr3 != nullptr) {
                         for (int i = 0; i < static_cast<int>(ptr2->size()); i++) {
-                            result.push_back(&ptr2->get_ref_at<RandomNode>(i));
+                            result.push_back(&ptr2->at<RandomNode>(i));
                         }
                     }
                 }
@@ -384,10 +384,10 @@ class GraphicalModel : public Assembly, public Component {
 
 class UseAllRandomNodes {
   public:
-    static void _connect(Assembly &a, const std::string &user, const std::string &prop,
+    static void _connect(Assembly<> &a, const std::string &user, const std::string &prop,
                          const std::string &gm) {
-        auto &userRef = a.get_ref(user);
-        std::vector<RandomNode *> nodes = a.get_ref<GraphicalModel>(gm).all_random_nodes();
+        auto &userRef = a.at(user);
+        std::vector<RandomNode *> nodes = a.at<GraphicalModel>(gm).all_random_nodes();
         userRef.set(prop, nodes);
     }
 };

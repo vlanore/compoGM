@@ -39,14 +39,14 @@ public:
         component<Exponential>("Theta");
         property("Theta", "paramConst", 1.0);
 
-        component<Array<Gamma, 5>>("Omega");
+        component<Array<Gamma>>("Omega", 5);
         connect<MultiProvide<Real>>("Omega", "paramPtr", "Theta");
 
-        component<Array<Product, 5>>("rate");
+        component<Array<Product>>("rate", 5);
         connect<ArrayOneToOne<Real>>("rate", "aPtr", "Omega");
         connect<MultiProvide<Real>>("rate", "bPtr", "Sigma");
 
-        component<Array<Poisson, 5>>("X");
+        component<Array<Poisson>>("X", 5);
         connect<ArrayOneToOne<Real>>("X", "paramPtr", "rate");
 
         instantiate();
@@ -54,7 +54,7 @@ public:
 };
 
 int main() {
-    Assembly model;
+    Assembly<> model;
 
     model.component<PoissonGamma>("model");
 
@@ -70,5 +70,5 @@ int main() {
     model.call("Sampler", "go");
 
     model.print_all();
-    model.get_ref<GraphicalModel>("model").print_all();
+    model.at<GraphicalModel>("model").print_all();
 }

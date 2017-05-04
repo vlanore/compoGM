@@ -29,7 +29,7 @@ license and that you accept its terms.*/
 #include "graphicalModel.hpp"
 
 int main() {
-    Assembly model;
+    Assembly<> model;
 
     // graphical model part
     model.component<Exponential>("Sigma");
@@ -38,14 +38,14 @@ int main() {
     model.component<Exponential>("Theta");
     model.property("Theta", "paramConst", 1.0);
 
-    model.component<Array<Gamma, 5>>("Omega");
+    model.component<Array<Gamma>>("Omega", 5);
     model.connect<MultiProvide<Real>>("Omega", "paramPtr", "Theta");
 
-    model.component<Array<Product, 5>>("rate");
+    model.component<Array<Product>>("rate", 5);
     model.connect<ArrayOneToOne<Real>>("rate", "aPtr", "Omega");
     model.connect<MultiProvide<Real>>("rate", "bPtr", "Sigma");
 
-    model.component<Array<Poisson, 5>>("X");
+    model.component<Array<Poisson>>("X", 5);
     model.connect<ArrayOneToOne<Real>>("X", "paramPtr", "rate");
 
     // moves part
@@ -82,12 +82,11 @@ int main() {
     model.instantiate();
 
     // hacking the model to clamp observed data
-    auto &Xref = model.get_ref<ComponentArray>("X");
-    Xref.get_ref_at<RandomNode>(0).clamp(1);
-    Xref.get_ref_at<RandomNode>(1).clamp(0);
-    Xref.get_ref_at<RandomNode>(2).clamp(1);
-    Xref.get_ref_at<RandomNode>(3).clamp(0);
-    Xref.get_ref_at<RandomNode>(4).clamp(0);
+    model.at<RandomNode>("X", 0).clamp(1);
+    model.at<RandomNode>("X", 1).clamp(0);
+    model.at<RandomNode>("X", 2).clamp(1);
+    model.at<RandomNode>("X", 3).clamp(0);
+    model.at<RandomNode>("X", 4).clamp(0);
 
     // do some things
     model.call("RS", "go");
