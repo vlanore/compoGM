@@ -1,27 +1,22 @@
-TINYCOMPO_FILES = tinycompo.hpp arrays.hpp
+.PHONY: all clean ready globom globom-coverage test
 
-all: poisson_bin sample_bin
+all: test_bin
 
-.PHONY: all test clean format ready
+tinycompo.hpp:
+	curl https://raw.githubusercontent.com/vlanore/tinycompo/master/tinycompo.hpp > $@
 
-$(TINYCOMPO_FILES):
-	curl "https://raw.githubusercontent.com/vlanore/tinycompo/master/tinycompo.hpp" > tinycompo.hpp
-	curl "https://raw.githubusercontent.com/vlanore/tinycompo/master/arrays.hpp" > arrays.hpp
-
-poisson_bin: poissonGamma.cpp $(TINYCOMPO_FILES) graphicalModel.hpp
-	$(CXX) -std=gnu++11 $< -o $@
-
-sample_bin: samplePlate.cpp $(TINYCOMPO_FILES) graphicalModel.hpp
-	$(CXX) -std=gnu++11 $< -o $@
-
-test: poisson_bin
-	@echo "============TEST=============" ; ./$< && echo "============================="
+%_bin: src/%.cpp tinycompo.hpp
+	$(CXX) --std=c++11 $< -o $@
 
 clean:
-	rm -rf *_bin *.o $(TINYCOMPO_FILES)
+	rm *_bin
+
+test: test_bin
+	./$<
 
 format:
-	@clang-format -i poissonGamma.cpp graphicalModel.hpp
+	clang-format -i src/*.hpp src/*.cpp
 
-ready: format test
-	git status
+ready: all
+	make test --no-print-directory
+	@git status
