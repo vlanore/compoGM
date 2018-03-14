@@ -25,6 +25,52 @@ more generally, to use and operate it in the same conditions as regards security
 The fact that you are presently reading this means that you have had knowledge of the CeCILL-C
 license and that you accept its terms.*/
 
-#include <iostream>
+#include <tinycompo.hpp>
 
-int main() { std::cout << "Hello, world!\n"; }
+// C++11 integer_sequence implementation :/
+template <int...>
+struct seq {};
+
+template <int N, int... S>
+struct gens : gens<N - 1, N - 1, S...> {};
+
+template <int... S>
+struct gens<0, S...> {
+    typedef seq<S...> type;
+};
+
+// class for the test
+struct Hello : public tc::Component {
+    void hello() { std::cout << "youpi tralala\n"; }
+};
+
+// candidate classes for tinycompo extension
+struct Go {
+    virtual void go() = 0;
+};
+
+template <class... Refs>
+class Driver : public tc::Component {
+    std::function<void(Refs...)> instructions;
+    std::tuple<Refs...> refs;
+
+    template <int... S>
+    void call(seq<S...>) {
+        instructions(std::get<S>(refs) ...);
+    }
+
+    void go() { call(typename gens<sizeof...(Refs)>::type()); }
+
+  public:
+    Driver(const std::function<void(Refs...)>& instructions) : instructions(instructions) {
+        port("go", &Driver::go);
+    }
+};
+
+int main() {
+    tc::Model model;
+    model.component<Driver<Hello*>>("test", [](Hello* r) { r->hello(); });
+
+    tc::Assembly assembly(model);
+    assembly.call("test", "go");
+}

@@ -1,3 +1,5 @@
+CPPFLAGS= -Wall -Wextra -O3 --std=c++11
+
 .PHONY: all clean ready test
 
 all: test_bin
@@ -6,7 +8,7 @@ tinycompo.hpp:
 	curl https://raw.githubusercontent.com/vlanore/tinycompo/master/tinycompo.hpp > $@
 
 %_bin: src/%.cpp tinycompo.hpp
-	$(CXX) --std=c++11 $< -o $@
+	$(CXX) -I. $(CPPFLAGS) $< -o $@
 
 clean:
 	rm *_bin
