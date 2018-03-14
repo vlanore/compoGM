@@ -1,4 +1,4 @@
-.PHONY: all clean ready globom globom-coverage test
+.PHONY: all clean ready test
 
 all: test_bin
 
