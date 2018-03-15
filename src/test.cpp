@@ -50,8 +50,12 @@ struct Go {
     virtual void go() = 0;
 };
 
+struct _AbstractDriver {
+    virtual void set_refs(std::vector<tc::Component*>) = 0;
+};
+
 template <class... Refs>
-class Driver : public tc::Component {
+class Driver : public tc::Component, public _AbstractDriver {
     std::function<void(Refs...)> instructions;
     std::tuple<Refs...> refs;
 
@@ -70,7 +74,7 @@ class Driver : public tc::Component {
     }
 
     void set_refs(std::vector<tc::Component*> ref_values) {
-        set_ref_helper<sizeof... (Refs) - 1, Refs...>(ref_values);
+        set_ref_helper<sizeof...(Refs) - 1, Refs...>(ref_values);
     }
 
     // void set_refs(Refs... ref_values) { set_ref_helper<sizeof...(Refs) - 1>(ref_values...); }
@@ -84,10 +88,29 @@ class Driver : public tc::Component {
     }
 };
 
-template <class Head, class... Tail>
+template <class... Addresses>
 struct DriverConnect {
-    static void _connect(tc::Assembly& a, Head head, Tail... tail) {
-        // TODO send a vector of Component*
+    static void helper(tc::Assembly&, std::vector<tc::Component*>&) {}
+
+    template <class... Tail>
+    static void helper(tc::Assembly& a, std::vector<tc::Component*>& result, tc::Address head,
+                       Tail... tail) {
+        result.push_back(&a.at(head));
+        helper(a, result, tail...);
+    }
+
+    template <class... Tail>
+    static void helper(tc::Assembly& a, std::vector<tc::Component*>& result, tc::PortAddress head,
+                       Tail... tail) {
+        auto provided_port = a.at(head.address).get<tc::Component>(head.prop);
+        result.push_back(provided_port);
+        helper(a, result, tail...);
+    }
+
+    static void _connect(tc::Assembly& a, tc::Address driver, Addresses... addresses) {
+        std::vector<tc::Component*> result;
+        helper(a, result, addresses...);
+        a.at<_AbstractDriver>(driver).set_refs(result);
     }
 };
 
@@ -95,9 +118,8 @@ int main() {
     tc::Model model;
     model.component<Driver<Hello*>>("test", [](Hello* r) { r->hello(); });
     model.component<Hello>("hello");
+    model.connect<DriverConnect<tc::Address>>("test", tc::Address("hello"));
 
     tc::Assembly assembly(model);
-    std::vector<tc::Component*> href = { &assembly.at("hello") };
-    assembly.call(tc::PortAddress("refs", "test"), href);
     assembly.call("test", "go");
 }
