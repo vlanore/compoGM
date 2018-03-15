@@ -41,7 +41,8 @@ struct gens<0, S...> {
 
 // class for the test
 struct Hello : public tc::Component {
-    int i{17};
+    int i;
+    Hello(int i) : i(i) {}
     void hello() { std::cout << i << " youpi tralala\n"; }
 };
 
@@ -54,6 +55,7 @@ struct _AbstractDriver {
     virtual void set_refs(std::vector<tc::Component*>) = 0;
 };
 
+// invariant : Refs are all pointers to classes inheriting from Component
 template <class... Refs>
 class Driver : public tc::Component, public _AbstractDriver {
     std::function<void(Refs...)> instructions;
@@ -73,11 +75,10 @@ class Driver : public tc::Component, public _AbstractDriver {
         set_ref_helper<i - 1, Tail...>(ref_values);
     }
 
+    // invariant : vector should have the same size as Refs
     void set_refs(std::vector<tc::Component*> ref_values) {
         set_ref_helper<sizeof...(Refs) - 1, Refs...>(ref_values);
     }
-
-    // void set_refs(Refs... ref_values) { set_ref_helper<sizeof...(Refs) - 1>(ref_values...); }
 
     void go() { call(typename gens<sizeof...(Refs)>::type()); }
 
@@ -116,9 +117,14 @@ struct DriverConnect {
 
 int main() {
     tc::Model model;
-    model.component<Driver<Hello*>>("test", [](Hello* r) { r->hello(); });
-    model.component<Hello>("hello");
-    model.connect<DriverConnect<tc::Address>>("test", tc::Address("hello"));
+    model.component<Driver<Hello*, Hello*>>("test", [](Hello* r, Hello* r2) {
+        r->hello();
+        r2->hello();
+    });
+    model.component<Hello>("hello", 17);
+    model.component<Hello>("hello2", 31);
+    model.connect<DriverConnect<tc::Address, tc::Address>>("test", tc::Address("hello"),
+                                                           tc::Address("hello2"));
 
     tc::Assembly assembly(model);
     assembly.call("test", "go");
