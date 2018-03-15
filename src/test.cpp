@@ -8,7 +8,7 @@ graphical model.
 This software is governed by the CeCILL-C license under French law and abiding by the rules of
 distribution of free software. You can use, modify and/ or redistribute the software under the terms
 of the CeCILL-C license as circulated by CEA, CNRS and INRIA at the following URL
-"http://www.cecill.info".
+"http:////www.cecill.info".
 
 As a counterpart to the access to the source code and rights to copy, modify and redistribute
 granted by the license, users are provided only with a limited warranty and the software's author,
@@ -27,6 +27,7 @@ license and that you accept its terms.*/
 
 #include <tinycompo.hpp>
 
+//
 // C++11 integer_sequence implementation :/
 template <int...>
 struct seq {};
@@ -39,6 +40,7 @@ struct gens<0, S...> {
     typedef seq<S...> type;
 };
 
+//
 // class for the test
 struct Hello : public tc::Component {
     int i;
@@ -46,6 +48,7 @@ struct Hello : public tc::Component {
     void hello() { std::cout << i << " youpi tralala\n"; }
 };
 
+//
 // candidate classes for tinycompo extension
 struct Go {
     virtual void go() = 0;
@@ -55,6 +58,7 @@ struct _AbstractDriver {
     virtual void set_refs(std::vector<tc::Component*>) = 0;
 };
 
+//
 // invariant : Refs are all pointers to classes inheriting from Component
 template <class... Refs>
 class Driver : public tc::Component, public _AbstractDriver {
@@ -89,6 +93,8 @@ class Driver : public tc::Component, public _AbstractDriver {
     }
 };
 
+//
+// connector
 template <class... Addresses>
 struct DriverConnect {
     static void helper(tc::Assembly&, std::vector<tc::Component*>&) {}
