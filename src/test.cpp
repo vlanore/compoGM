@@ -61,15 +61,19 @@ class Driver : public tc::Component {
     }
 
     template <int i>
-    void set_ref_helper() {}
+    void set_ref_helper(std::vector<tc::Component*>&) {}
 
     template <int i, class Head, class... Tail>
-    void set_ref_helper(Head head, Tail... tail) {
-        std::get<i>(refs) = head;
-        set_ref_helper<i - 1>(tail...);
+    void set_ref_helper(std::vector<tc::Component*>& ref_values) {
+        std::get<i>(refs) = dynamic_cast<Head>(ref_values.at(i));
+        set_ref_helper<i - 1, Tail...>(ref_values);
     }
 
-    void set_refs(Refs... ref_values) { set_ref_helper<sizeof...(Refs) - 1>(ref_values...); }
+    void set_refs(std::vector<tc::Component*> ref_values) {
+        set_ref_helper<sizeof... (Refs) - 1, Refs...>(ref_values);
+    }
+
+    // void set_refs(Refs... ref_values) { set_ref_helper<sizeof...(Refs) - 1>(ref_values...); }
 
     void go() { call(typename gens<sizeof...(Refs)>::type()); }
 
@@ -80,13 +84,20 @@ class Driver : public tc::Component {
     }
 };
 
+template <class Head, class... Tail>
+struct DriverConnect {
+    static void _connect(tc::Assembly& a, Head head, Tail... tail) {
+        // TODO send a vector of Component*
+    }
+};
+
 int main() {
     tc::Model model;
     model.component<Driver<Hello*>>("test", [](Hello* r) { r->hello(); });
     model.component<Hello>("hello");
 
     tc::Assembly assembly(model);
-    auto& href = assembly.at<Hello>("hello");
-    assembly.call(tc::PortAddress("refs", "test"), &href);
+    std::vector<tc::Component*> href = { &assembly.at("hello") };
+    assembly.call(tc::PortAddress("refs", "test"), href);
     assembly.call("test", "go");
 }
