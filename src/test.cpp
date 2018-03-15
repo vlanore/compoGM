@@ -41,7 +41,8 @@ struct gens<0, S...> {
 
 // class for the test
 struct Hello : public tc::Component {
-    void hello() { std::cout << "youpi tralala\n"; }
+    int i{17};
+    void hello() { std::cout << i << " youpi tralala\n"; }
 };
 
 // candidate classes for tinycompo extension
@@ -56,21 +57,36 @@ class Driver : public tc::Component {
 
     template <int... S>
     void call(seq<S...>) {
-        instructions(std::get<S>(refs) ...);
+        instructions(std::get<S>(refs)...);
     }
+
+    template <int i>
+    void set_ref_helper() {}
+
+    template <int i, class Head, class... Tail>
+    void set_ref_helper(Head head, Tail... tail) {
+        std::get<i>(refs) = head;
+        set_ref_helper<i - 1>(tail...);
+    }
+
+    void set_refs(Refs... ref_values) { set_ref_helper<sizeof...(Refs) - 1>(ref_values...); }
 
     void go() { call(typename gens<sizeof...(Refs)>::type()); }
 
   public:
     Driver(const std::function<void(Refs...)>& instructions) : instructions(instructions) {
         port("go", &Driver::go);
+        port("refs", &Driver::set_refs);
     }
 };
 
 int main() {
     tc::Model model;
     model.component<Driver<Hello*>>("test", [](Hello* r) { r->hello(); });
+    model.component<Hello>("hello");
 
     tc::Assembly assembly(model);
+    auto& href = assembly.at<Hello>("hello");
+    assembly.call(tc::PortAddress("refs", "test"), &href);
     assembly.call("test", "go");
 }
