@@ -5,13 +5,13 @@ CPPFLAGS= -Wall -Wextra -O3 --std=c++11
 all: test_bin
 
 tinycompo.hpp:
-	curl https://raw.githubusercontent.com/vlanore/tinycompo/master/tinycompo.hpp > $@
+	curl https://raw.githubusercontent.com/vlanore/tinycompo/experimental/tinycompo.hpp > $@
 
 %_bin: src/%.cpp tinycompo.hpp
 	$(CXX) -I. $(CPPFLAGS) $< -o $@
 
 clean:
-	rm *_bin
+	rm -f *_bin tinycompo.hpp
 
 test: test_bin
 	./$<

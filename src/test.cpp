@@ -27,111 +27,41 @@ license and that you accept its terms.*/
 
 #include <tinycompo.hpp>
 
-//
-// C++11 integer_sequence implementation :/
-template <int...>
-struct seq {};
-
-template <int N, int... S>
-struct gens : gens<N - 1, N - 1, S...> {};
-
-template <int... S>
-struct gens<0, S...> {
-    typedef seq<S...> type;
-};
+using namespace std;
 
 //
-// class for the test
-struct Hello : public tc::Component {
-    int i;
-    Hello(int i) : i(i) {}
-    void hello() { std::cout << i << " youpi tralala\n"; }
-};
-
-//
-// candidate classes for tinycompo extension
-struct Go {
-    virtual void go() = 0;
-};
-
-struct _AbstractDriver {
-    virtual void set_refs(std::vector<tc::Component*>) = 0;
-};
-
-//
-// invariant : Refs are all pointers to classes inheriting from Component
-template <class... Refs>
-class Driver : public tc::Component, public _AbstractDriver {
-    std::function<void(Refs...)> instructions;
-    std::tuple<Refs...> refs;
-
-    template <int... S>
-    void call(seq<S...>) {
-        instructions(std::get<S>(refs)...);
-    }
-
-    template <int i>
-    void set_ref_helper(std::vector<tc::Component*>&) {}
-
-    template <int i, class Head, class... Tail>
-    void set_ref_helper(std::vector<tc::Component*>& ref_values) {
-        std::get<i>(refs) = dynamic_cast<Head>(ref_values.at(i));
-        set_ref_helper<i - 1, Tail...>(ref_values);
-    }
-
-    // invariant : vector should have the same size as Refs
-    void set_refs(std::vector<tc::Component*> ref_values) {
-        set_ref_helper<sizeof...(Refs) - 1, Refs...>(ref_values);
-    }
-
-    void go() { call(typename gens<sizeof...(Refs)>::type()); }
+// ==================================================================================================
+template <class Type>
+class Value : public tc::Component {
+    Type value;
 
   public:
-    Driver(const std::function<void(Refs...)>& instructions) : instructions(instructions) {
-        port("go", &Driver::go);
-        port("refs", &Driver::set_refs);
+    Value(Type value) : value(value) {}
+    void set(Type new_value) { value = new_value; }
+    Type get() { return value; }
+};
+
+//
+// ==================================================================================================
+template <class ValueType>
+struct Node {
+    template <class InitType>
+    static void contents(tc::Model& m, InitType init) {
+        m.component<ValueType>("value", init);
+    }
+
+    static void ports(tc::Assembly& a) {
+        a.provide<ValueType>("port", "value");
     }
 };
 
 //
-// connector
-template <class... Addresses>
-struct DriverConnect {
-    static void helper(tc::Assembly&, std::vector<tc::Component*>&) {}
-
-    template <class... Tail>
-    static void helper(tc::Assembly& a, std::vector<tc::Component*>& result, tc::Address head,
-                       Tail... tail) {
-        result.push_back(&a.at(head));
-        helper(a, result, tail...);
-    }
-
-    template <class... Tail>
-    static void helper(tc::Assembly& a, std::vector<tc::Component*>& result, tc::PortAddress head,
-                       Tail... tail) {
-        auto provided_port = a.at(head.address).get<tc::Component>(head.prop);
-        result.push_back(provided_port);
-        helper(a, result, tail...);
-    }
-
-    static void _connect(tc::Assembly& a, tc::Address driver, Addresses... addresses) {
-        std::vector<tc::Component*> result;
-        helper(a, result, addresses...);
-        a.at<_AbstractDriver>(driver).set_refs(result);
-    }
-};
-
+// ==================================================================================================
 int main() {
     tc::Model model;
-    model.component<Driver<Hello*, Hello*>>("test", [](Hello* r, Hello* r2) {
-        r->hello();
-        r2->hello();
-    });
-    model.component<Hello>("hello", 17);
-    model.component<Hello>("hello2", 31);
-    model.connect<DriverConnect<tc::Address, tc::Address>>("test", tc::Address("hello"),
-                                                           tc::Address("hello2"));
+    model.composite<Node<Value<double>>>("c1", 7.2);
 
     tc::Assembly assembly(model);
-    assembly.call("test", "go");
+    auto& port_ref = assembly.at<Value<double>>(tc::PortAddress("port", "c1"));
+    cout << port_ref.get() << endl;
 }
