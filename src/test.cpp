@@ -28,14 +28,20 @@ license and that you accept its terms.*/
 #include <tinycompo.hpp>
 
 using namespace std;
+using tc::Model;
+using tc::Assembly;
+using tc::Component;
+using tc::Composite;
+using tc::Use;
 
 //
 // ==================================================================================================
 template <class Type>
-class Value : public tc::Component {
+class Value : public Component {
     Type value;
 
   public:
+    using type = Type;
     Value(Type value) : value(value) {}
     void set(Type new_value) { value = new_value; }
     Type get() { return value; }
@@ -44,24 +50,48 @@ class Value : public tc::Component {
 //
 // ==================================================================================================
 template <class ValueType>
-struct Node {
-    template <class InitType>
-    static void contents(tc::Model& m, InitType init) {
+struct Node : public Composite {
+    static void contents(Model& m, typename ValueType::type init) {
         m.component<ValueType>("value", init);
     }
 
-    static void ports(tc::Assembly& a) {
-        a.provide<ValueType>("port", "value");
+    void after_construct() override { provide<ValueType>("port", "value"); }
+};
+
+//
+// ==================================================================================================
+template <class OperationType>
+struct GraphOperation {};
+
+//
+// ==================================================================================================
+template <class NodeType>
+struct DiGraph : public Composite {
+    template <class... Args>
+    static void contents(Model& m, Args&&... args) {
+        m.composite<NodeType>("node", std::forward<Args>(args)...);
     }
+
+    void after_construct() override {
+        port("child", &DiGraph::add_child);
+    }
+
+    vector<DiGraph*> children;
+    void add_child(DiGraph* p) { children.emplace_back(p); }
 };
 
 //
 // ==================================================================================================
 int main() {
-    tc::Model model;
-    model.composite<Node<Value<double>>>("c1", 7.2);
+    using G = DiGraph<Node<Value<double>>>;
 
-    tc::Assembly assembly(model);
-    auto& port_ref = assembly.at<Value<double>>(tc::PortAddress("port", "c1"));
-    cout << port_ref.get() << endl;
+    Model model;
+    model.composite<G>("a", 12).connect<Use<G>>("child", "b").connect<Use<G>>("child", "c");
+    model.composite<G>("b", 13).connect<Use<G>>("child", "d");
+    model.composite<G>("c", 14).connect<Use<G>>("child", "d");
+    model.composite<G>("d", 15);
+
+    model.dot_to_file();
+
+    Assembly assembly(model);
 }
