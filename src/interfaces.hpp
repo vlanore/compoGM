@@ -25,50 +25,26 @@ more generally, to use and operate it in the same conditions as regards security
 The fact that you are presently reading this means that you have had knowledge of the CeCILL-C
 license and that you accept its terms.*/
 
-#include <tinycompo.hpp>
-#include <cmath>
-#include "interfaces.hpp"
+#ifndef COMPOGM_INTERFACES_HPP
+#define COMPOGM_INTERFACES_HPP
 
-using namespace std;
-using namespace tc;
-
-template <class Functor>
-class UnaryNode : public Value<double>, public LogProb, public Component {
-    double value{0};
-    Value<double>* parent{nullptr};
-
-  public:
-    UnaryNode(double value) : value(value) { port("parent", &UnaryNode::parent); }
-    void set(double v) final { value = v; }
-    double get() final { return value; }
-    double get_log_prob() final { return Functor()(value, parent->get()); }
+struct Go {
+    virtual void go() = 0;
 };
 
-template <class Functor>
-class OrphanNode : public Value<double>, public LogProb, public Component {
-    double value{0};
-    function<double(double)> f;
-
-  public:
-    template <class... Args>
-    OrphanNode(double value, Args... args)
-        : value(value), f([args...](double v) { return Functor()(v, args...); }) {}
-    void set(double v) final { value = v; }
-    double get() final { return value; }
-    double get_log_prob() final { return f(value); }
+struct LogProb {
+    virtual double get_log_prob() = 0;
 };
 
-struct Exp {
-    double operator()(double x, double lambda) {
-        return lambda * exp(- lambda * x);
-    }
+template <class ValueType>
+struct Value {
+    virtual void set(ValueType) = 0;
+    virtual ValueType get() = 0;
 };
 
-int main() {
-    Model m;
+struct Proxy {
+    virtual void acquire() = 0;
+    virtual void release() = 0;
+};
 
-    m.component<OrphanNode<Exp>>("c1", 0.0, 1.0);
-    m.component<UnaryNode<Exp>>("c2", 0.0).connect<Use<Value<double>>>("parent", "c1");
-
-    cout << Exp()(1.0, 2.0) << "Hello world!\n";
-}
+#endif // COMPOGM_INTERFACES_HPP
