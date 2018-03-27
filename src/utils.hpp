@@ -25,27 +25,9 @@ more generally, to use and operate it in the same conditions as regards security
 The fact that you are presently reading this means that you have had knowledge of the CeCILL-C
 license and that you accept its terms.*/
 
-#ifndef COMPOGM_INTERFACES_HPP
-#define COMPOGM_INTERFACES_HPP
+#include <random>
 
-struct Go {
-    virtual void go() = 0;
-};
-
-struct LogProb {
-    virtual double get_log_prob() = 0;
-};
-
-template <class ValueType>
-struct Value {
-    virtual ValueType& get_ref() = 0;
-    virtual void backup() = 0;
-    virtual void restore() = 0;
-};
-
-struct Proxy {
-    virtual void acquire() = 0;
-    virtual void release() = 0;
-};
-
-#endif  // COMPOGM_INTERFACES_HPP
+std::random_device r;
+std::default_random_engine generator(r());
+std::uniform_real_distribution<double> uniform{0.0, 1.0};
+bool decide(double prob) { return uniform(generator) <= prob; }

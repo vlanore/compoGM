@@ -10,7 +10,7 @@ tinycompo.hpp:
 tinycompo_mpi.hpp:
 	curl https://raw.githubusercontent.com/vlanore/tinycompo/experimental/tinycompo.hpp > $@
 
-%_bin: src/%.cpp tinycompo.hpp tinycompo_mpi.hpp src/interfaces.hpp
+%_bin: src/%.cpp tinycompo.hpp tinycompo_mpi.hpp src/*.hpp
 	$(CXX) -I. $(CPPFLAGS) $< -o $@
 
 clean:

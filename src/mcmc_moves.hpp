@@ -25,27 +25,35 @@ more generally, to use and operate it in the same conditions as regards security
 The fact that you are presently reading this means that you have had knowledge of the CeCILL-C
 license and that you accept its terms.*/
 
-#ifndef COMPOGM_INTERFACES_HPP
-#define COMPOGM_INTERFACES_HPP
+#include <tinycompo.hpp>
+#include "interfaces.hpp"
+#include "utils.hpp"
 
-struct Go {
-    virtual void go() = 0;
+template <class Move, class ValueType>
+class SimpleMHMove : public Go, public tc::Component {
+    double tuning;
+    Value<ValueType>* target;
+    std::vector<LogProb*> log_probs;
+    void add_log_prob(LogProb* ptr) { log_probs.push_back(ptr); }
+
+  public:
+    SimpleMHMove(double tuning = 1.0) : tuning(tuning) {
+        port("target", &SimpleMHMove::target);
+        port("logprob", &SimpleMHMove::add_log_prob);
+    }
+
+    void go() final {
+        target->backup();
+        double log_prob_before =
+            accumulate(log_probs.begin(), log_probs.end(), 0.0,
+                       [](double acc, LogProb* ptr) { return acc + ptr->get_log_prob(); });
+        double hastings = Move::move(target->get_ref(), tuning);
+        double log_prob_after =
+            accumulate(log_probs.begin(), log_probs.end(), 0.0,
+                       [](double acc, LogProb* ptr) { return acc + ptr->get_log_prob(); });
+        bool accept = decide(exp(log_prob_after - log_prob_before + hastings));
+        if (not accept) {
+            target->restore();
+        }
+    }
 };
-
-struct LogProb {
-    virtual double get_log_prob() = 0;
-};
-
-template <class ValueType>
-struct Value {
-    virtual ValueType& get_ref() = 0;
-    virtual void backup() = 0;
-    virtual void restore() = 0;
-};
-
-struct Proxy {
-    virtual void acquire() = 0;
-    virtual void release() = 0;
-};
-
-#endif  // COMPOGM_INTERFACES_HPP

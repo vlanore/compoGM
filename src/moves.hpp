@@ -25,27 +25,12 @@ more generally, to use and operate it in the same conditions as regards security
 The fact that you are presently reading this means that you have had knowledge of the CeCILL-C
 license and that you accept its terms.*/
 
-#ifndef COMPOGM_INTERFACES_HPP
-#define COMPOGM_INTERFACES_HPP
+#include "utils.hpp"
 
-struct Go {
-    virtual void go() = 0;
+struct Scale {
+    static double move(double& value, double tuning = 1.0) {
+        auto multiplier = tuning * (uniform(generator) - 0.5);
+        value *= exp(multiplier);
+        return multiplier;
+    }
 };
-
-struct LogProb {
-    virtual double get_log_prob() = 0;
-};
-
-template <class ValueType>
-struct Value {
-    virtual ValueType& get_ref() = 0;
-    virtual void backup() = 0;
-    virtual void restore() = 0;
-};
-
-struct Proxy {
-    virtual void acquire() = 0;
-    virtual void release() = 0;
-};
-
-#endif  // COMPOGM_INTERFACES_HPP

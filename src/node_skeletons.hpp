@@ -25,27 +25,35 @@ more generally, to use and operate it in the same conditions as regards security
 The fact that you are presently reading this means that you have had knowledge of the CeCILL-C
 license and that you accept its terms.*/
 
-#ifndef COMPOGM_INTERFACES_HPP
-#define COMPOGM_INTERFACES_HPP
+#include <tinycompo.hpp>
+#include "interfaces.hpp"
 
-struct Go {
-    virtual void go() = 0;
+template <class PDS>
+class UnaryNode : public Value<double>, public LogProb, public tc::Component {
+    double value{0};
+    double bk_value{0};
+    Value<double>* parent{nullptr};
+
+  public:
+    UnaryNode(double value) : value(value) { port("parent", &UnaryNode::parent); }
+    double& get_ref() final { return value; }
+    double get_log_prob() final { return PDS::full_log_prob(value, parent->get_ref()); }
+    void backup() final { bk_value = value; }
+    void restore() final { value = bk_value; }
 };
 
-struct LogProb {
-    virtual double get_log_prob() = 0;
-};
+template <class PDS>
+class OrphanNode : public Value<double>, public LogProb, public tc::Component {
+    double value{0};
+    double bk_value{0};
+    std::function<double(double)> f;
 
-template <class ValueType>
-struct Value {
-    virtual ValueType& get_ref() = 0;
-    virtual void backup() = 0;
-    virtual void restore() = 0;
+  public:
+    template <class... Args>
+    OrphanNode(double value, Args... args)
+        : value(value), f([args...](double v) { return PDS::partial_x_log_prob(v, args...); }) {}
+    double& get_ref() final { return value; }
+    double get_log_prob() final { return f(value); }
+    void backup() final { bk_value = value; }
+    void restore() final { value = bk_value; }
 };
-
-struct Proxy {
-    virtual void acquire() = 0;
-    virtual void release() = 0;
-};
-
-#endif  // COMPOGM_INTERFACES_HPP
