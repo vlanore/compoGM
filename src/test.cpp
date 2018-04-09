@@ -66,15 +66,15 @@ int main() {
 
     m.component<Mean>("mean");
 
-    m.driver("movescheduler", [](Go* move, Value<double>* c, Mean* mean) {
-
-         for (int i = 0; i < 100000; i++) {
-             move->go();
-             mean->add(c->get_ref());
-         }
-         cout << 1 / mean->mean() << endl;
-
-     }).connect("move1", "c1", "mean");
+    m.driver("movescheduler",
+             [](Go* move, Value<double>* c, Mean* mean) {
+                 for (int i = 0; i < 100000; i++) {
+                     move->go();
+                     mean->add(c->get_ref());
+                 }
+                 cout << 1 / mean->mean() << endl;
+             })
+        .connect("move1", "c1", "mean");
 
     Assembly a(m);
     a.call("movescheduler", "go");

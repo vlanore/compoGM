@@ -25,6 +25,8 @@ more generally, to use and operate it in the same conditions as regards security
 The fact that you are presently reading this means that you have had knowledge of the CeCILL-C
 license and that you accept its terms.*/
 
+#pragma once
+
 #include <tinycompo.hpp>
 #include "interfaces.hpp"
 #include "utils.hpp"
