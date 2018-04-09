@@ -40,6 +40,8 @@ class UnaryNode : public Value<double>, public LogProb, public tc::Component {
     UnaryNode(double value) : value(value) { port("parent", &UnaryNode::parent); }
     double& get_ref() final { return value; }
     double get_log_prob() final { return PDS::full_log_prob(value, parent->get_ref()); }
+    double get_log_prob_x() final { return PDS::partial_log_prob_x(value, parent->get_ref()); }
+    double get_log_prob_a() final { return PDS::partial_log_prob_a(value, parent->get_ref()); }
     void backup() final { bk_value = value; }
     void restore() final { value = bk_value; }
 };
@@ -53,7 +55,7 @@ class OrphanNode : public Value<double>, public LogProb, public tc::Component {
   public:
     template <class... Args>
     OrphanNode(double value, Args... args)
-        : value(value), f([args...](double v) { return PDS::partial_x_log_prob(v, args...); }) {}
+        : value(value), f([args...](double v) { return PDS::partial_log_prob_x(v, args...); }) {}
     double& get_ref() final { return value; }
     double get_log_prob() final { return f(value); }
     void backup() final { bk_value = value; }

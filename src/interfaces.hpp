@@ -32,7 +32,10 @@ struct Go {
 };
 
 struct LogProb {
-    virtual double get_log_prob() = 0;
+    virtual double get_log_prob() = 0;                           // <- return the full log prob
+    virtual double get_log_prob_x() { return get_log_prob(); };  // <- partial log probs
+    virtual double get_log_prob_a() { return get_log_prob(); };  // (where a and b are generic names
+    virtual double get_log_prob_b() { return get_log_prob(); };  // for parameters)
 };
 
 template <class ValueType>

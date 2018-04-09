@@ -32,9 +32,8 @@ license and that you accept its terms.*/
 struct Exp {
     static double full_log_prob(double x, double lambda) { return log(lambda) - lambda * x; }
 
-    static double partial_x_log_prob(double x, double lambda) { return -lambda * x; }
+    static double partial_log_prob_x(double x, double lambda) { return -lambda * x; }
 
-    static double partial_parent_log_prob(double x, double lambda) {
-        return log(lambda) - lambda * x;
-    }
+    // here a (first parameter) is lambda
+    static double partial_log_prob_a(double x, double lambda) { return log(lambda) - lambda * x; }
 };

@@ -22,6 +22,8 @@ test: test_bin
 format:
 	clang-format -i src/*.hpp src/*.cpp
 
-ready: all
+ready:
+	make format --no-print-directory
+	make --no-print-directory
 	make test --no-print-directory
 	@git status
