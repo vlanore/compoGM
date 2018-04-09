@@ -1,14 +1,13 @@
 CPPFLAGS= -Wall -Wextra -O3 --std=c++11
 
-.PHONY: all clean ready test
+.PHONY: all clean ready test format
 
 all: test_bin
 
 tinycompo.hpp:
+	@echo "-- Downloading tinycompo.hpp from github..."
 	curl https://raw.githubusercontent.com/vlanore/tinycompo/experimental/tinycompo.hpp > $@
-
-tinycompo_mpi.hpp:
-	curl https://raw.githubusercontent.com/vlanore/tinycompo/experimental/tinycompo.hpp > $@
+	@echo "-- Done."
 
 %_bin: src/%.cpp tinycompo.hpp tinycompo_mpi.hpp src/*.hpp
 	$(CXX) -I. $(CPPFLAGS) $< -o $@
@@ -23,7 +22,11 @@ format:
 	clang-format -i src/*.hpp src/*.cpp
 
 ready:
-	make format --no-print-directory
-	make --no-print-directory
-	make test --no-print-directory
+	@echo "-- Formatting with clang-format..."
+	@make format --no-print-directory
+	@echo "\n-- Compiling if necessary..."
+	@make --no-print-directory
+	@echo "\n-- Launching test..."
+	@make test --no-print-directory
+	@echo "\n-- All done, git status is:"
 	@git status
