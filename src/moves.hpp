@@ -29,6 +29,10 @@ license and that you accept its terms.*/
 
 #include "utils.hpp"
 
+/*
+====================================================================================================
+  ~*~ Scaling move ~*~
+==================================================================================================*/
 struct Scale {
     static double move(double& value, double tuning = 1.0) {
         auto multiplier = tuning * (uniform(generator) - 0.5);

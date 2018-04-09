@@ -9,11 +9,11 @@ tinycompo.hpp:
 	curl https://raw.githubusercontent.com/vlanore/tinycompo/experimental/tinycompo.hpp > $@
 	@echo "-- Done."
 
-%_bin: src/%.cpp tinycompo.hpp tinycompo_mpi.hpp src/*.hpp
+%_bin: src/%.cpp tinycompo.hpp src/*.hpp
 	$(CXX) -I. $(CPPFLAGS) $< -o $@
 
 clean:
-	rm -f *_bin tinycompo.hpp
+	rm -f *_bin *.hpp
 
 test: test_bin
 	./$<

@@ -30,8 +30,14 @@ license and that you accept its terms.*/
 #include <tinycompo.hpp>
 #include "interfaces.hpp"
 
+/*
+====================================================================================================
+  ~*~ UnaryNode ~*~
+  An unary node is a node with exactly one parent in the graphical model. typically,  it's a node
+  with a one-parameter distribution (such as Exp).
+==================================================================================================*/
 template <class PDS>
-class UnaryNode : public Value<double>, public LogProb, public tc::Component {
+class UnaryNode : public Value<double>, public LogProb, public Backup, public tc::Component {
     double value{0};
     double bk_value{0};
     Value<double>* parent{nullptr};
@@ -46,11 +52,17 @@ class UnaryNode : public Value<double>, public LogProb, public tc::Component {
     void restore() final { value = bk_value; }
 };
 
+/*
+====================================================================================================
+  ~*~ OrphanNode ~*~
+  An orphan node is a node with no parent in the graphical model, typically because it has constant
+  parameters.
+==================================================================================================*/
 template <class PDS>
-class OrphanNode : public Value<double>, public LogProb, public tc::Component {
+class OrphanNode : public Value<double>, public LogProb, public Backup, public tc::Component {
     double value{0};
     double bk_value{0};
-    std::function<double(double)> f;
+    std::function<double(double)> f;  // std::function is used as a way to store constructor args
 
   public:
     template <class... Args>

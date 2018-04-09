@@ -27,10 +27,21 @@ license and that you accept its terms.*/
 
 #pragma once
 
+/*
+====================================================================================================
+  ~*~ Go interface ~*~
+  Used to start computation, e.g., to start a move scheduler.
+==================================================================================================*/
 struct Go {
     virtual void go() = 0;
 };
 
+/*
+====================================================================================================
+  ~*~ LogProb interface ~*~
+  Used to get a log prob from something (typically a node or suffstat). Partial versions can be
+  provided but are not required.
+==================================================================================================*/
 struct LogProb {
     virtual double get_log_prob() = 0;                           // <- return the full log prob
     virtual double get_log_prob_x() { return get_log_prob(); };  // <- partial log probs
@@ -38,13 +49,30 @@ struct LogProb {
     virtual double get_log_prob_b() { return get_log_prob(); };  // for parameters)
 };
 
+/*
+====================================================================================================
+  ~*~ Value interface ~*~
+  Used to access a value by reference.
+==================================================================================================*/
 template <class ValueType>
 struct Value {
     virtual ValueType& get_ref() = 0;
+};
+
+/*
+====================================================================================================
+  ~*~ Backup interface ~*~
+==================================================================================================*/
+struct Backup {
     virtual void backup() = 0;
     virtual void restore() = 0;
 };
 
+/*
+====================================================================================================
+  ~*~ Proxy interface ~*~
+  TODO used to update a proxy interface (such as a suffstat or distributed ghost). WIP.
+==================================================================================================*/
 struct Proxy {
     virtual void acquire() = 0;
     virtual void release() = 0;

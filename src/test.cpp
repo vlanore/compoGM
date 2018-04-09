@@ -61,6 +61,7 @@ int main() {
 
     m.component<SimpleMHMove<Scale, double>>("move1", 0.5)
         .connect<Use<Value<double>>>("target", "c1")
+        .connect<Use<Backup>>("targetbackup", "c1")
         .connect<Use<LogProb>>("logprob", "c1")
         .connect<Use<LogProb>>("logprob", "c2");
 

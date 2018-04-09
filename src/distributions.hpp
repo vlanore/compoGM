@@ -29,6 +29,10 @@ license and that you accept its terms.*/
 
 #include <cmath>
 
+/*
+====================================================================================================
+  ~*~ Exponential distribution ~*~
+==================================================================================================*/
 struct Exp {
     static double full_log_prob(double x, double lambda) { return log(lambda) - lambda * x; }
 
