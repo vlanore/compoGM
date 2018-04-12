@@ -41,3 +41,25 @@ struct Exp {
     // here a (first parameter) is lambda
     static double partial_log_prob_a(double x, double lambda) { return log(lambda) - lambda * x; }
 };
+
+/*
+====================================================================================================
+  ~*~ Gamma distribution ~*~
+==================================================================================================*/
+struct Gamma {
+    static double full_log_prob(double x, double k, double theta) {
+        return -log(std::tgamma(k)) - k * log(theta) + (k - 1) * log(x) - x / theta;
+    }
+
+    static double partial_log_prob_x(double x, double k, double theta) {
+        return (k - 1) * log(x) - x / theta;
+    }
+
+    static double partial_log_prob_a(double, double k, double theta) {
+        return -log(std::tgamma(k)) - k * log(theta) + (k - 1);
+    }
+
+    static double partial_log_prob_b(double x, double k, double theta) {
+        return -k * log(theta) - x / theta;
+    }
+};
