@@ -30,6 +30,7 @@ license and that you accept its terms.*/
 #include "interfaces.hpp"
 #include "mcmc_moves.hpp"
 #include "node_skeletons.hpp"
+#include "suffstats.hpp"
 
 using namespace std;
 using namespace tc;
@@ -64,17 +65,22 @@ int main() {
         .connect<ArraySet<double>>(
             "x", vector<double>{1.5, 1.5, 1.5, 1.5, 1.5, 1.0, 1.0, 0.5, 0.5, 1.2});
 
+    m.component<GammaSuffstat>("gammasuffstat")
+        .connect<Use<Value<double>>>("k", "k")
+        .connect<Use<Value<double>>>("theta", "theta")
+        .connect<MultiUse<Value<double>>>("values", "array");
+
     m.component<SimpleMHMove<Scale, double>>("move1", 0.5)
         .connect<Use<Value<double>>>("target", "k")
         .connect<Use<Backup>>("targetbackup", "k")
         .connect<Use<LogProb>>("logprob", "k")
-        .connect<MultiUse<LogProb>>("logprob", "array");
+        .connect<Use<LogProb>>("logprob", "gammasuffstat");
 
     m.component<SimpleMHMove<Scale, double>>("move2", 0.5)
         .connect<Use<Value<double>>>("target", "theta")
         .connect<Use<Backup>>("targetbackup", "theta")
         .connect<Use<LogProb>>("logprob", "theta")
-        .connect<MultiUse<LogProb>>("logprob", "array");
+        .connect<Use<LogProb>>("logprob", "gammasuffstat");
 
     m.component<Mean>("meank");
     m.component<Mean>("meantheta");
@@ -93,5 +99,6 @@ int main() {
         .connect("move1", "move2", "k", "theta", "meank", "meantheta");
 
     Assembly a(m);
+    a.at<Proxy>("gammasuffstat").acquire();
     a.call("movescheduler", "go");
 }
