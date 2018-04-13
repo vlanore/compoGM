@@ -56,26 +56,41 @@ class Mean : public Component {
 
 int main() {
     Model m;
-    m.component<OrphanNode<Exp>>("c1", 0.5, 1.0);
-    m.component<UnaryNode<Exp>>("c2", 0.22).connect<Use<Value<double>>>("parent", "c1");
+    m.component<OrphanNode<Exp>>("k", 0.5, 1.0);
+    m.component<OrphanNode<Exp>>("theta", 0.5, 1.0);
+    m.composite<Array<BinaryNode<Gamma>>>("array", 10, -1)
+        .connect<MultiProvide<Value<double>>>("a", "k")
+        .connect<MultiProvide<Value<double>>>("b", "theta")
+        .connect<ArraySet<double>>(
+            "x", vector<double>{1.5, 1.5, 1.5, 1.5, 1.5, 1.0, 1.0, 0.5, 0.5, 1.2});
 
     m.component<SimpleMHMove<Scale, double>>("move1", 0.5)
-        .connect<Use<Value<double>>>("target", "c1")
-        .connect<Use<Backup>>("targetbackup", "c1")
-        .connect<Use<LogProb>>("logprob", "c1")
-        .connect<Use<LogProb>>("logprob", "c2");
+        .connect<Use<Value<double>>>("target", "k")
+        .connect<Use<Backup>>("targetbackup", "k")
+        .connect<Use<LogProb>>("logprob", "k")
+        .connect<MultiUse<LogProb>>("logprob", "array");
 
-    m.component<Mean>("mean");
+    m.component<SimpleMHMove<Scale, double>>("move2", 0.5)
+        .connect<Use<Value<double>>>("target", "theta")
+        .connect<Use<Backup>>("targetbackup", "theta")
+        .connect<Use<LogProb>>("logprob", "theta")
+        .connect<MultiUse<LogProb>>("logprob", "array");
 
-    m.driver("movescheduler",
-             [](Go* move, Value<double>* c, Mean* mean) {
-                 for (int i = 0; i < 100000; i++) {
-                     move->go();
-                     mean->add(c->get_ref());
-                 }
-                 cout << 1 / mean->mean() << endl;
-             })
-        .connect("move1", "c1", "mean");
+    m.component<Mean>("meank");
+    m.component<Mean>("meantheta");
+
+    m.driver(
+         "movescheduler",
+         [](Go* move, Go* move2, Value<double>* k, Value<double>* theta, Mean* mean, Mean* mean2) {
+             for (int i = 0; i < 100000; i++) {
+                 move->go();
+                 move2->go();
+                 mean->add(k->get_ref());
+                 mean2->add(theta->get_ref());
+             }
+             cout << "Mean: " << mean->mean() * mean2->mean() << endl;
+         })
+        .connect("move1", "move2", "k", "theta", "meank", "meantheta");
 
     Assembly a(m);
     a.call("movescheduler", "go");

@@ -43,6 +43,7 @@ class BinaryNode : public Value<double>, public LogProb, public Backup, public t
 
   public:
     BinaryNode(double value) : value(value) {
+        port("x", &BinaryNode::value);
         port("a", &BinaryNode::a);
         port("b", &BinaryNode::b);
     }
@@ -74,7 +75,10 @@ class UnaryNode : public Value<double>, public LogProb, public Backup, public tc
     Value<double>* parent{nullptr};
 
   public:
-    UnaryNode(double value) : value(value) { port("parent", &UnaryNode::parent); }
+    UnaryNode(double value) : value(value) {
+        port("x", &UnaryNode::value);
+        port("parent", &UnaryNode::parent);
+    }
     double& get_ref() final { return value; }
     double get_log_prob() final { return PDS::full_log_prob(value, parent->get_ref()); }
     double get_log_prob_x() final { return PDS::partial_log_prob_x(value, parent->get_ref()); }
@@ -98,7 +102,9 @@ class OrphanNode : public Value<double>, public LogProb, public Backup, public t
   public:
     template <class... Args>
     OrphanNode(double value, Args... args)
-        : value(value), f([args...](double v) { return PDS::partial_log_prob_x(v, args...); }) {}
+        : value(value), f([args...](double v) { return PDS::partial_log_prob_x(v, args...); }) {
+        port("x", &OrphanNode::value);
+    }
     double& get_ref() final { return value; }
     double get_log_prob() final { return f(value); }
     void backup() final { bk_value = value; }
