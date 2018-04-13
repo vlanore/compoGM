@@ -53,7 +53,6 @@ class GammaSuffstat : public tc::Component, public LogProb, public Proxy {
             sum += value;
             sum_log += log(value);
         }
-        std::cerr << "sum = " << sum << ", sum_log = " << sum_log << "\n";
     }
 
     void release() final {
@@ -62,24 +61,24 @@ class GammaSuffstat : public tc::Component, public LogProb, public Proxy {
     }
 
     double get_log_prob() final {
-        auto N = values.size();
-        auto k = k_->get_ref();
-        auto theta = theta_->get_ref();
+        int N = values.size();
+        double k = k_->get_ref();
+        double theta = theta_->get_ref();
         return -N * log(std::tgamma(k)) - N * k * log(theta) + (k - 1) * sum_log -
                (1 / theta) * sum;
     }
 
     double get_log_prob_a() final {  // a = k
-        auto N = values.size();
-        auto k = k_->get_ref();
-        auto theta = theta_->get_ref();
+        int N = values.size();
+        double k = k_->get_ref();
+        double theta = theta_->get_ref();
         return -N * log(std::tgamma(k)) - N * k * log(theta) + (k - 1) * sum_log;
     }
 
-    double get_log_prob_b() final {
-        auto N = values.size();
-        auto k = k_->get_ref();
-        auto theta = theta_->get_ref();
+    double get_log_prob_b() final {  // b = theta
+        int N = values.size();
+        double k = k_->get_ref();
+        double theta = theta_->get_ref();
         return -N * k * log(theta) - (1 / theta) * sum;
     }
 };
