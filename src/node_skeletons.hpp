@@ -32,6 +32,37 @@ license and that you accept its terms.*/
 
 /*
 ====================================================================================================
+  ~*~ BinaryNode ~*~
+==================================================================================================*/
+template <class PDS>
+class BinaryNode : public Value<double>, public LogProb, public Backup, public tc::Component {
+    double value{0};
+    double bk_value{0};
+    Value<double>* a{nullptr};
+    Value<double>* b{nullptr};
+
+  public:
+    BinaryNode(double value) : value(value) {
+        port("a", &BinaryNode::a);
+        port("b", &BinaryNode::b);
+    }
+    double& get_ref() final { return value; }
+    double get_log_prob() final { return PDS::full_log_prob(value, a->get_ref(), b->get_ref()); }
+    double get_log_prob_x() final {
+        return PDS::partial_log_prob_x(value, a->get_ref(), b->get_ref());
+    }
+    double get_log_prob_a() final {
+        return PDS::partial_log_prob_a(value, a->get_ref(), b->get_ref());
+    }
+    double get_log_prob_b() final {
+        return PDS::partial_log_prob_b(value, a->get_ref(), b->get_ref());
+    }
+    void backup() final { bk_value = value; }
+    void restore() final { value = bk_value; }
+};
+
+/*
+====================================================================================================
   ~*~ UnaryNode ~*~
   An unary node is a node with exactly one parent in the graphical model. typically,  it's a node
   with a one-parameter distribution (such as Exp).
