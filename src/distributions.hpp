@@ -71,12 +71,14 @@ struct Gamma {
 ==================================================================================================*/
 struct Poisson {
     static double full_log_prob(int x, double lambda) {
-        return pow(lambda, x) * exp(-lambda) / factorial(x);
+        return x * log(lambda) - lambda - log(factorial(x));
     }
 
-    static double partial_log_prob_x(int x, double lambda) { return pow(lambda, x) / factorial(x); }
+    static double partial_log_prob_x(int x, double lambda) {
+        return x * log(lambda) - log(factorial(x));
+    }
 
-    static double partial_log_prob_a(int x, double lambda) { return pow(lambda, x) * exp(-lambda); }
+    static double partial_log_prob_a(int x, double lambda) { return x * log(lambda) - lambda; }
 };
 
 /*
