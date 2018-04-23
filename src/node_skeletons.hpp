@@ -72,7 +72,7 @@ template <class PDS, class ValueType = double>
 class UnaryNode : public Value<ValueType>, public LogProb, public Backup, public tc::Component {
     ValueType value{0};
     ValueType bk_value{0};
-    Value<ValueType>* parent{nullptr};
+    Value<double>* parent{nullptr};  // FIXME, template parameter?
 
   public:
     UnaryNode(ValueType value) : value(value) {

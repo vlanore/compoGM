@@ -35,15 +35,35 @@ license and that you accept its terms.*/
 using namespace std;
 using namespace tc;
 
+template <class Interface>
+struct IJtoIK {
+    static void _connect(Assembly& a, PortAddress user, Address provider, int size_i, int size_j,
+                         const vector<int>& mapping) {
+        auto& ref_user = a.at<Assembly>(user.address);
+        auto& ref_provider = a.at<Assembly>(provider);
+        for (int i = 0; i < size_i; i++) {
+            for (int j = 0; j < size_j; j++) {
+                int cond_j = mapping.at(i);
+                int index_user = i * size_j + j;
+                int index_provider = i * mapping.size() + cond_j;
+                ref_user.at(index_user).set(user.prop, &ref_provider.at<Interface>(index_provider));
+            }
+        }
+    }
+};
+
+template <class Interface>
+struct IJtoIK_meta {};
+
 struct M1 : public Composite {
-    static void contents(Model& model, int i, int j, int nb_cond) {
-        model.composite<Array<UnaryNode<Poisson, int>>>("K", i * j, -1)
-            .connect<ArraySet<int>>(
-                "x", vector<int>{1, 2, 1, 3, 4, 5, 6, 1, 8, 9, 1, 2, 5, 6, 4, 8, 9, 7, 8, 9});
+    static void contents(Model& model, int i, int j, const vector<int>& conditions) {
+        model.composite<Array<BinaryNode<Normal>>>("lambda", i * conditions.size(), 1);
 
         // model.composite<Array<Array<UnaryNode<Poisson, int>>>>("K", i, j, -1);
-        // TODO connect K to lambda
-        model.composite<Array<BinaryNode<Normal>>>("lambda", i * nb_cond, 1);
+        model.composite<Array<UnaryNode<Poisson, int>>>("K", i * j, -1)
+            .connect<IJtoIK<Value<double>>>("parent", "lambda", i, j, conditions)
+            .connect<ArraySet<int>>(
+                "x", vector<int>{1, 2, 1, 3, 4, 5, 6, 1, 8, 9, 1, 2, 5, 6, 4, 8, 9, 7, 8, 9});
     }
 };
 
@@ -52,10 +72,10 @@ int main() {
 
     // input data
     int i = 5, j = 4;
-    int nb_cond = 2;
+    vector<int> conditions{0, 1, 0, 0, 1};
 
     // graphical model
-    model.composite<M1>("model", i, j, nb_cond);
+    model.composite<M1>("model", i, j, conditions);
 
     // assembly
     Assembly assembly(model);
