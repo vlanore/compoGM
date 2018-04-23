@@ -68,18 +68,18 @@ class BinaryNode : public Value<double>, public LogProb, public Backup, public t
   An unary node is a node with exactly one parent in the graphical model. typically,  it's a node
   with a one-parameter distribution (such as Exp).
 ==================================================================================================*/
-template <class PDS>
-class UnaryNode : public Value<double>, public LogProb, public Backup, public tc::Component {
-    double value{0};
-    double bk_value{0};
-    Value<double>* parent{nullptr};
+template <class PDS, class ValueType = double>
+class UnaryNode : public Value<ValueType>, public LogProb, public Backup, public tc::Component {
+    ValueType value{0};
+    ValueType bk_value{0};
+    Value<ValueType>* parent{nullptr};
 
   public:
-    UnaryNode(double value) : value(value) {
+    UnaryNode(ValueType value) : value(value) {
         port("x", &UnaryNode::value);
         port("parent", &UnaryNode::parent);
     }
-    double& get_ref() final { return value; }
+    ValueType& get_ref() final { return value; }
     double get_log_prob() final { return PDS::full_log_prob(value, parent->get_ref()); }
     double get_log_prob_x() final { return PDS::partial_log_prob_x(value, parent->get_ref()); }
     double get_log_prob_a() final { return PDS::partial_log_prob_a(value, parent->get_ref()); }

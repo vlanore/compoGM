@@ -18,6 +18,9 @@ clean:
 test: test_bin
 	./$<
 
+m1: M1_bin
+	./$<
+
 format:
 	clang-format -i src/*.hpp src/*.cpp
 

@@ -70,6 +70,7 @@ struct Gamma {
   ~*~ Poisson distribution ~*~
 ==================================================================================================*/
 struct Poisson {
+  public:
     static double full_log_prob(int x, double lambda) {
         return x * log(lambda) - lambda - log(factorial(x));
     }
@@ -86,6 +87,7 @@ struct Poisson {
   ~*~ Normal distribution ~*~
 ==================================================================================================*/
 class Normal {
+  public:
     static double full_log_prob(double x, double mu, double sigma) {
         return -(x - mu) * (x - mu) / (2 * sigma * sigma) - 0.5 * log(2 * M_PI * sigma * sigma);
     }
