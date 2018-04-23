@@ -28,6 +28,7 @@ license and that you accept its terms.*/
 #pragma once
 
 #include <cmath>
+#include "utils.hpp"
 
 /*
 ====================================================================================================
@@ -62,4 +63,18 @@ struct Gamma {
     static double partial_log_prob_b(double x, double k, double theta) {
         return -k * log(theta) - x / theta;
     }
+};
+
+/*
+====================================================================================================
+  ~*~ Poisson distribution ~*~
+==================================================================================================*/
+struct Poisson {
+    static double full_log_prob(int x, double lambda) {
+        return pow(lambda, x) * exp(-lambda) / factorial(x);
+    }
+
+    static double partial_log_prob_x(int x, double lambda) { return pow(lambda, x) / factorial(x); }
+
+    static double partial_log_prob_a(int x, double lambda) { return pow(lambda, x) * exp(-lambda); }
 };
