@@ -78,3 +78,25 @@ struct Poisson {
 
     static double partial_log_prob_a(int x, double lambda) { return pow(lambda, x) * exp(-lambda); }
 };
+
+/*
+====================================================================================================
+  ~*~ Normal distribution ~*~
+==================================================================================================*/
+class Normal {
+    static double full_log_prob(double x, double mu, double sigma) {
+        return -(x - mu) * (x - mu) / (2 * sigma * sigma) - 0.5 * log(2 * M_PI * sigma * sigma);
+    }
+
+    static double partial_log_prob_x(double x, double mu, double sigma) {
+        return -(x - mu) * (x - mu) / (2 * sigma * sigma);
+    }
+
+    static double partial_log_prob_a(double x, double mu, double sigma) {
+        return -(x - mu) * (x - mu) / (2 * sigma * sigma);
+    }
+
+    static double partial_log_prob_b(double x, double mu, double sigma) {
+        return -(x - mu) * (x - mu) / (2 * sigma * sigma) - 0.5 * log(2 * M_PI * sigma * sigma);
+    }
+};
