@@ -27,6 +27,7 @@ license and that you accept its terms.*/
 
 #include <csv-parser.hpp>
 #include <fstream>
+#include <map>
 #include <tinycompo.hpp>
 #include "distributions.hpp"
 #include "interfaces.hpp"
@@ -62,11 +63,33 @@ struct M1 : public Composite {
 int main() {
     Model model;
 
-    // input data
+    // Files and parsers
     ifstream counts_file("/home/vlanore/git/data/rnaseq/counts.tsv");
     ifstream samples_file("/home/vlanore/git/data/rnaseq/samples.tsv");
-    auto counts_parser = CsvParser(counts_file).delimiter('\n');
-    auto samples_parser = CsvParser(samples_file).delimiter('\n');
+    auto counts_parser = CsvParser(counts_file).delimiter(' ');
+    auto samples_parser = CsvParser(samples_file).delimiter(' ');
+
+    // Counts array
+    vector<vector<int>> counts;  // bidim array of counts (first index is gene, second is sample)
+    map<string, int> samples;    // sample -> sample index map
+    map<string, int> genes;      // gene -> gene index map
+    auto&& line = counts_parser.begin();
+    for (int i = 1; i < static_cast<int>(line->size()); ++i) {  // first line of counts file
+        samples.insert(make_pair((*line)[i], i));
+    }
+    int next_gene_index{0};
+    for (++line; line != counts_parser.end(); ++line) {  // rest of the lines
+        counts.emplace_back();
+        auto&& field = line->begin();
+        genes.insert(make_pair(*field, next_gene_index++));
+        for (++field; field != line->end(); ++field) {
+            counts.back().push_back(stoi(*field));
+        }
+    }
+
+    // Conditions
+    // for (auto& line : samples_parser) {
+    // }
 
     int i = 4, j = 3, nb_cond = 2;
     vector<int> conditions{0, 1, 0};
