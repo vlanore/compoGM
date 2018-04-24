@@ -41,31 +41,20 @@ using aria::csv::CsvParser;
 
 struct M1 : public Composite {
     static void contents(Model& model, map<string, map<string, int>>& counts,
-                         map<string, string>& condition_mapping) {
+                         std::set<string>& conditions, map<string, string>& condition_mapping) {
         for (auto&& gene : counts) {
             model.composite(gene.first);
-            for (auto&& count : gene.second) {
-                model.component<UnaryNode<Poisson, int>>(Address(gene.first, count.first),
-                                                         count.second);
+            for (auto&& condition : conditions) {  // lambda
+                model.component<BinaryNode<Normal>>(Address(gene.first, condition), 0.5);
+            }
+            for (auto&& count : gene.second) {  // K (counts)
+                model
+                    .component<UnaryNode<Poisson, int>>(Address(gene.first, count.first),
+                                                        count.second)
+                    .connect<Use<Value<double>>>(
+                        "parent", Address(gene.first, condition_mapping.at(count.first)));
             }
         }
-
-        // model.composite<Array<BinaryNode<Normal>>>("lambda", nb_genes * nb_cond, 1);
-
-        // // model.composite<Array<Array<UnaryNode<Poisson, int>>>>("K", i, j, -1);
-        // model.composite<Array<UnaryNode<Poisson, int>>>("K", nb_genes * nb_samples, -1)
-        //     .connect<ArraySet<int>>("x", vector<int>{1, 2, 1, 3, 4, 5, 6, 1, 8, 9, 1, 2});
-
-        // for (int i = 0; i < nb_genes; i++) {
-        //     for (int j = 0; j < nb_samples; j++) {
-        //         int cond_j = conditions.at(j);
-        //         int index_user = i * nb_samples + j;
-        //         int index_provider = i * nb_cond + cond_j;
-        //         model.connect<Use<Value<double>>>(PortAddress("parent", Address("K",
-        //         index_user)),
-        //                                           Address("lambda", index_provider));
-        //     }
-        // }
     }
 };
 
@@ -73,7 +62,7 @@ int main() {
     Model model;
 
     // Files and parsers
-    ifstream counts_file("/home/vlanore/git/data/rnaseq/counts.tsv");
+    ifstream counts_file("/home/vlanore/git/data/rnaseq/mini-counts.tsv");
     ifstream samples_file("/home/vlanore/git/data/rnaseq/samples.tsv");
     auto counts_parser = CsvParser(counts_file).delimiter(' ');
     auto samples_parser = CsvParser(samples_file).delimiter(' ');
@@ -117,9 +106,10 @@ int main() {
     }
 
     // graphical model
-    model.composite<M1>("model", counts, condition_mapping);
+    model.composite<M1>("model", counts, conditions, condition_mapping);
+    model.dot_to_file();
 
     // assembly
     Assembly assembly(model);
-    // assembly.print_all();
+    assembly.print_all();
 }
