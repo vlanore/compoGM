@@ -34,10 +34,10 @@ std::default_random_engine generator(r());
 std::uniform_real_distribution<double> uniform{0.0, 1.0};
 bool decide(double prob) { return uniform(generator) <= prob; }
 
-int factorial(int n) {
+double log_factorial(int n) {
     if (n < 2) {
-        return 1;
+        return 0;
     } else {
-        return n * factorial(n - 1);
+        return log(n) + log_factorial(n - 1);
     }
 }
