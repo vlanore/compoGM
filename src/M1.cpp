@@ -114,7 +114,8 @@ int main() {
         for (auto&& condition : conditions) {  // creating moves connected to their targets
             gene_composite.component<SimpleMHMove<Scale, double>>("move_lambda_" + condition)
                 .connect<Use<Value<double>>>("target", "lambda_" + condition)
-                .connect<Use<Backup>>("targetbackup", "lambda_" + condition);
+                .connect<Use<Backup>>("targetbackup", "lambda_" + condition)
+                .connect<Use<LogProb>>("logprob", "lambda_" + condition);
         }
         for (auto&& sample : gene.second) {  // connecting moves to all children in model
             string condition = condition_mapping.at(sample.first);
@@ -146,7 +147,7 @@ int main() {
 
     cerr << "Move nb: " << all_moves.size() << ", lambdas nb: " << all_lambdas.size() << endl;
 
-    for (int iteration = 0; iteration < 100000; iteration++) {
+    for (int iteration = 0; iteration < 3; iteration++) {
         for (auto&& move : all_moves) {
             move->go();
             for (auto&& lambda : all_lambdas) {
