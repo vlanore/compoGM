@@ -44,15 +44,13 @@ struct M1 : public Composite {
                          std::set<string>& conditions, map<string, string>& condition_mapping) {
         for (auto&& gene : counts) {
             model.composite(gene.first);
+            Model& gene_composite = model.get_composite(gene.first);
             for (auto&& condition : conditions) {  // lambda
-                model.component<BinaryNode<Normal>>(Address(gene.first, condition), 0.5);
+                gene_composite.component<OrphanNode<Normal>>(condition, 0.5, 2, 2);
             }
             for (auto&& count : gene.second) {  // K (counts)
-                model
-                    .component<UnaryNode<Poisson, int>>(Address(gene.first, count.first),
-                                                        count.second)
-                    .connect<Use<Value<double>>>(
-                        "parent", Address(gene.first, condition_mapping.at(count.first)));
+                gene_composite.component<UnaryNode<Poisson, int>>(count.first, count.second)
+                    .connect<Use<Value<double>>>("parent", condition_mapping.at(count.first));
             }
         }
     }
@@ -108,6 +106,7 @@ int main() {
     // graphical model
     model.composite<M1>("model", counts, conditions, condition_mapping);
     model.dot_to_file();
+    // model.get_composite("model").get_composite("HRA1").dot_to_file();
 
     // assembly
     Assembly assembly(model);
