@@ -46,11 +46,12 @@ struct M1 : public Composite {
             model.composite(gene.first);
             Model& gene_composite = model.get_composite(gene.first);
             for (auto&& condition : conditions) {  // lambda
-                gene_composite.component<OrphanNode<Normal>>(condition, 0.5, 2, 2);
+                gene_composite.component<OrphanNode<Normal>>("lambda_" + condition, 0.5, 2, 2);
             }
             for (auto&& count : gene.second) {  // K (counts)
-                gene_composite.component<UnaryNode<Poisson, int>>(count.first, count.second)
-                    .connect<Use<Value<double>>>("parent", condition_mapping.at(count.first));
+                gene_composite.component<UnaryNode<Poisson, int>>("K_" + count.first, count.second)
+                    .connect<Use<Value<double>>>("parent",
+                                                 "lambda_" + condition_mapping.at(count.first));
             }
         }
     }
