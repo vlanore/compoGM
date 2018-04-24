@@ -40,23 +40,32 @@ using namespace tc;
 using aria::csv::CsvParser;
 
 struct M1 : public Composite {
-    static void contents(Model& model, int nb_genes, int nb_samples, int nb_cond,
-                         const vector<int>& conditions) {
-        model.composite<Array<BinaryNode<Normal>>>("lambda", nb_genes * nb_cond, 1);
-
-        // model.composite<Array<Array<UnaryNode<Poisson, int>>>>("K", i, j, -1);
-        model.composite<Array<UnaryNode<Poisson, int>>>("K", nb_genes * nb_samples, -1)
-            .connect<ArraySet<int>>("x", vector<int>{1, 2, 1, 3, 4, 5, 6, 1, 8, 9, 1, 2});
-
-        for (int i = 0; i < nb_genes; i++) {
-            for (int j = 0; j < nb_samples; j++) {
-                int cond_j = conditions.at(j);
-                int index_user = i * nb_samples + j;
-                int index_provider = i * nb_cond + cond_j;
-                model.connect<Use<Value<double>>>(PortAddress("parent", Address("K", index_user)),
-                                                  Address("lambda", index_provider));
+    static void contents(Model& model, map<string, map<string, int>>& counts,
+                         map<string, string>& condition_mapping) {
+        for (auto&& gene : counts) {
+            model.composite(gene.first);
+            for (auto&& count : gene.second) {
+                model.component<UnaryNode<Poisson, int>>(Address(gene.first, count.first),
+                                                         count.second);
             }
         }
+
+        // model.composite<Array<BinaryNode<Normal>>>("lambda", nb_genes * nb_cond, 1);
+
+        // // model.composite<Array<Array<UnaryNode<Poisson, int>>>>("K", i, j, -1);
+        // model.composite<Array<UnaryNode<Poisson, int>>>("K", nb_genes * nb_samples, -1)
+        //     .connect<ArraySet<int>>("x", vector<int>{1, 2, 1, 3, 4, 5, 6, 1, 8, 9, 1, 2});
+
+        // for (int i = 0; i < nb_genes; i++) {
+        //     for (int j = 0; j < nb_samples; j++) {
+        //         int cond_j = conditions.at(j);
+        //         int index_user = i * nb_samples + j;
+        //         int index_provider = i * nb_cond + cond_j;
+        //         model.connect<Use<Value<double>>>(PortAddress("parent", Address("K",
+        //         index_user)),
+        //                                           Address("lambda", index_provider));
+        //     }
+        // }
     }
 };
 
@@ -77,12 +86,14 @@ int main() {
         counts_samples.push_back((*line)[i]);
         // cout << "Sample " << i << ": " << (*line)[i] << endl;
     }
+    cerr << "-- Number of samples is " << counts_samples.size() << endl;
     for (++line; line != counts_parser.end(); ++line) {  // rest of the lines
         string gene = (*line)[0];
         for (int i = 1; i < static_cast<int>(line->size()); ++i) {
             counts[gene][counts_samples.at(i - 1)] = stoi((*line)[i]);
         }
     }
+    cerr << "-- Number of genes is " << counts.size() << endl;
 
     // Conditions
     set<string> conditions;
@@ -94,6 +105,7 @@ int main() {
         condition_mapping[(*line)[0]] = (*line)[1];
         // cout << (*line)[0] << ", " << (*line)[1] << endl;
     }
+    cerr << "-- Number of conditions is " << conditions.size() << endl;
 
     // Checking that the two files samples identifiers match
     if (set<string>(counts_samples.begin(), counts_samples.end()) == samples_samples) {
@@ -104,15 +116,10 @@ int main() {
         exit(1);
     }
 
-    int i = 4, j = 3, nb_cond = 2;
-    // vector<int> conditions{0, 1, 0};
-
     // graphical model
-    // model.composite<M1>("model", i, j, nb_cond, conditions);
-
-    model.perform_meta();
-    model.dot_to_file();
+    model.composite<M1>("model", counts, condition_mapping);
 
     // assembly
     Assembly assembly(model);
+    // assembly.print_all();
 }

@@ -60,6 +60,7 @@ class BinaryNode : public Value<double>, public LogProb, public Backup, public t
     }
     void backup() final { bk_value = value; }
     void restore() final { value = bk_value; }
+    std::string debug() const override { return "BinaryNode [" + std::to_string(value) + "]"; }
 };
 
 /*
@@ -85,6 +86,7 @@ class UnaryNode : public Value<ValueType>, public LogProb, public Backup, public
     double get_log_prob_a() final { return PDS::partial_log_prob_a(value, parent->get_ref()); }
     void backup() final { bk_value = value; }
     void restore() final { value = bk_value; }
+    std::string debug() const override { return "UnaryNode [" + std::to_string(value) + "]"; }
 };
 
 /*
