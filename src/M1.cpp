@@ -70,32 +70,45 @@ int main() {
     auto samples_parser = CsvParser(samples_file).delimiter(' ');
 
     // Counts array
-    vector<vector<int>> counts;  // bidim array of counts (first index is gene, second is sample)
-    map<string, int> samples;    // sample -> sample index map
-    map<string, int> genes;      // gene -> gene index map
+    map<string, map<string, int>> counts;
+    vector<string> counts_samples;  // list of samples in counts file
     auto&& line = counts_parser.begin();
     for (int i = 1; i < static_cast<int>(line->size()); ++i) {  // first line of counts file
-        samples.insert(make_pair((*line)[i], i));
+        counts_samples.push_back((*line)[i]);
+        // cout << "Sample " << i << ": " << (*line)[i] << endl;
     }
-    int next_gene_index{0};
     for (++line; line != counts_parser.end(); ++line) {  // rest of the lines
-        counts.emplace_back();
-        auto&& field = line->begin();
-        genes.insert(make_pair(*field, next_gene_index++));
-        for (++field; field != line->end(); ++field) {
-            counts.back().push_back(stoi(*field));
+        string gene = (*line)[0];
+        for (int i = 1; i < static_cast<int>(line->size()); ++i) {
+            counts[gene][counts_samples.at(i - 1)] = stoi((*line)[i]);
         }
     }
 
     // Conditions
-    // for (auto& line : samples_parser) {
-    // }
+    set<string> conditions;
+    map<string, string> condition_mapping;  // sample -> condition
+    set<string> samples_samples;            // set of samples in samples file
+    for (auto line = ++samples_parser.begin(); line != samples_parser.end(); ++line) {
+        conditions.insert((*line)[1]);
+        samples_samples.insert((*line)[0]);
+        condition_mapping[(*line)[0]] = (*line)[1];
+        // cout << (*line)[0] << ", " << (*line)[1] << endl;
+    }
+
+    // Checking that the two files samples identifiers match
+    if (set<string>(counts_samples.begin(), counts_samples.end()) == samples_samples) {
+        cerr << "-- List of samples in counts and samples match!\n";
+    } else {
+        cerr << "-- Mismatch between sample list in counts file (" << counts_samples.size()
+             << " samples) and samples files (" << samples_samples.size() << " samples)\n";
+        exit(1);
+    }
 
     int i = 4, j = 3, nb_cond = 2;
-    vector<int> conditions{0, 1, 0};
+    // vector<int> conditions{0, 1, 0};
 
     // graphical model
-    model.composite<M1>("model", i, j, nb_cond, conditions);
+    // model.composite<M1>("model", i, j, nb_cond, conditions);
 
     model.perform_meta();
     model.dot_to_file();
