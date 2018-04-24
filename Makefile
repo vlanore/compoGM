@@ -9,7 +9,12 @@ tinycompo.hpp:
 	curl https://raw.githubusercontent.com/vlanore/tinycompo/experimental/tinycompo.hpp > $@
 	@echo "-- Done."
 
-%_bin: src/%.cpp tinycompo.hpp src/*.hpp
+csv-parser.hpp:
+	@echo "-- Downloading csv parser from github..."
+	curl https://raw.githubusercontent.com/AriaFallah/csv-parser/master/parser.hpp > $@
+	@echo "-- Done."
+
+%_bin: src/%.cpp tinycompo.hpp csv-parser.hpp src/*.hpp
 	$(CXX) -I. $(CPPFLAGS) $< -o $@
 
 clean:

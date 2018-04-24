@@ -25,6 +25,8 @@ more generally, to use and operate it in the same conditions as regards security
 The fact that you are presently reading this means that you have had knowledge of the CeCILL-C
 license and that you accept its terms.*/
 
+#include <csv-parser.hpp>
+#include <fstream>
 #include <tinycompo.hpp>
 #include "distributions.hpp"
 #include "interfaces.hpp"
@@ -34,6 +36,7 @@ license and that you accept its terms.*/
 
 using namespace std;
 using namespace tc;
+using aria::csv::CsvParser;
 
 struct M1 : public Composite {
     static void contents(Model& model, int nb_genes, int nb_samples, int nb_cond,
@@ -60,6 +63,11 @@ int main() {
     Model model;
 
     // input data
+    ifstream counts_file("/home/vlanore/git/data/rnaseq/counts.tsv");
+    ifstream samples_file("/home/vlanore/git/data/rnaseq/samples.tsv");
+    auto counts_parser = CsvParser(counts_file).delimiter('\n');
+    auto samples_parser = CsvParser(samples_file).delimiter('\n');
+
     int i = 4, j = 3, nb_cond = 2;
     vector<int> conditions{0, 1, 0};
 
