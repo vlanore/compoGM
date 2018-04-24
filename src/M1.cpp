@@ -47,7 +47,7 @@ struct M1 : public Composite {
             model.composite(gene.first);
             Model& gene_composite = model.get_composite(gene.first);
             for (auto&& condition : conditions) {  // lambda
-                gene_composite.component<OrphanNode<Normal>>("lambda_" + condition, 0.5, 2, 2);
+                gene_composite.component<OrphanNode<Normal>>("lambda_" + condition, 1, 2, 2);
             }
             for (auto&& count : gene.second) {  // K (counts)
                 gene_composite.component<UnaryNode<Poisson, int>>("K_" + count.first, count.second)
@@ -116,7 +116,7 @@ int main() {
                 .connect<Use<Value<double>>>("target", "lambda_" + condition)
                 .connect<Use<Backup>>("targetbackup", "lambda_" + condition);
         }
-        for (auto&& sample : gene.second) {
+        for (auto&& sample : gene.second) {  // connecting moves to all children in model
             string condition = condition_mapping.at(sample.first);
             gene_composite.connect<Use<LogProb>>(PortAddress("logprob", "move_lambda_" + condition),
                                                  Address("K_" + sample.first));
@@ -129,12 +129,30 @@ int main() {
     // assembly
     Assembly assembly(model);
 
-    for (int iteration = 0; iteration < 100000; iteration++) {
-        for (auto&& gene : counts) {
-            for (auto&& condition : conditions) {
-                assembly.at<Go>(Address("model", gene.first, "move_lambda_" + condition)).go();
-            }
+    // preparations before running
+    vector<Value<double>*> all_lambdas;  // list of lambda nodes for registration
+    vector<Go*> all_moves;
+    ofstream output("tmp.dat");
+    for (auto&& gene : counts) {
+        for (auto&& condition : conditions) {
+            output << "lambda_" + gene.first + "_" + condition + "\t";  // trace header
+            all_lambdas.push_back(
+                &assembly.at<Value<double>>(Address("model", gene.first, "lambda_" + condition)));
+            all_moves.push_back(
+                &assembly.at<Go>(Address("model", gene.first, "move_lambda_" + condition)));
         }
-        cout << assembly.at<Value<double>>(Address("model", "HRA1", "lambda_WT")).get_ref() << endl;
+    }
+    output << endl;
+
+    cerr << "Move nb: " << all_moves.size() << ", lambdas nb: " << all_lambdas.size() << endl;
+
+    for (int iteration = 0; iteration < 100000; iteration++) {
+        for (auto&& move : all_moves) {
+            move->go();
+            for (auto&& lambda : all_lambdas) {
+                output << lambda->get_ref() << "\t";
+            }
+            output << endl;
+        }
     }
 }
