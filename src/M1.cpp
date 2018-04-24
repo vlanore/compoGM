@@ -32,6 +32,7 @@ license and that you accept its terms.*/
 #include "distributions.hpp"
 #include "interfaces.hpp"
 #include "mcmc_moves.hpp"
+#include "moves.hpp"
 #include "node_skeletons.hpp"
 #include "suffstats.hpp"
 
@@ -106,10 +107,34 @@ int main() {
 
     // graphical model
     model.composite<M1>("model", counts, conditions, condition_mapping);
+
+    // metropolis hastings moves
+    for (auto&& gene : counts) {
+        Model& gene_composite = model.get_composite("model").get_composite(gene.first);
+        for (auto&& condition : conditions) {  // creating moves connected to their targets
+            gene_composite.component<SimpleMHMove<Scale, double>>("move_lambda_" + condition)
+                .connect<Use<Value<double>>>("target", "lambda_" + condition)
+                .connect<Use<Backup>>("targetbackup", "lambda_" + condition);
+        }
+        for (auto&& sample : gene.second) {
+            string condition = condition_mapping.at(sample.first);
+            gene_composite.connect<Use<LogProb>>(PortAddress("logprob", "move_lambda_" + condition),
+                                                 Address("K_" + sample.first));
+        }
+    }
+
     model.dot_to_file();
     // model.get_composite("model").get_composite("HRA1").dot_to_file();
 
     // assembly
     Assembly assembly(model);
-    assembly.print_all();
+
+    for (int iteration = 0; iteration < 100000; iteration++) {
+        for (auto&& gene : counts) {
+            for (auto&& condition : conditions) {
+                assembly.at<Go>(Address("model", gene.first, "move_lambda_" + condition)).go();
+            }
+        }
+        cout << assembly.at<Value<double>>(Address("model", "HRA1", "lambda_WT")).get_ref() << endl;
+    }
 }

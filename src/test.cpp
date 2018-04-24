@@ -29,19 +29,12 @@ license and that you accept its terms.*/
 #include "distributions.hpp"
 #include "interfaces.hpp"
 #include "mcmc_moves.hpp"
+#include "moves.hpp"
 #include "node_skeletons.hpp"
 #include "suffstats.hpp"
 
 using namespace std;
 using namespace tc;
-
-struct Scale {
-    static double move(double& value, double tuning = 1.0) {
-        auto multiplier = tuning * (uniform(generator) - 0.5);
-        value *= exp(multiplier);
-        return multiplier;
-    }
-};
 
 class Mean : public Component {
     double sum;
