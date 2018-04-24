@@ -145,15 +145,13 @@ int main() {
     }
     output << endl;
 
-    cerr << "Move nb: " << all_moves.size() << ", lambdas nb: " << all_lambdas.size() << endl;
-
-    for (int iteration = 0; iteration < 3; iteration++) {
+    for (int iteration = 0; iteration < 10000; iteration++) {
         for (auto&& move : all_moves) {
             move->go();
-            for (auto&& lambda : all_lambdas) {
-                output << lambda->get_ref() << "\t";
-            }
-            output << endl;
         }
+        for (auto&& lambda : all_lambdas) {
+            output << lambda->get_ref() << "\t";
+        }
+        output << endl;
     }
 }
