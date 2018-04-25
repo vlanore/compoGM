@@ -25,8 +25,6 @@ more generally, to use and operate it in the same conditions as regards security
 The fact that you are presently reading this means that you have had knowledge of the CeCILL-C
 license and that you accept its terms.*/
 
-#include <csv-parser.hpp>
-#include <fstream>
 #include <map>
 #include <tinycompo.hpp>
 #include "distributions.hpp"
@@ -34,11 +32,11 @@ license and that you accept its terms.*/
 #include "mcmc_moves.hpp"
 #include "moves.hpp"
 #include "node_skeletons.hpp"
+#include "parsing.hpp"
 #include "suffstats.hpp"
 
 using namespace std;
 using namespace tc;
-using aria::csv::CsvParser;
 
 struct M1 : public Composite {
     static void contents(Model& model, map<string, map<string, int>>& counts,
@@ -61,64 +59,25 @@ struct M1 : public Composite {
 int main() {
     Model model;
 
-    // Files and parsers
-    ifstream counts_file("/home/vlanore/git/data/rnaseq/mini-counts.tsv");
-    ifstream samples_file("/home/vlanore/git/data/rnaseq/samples.tsv");
-    auto counts_parser = CsvParser(counts_file).delimiter(' ');
-    auto samples_parser = CsvParser(samples_file).delimiter(' ');
-
-    // Counts array
-    map<string, map<string, int>> counts;
-    vector<string> counts_samples;  // list of samples in counts file
-    auto&& line = counts_parser.begin();
-    for (int i = 1; i < static_cast<int>(line->size()); ++i) {  // first line of counts file
-        counts_samples.push_back((*line)[i]);
-        // cout << "Sample " << i << ": " << (*line)[i] << endl;
-    }
-    cerr << "-- Number of samples is " << counts_samples.size() << endl;
-    for (++line; line != counts_parser.end(); ++line) {  // rest of the lines
-        string gene = (*line)[0];
-        for (int i = 1; i < static_cast<int>(line->size()); ++i) {
-            counts[gene][counts_samples.at(i - 1)] = stoi((*line)[i]);
-        }
-    }
-    cerr << "-- Number of genes is " << counts.size() << endl;
-
-    // Conditions
-    set<string> conditions;
-    map<string, string> condition_mapping;  // sample -> condition
-    set<string> samples_samples;            // set of samples in samples file
-    for (auto line = ++samples_parser.begin(); line != samples_parser.end(); ++line) {
-        conditions.insert((*line)[1]);
-        samples_samples.insert((*line)[0]);
-        condition_mapping[(*line)[0]] = (*line)[1];
-        // cout << (*line)[0] << ", " << (*line)[1] << endl;
-    }
-    cerr << "-- Number of conditions is " << conditions.size() << endl;
-
-    // Checking that the two files samples identifiers match
-    if (set<string>(counts_samples.begin(), counts_samples.end()) == samples_samples) {
-        cerr << "-- List of samples in counts and samples match!\n";
-    } else {
-        cerr << "-- Mismatch between sample list in counts file (" << counts_samples.size()
-             << " samples) and samples files (" << samples_samples.size() << " samples)\n";
-        exit(1);
-    }
+    // Parsing data files
+    auto counts = parse_counts("/home/vlanore/git/data/rnaseq/mini-counts.tsv");
+    auto samples = parse_samples("/home/vlanore/git/data/rnaseq/samples.tsv");
+    check_consistency(counts, samples);
 
     // graphical model
-    model.composite<M1>("model", counts, conditions, condition_mapping);
+    model.composite<M1>("model", counts.counts, samples.conditions, samples.condition_mapping);
 
     // metropolis hastings moves
-    for (auto&& gene : counts) {
+    for (auto&& gene : counts.counts) {
         Model& gene_composite = model.get_composite("model").get_composite(gene.first);
-        for (auto&& condition : conditions) {  // creating moves connected to their targets
+        for (auto&& condition : samples.conditions) {  // creating moves connected to their targets
             gene_composite.component<SimpleMHMove<Scale, double>>("move_lambda_" + condition)
                 .connect<Use<Value<double>>>("target", "lambda_" + condition)
                 .connect<Use<Backup>>("targetbackup", "lambda_" + condition)
                 .connect<Use<LogProb>>("logprob", "lambda_" + condition);
         }
         for (auto&& sample : gene.second) {  // connecting moves to all children in model
-            string condition = condition_mapping.at(sample.first);
+            string condition = samples.condition_mapping.at(sample.first);
             gene_composite.connect<Use<LogProb>>(PortAddress("logprob", "move_lambda_" + condition),
                                                  Address("K_" + sample.first));
         }
@@ -134,8 +93,8 @@ int main() {
     vector<Value<double>*> all_lambdas;  // list of lambda nodes for registration
     vector<Go*> all_moves;
     ofstream output("tmp.dat");
-    for (auto&& gene : counts) {
-        for (auto&& condition : conditions) {
+    for (auto&& gene : counts.counts) {
+        for (auto&& condition : samples.conditions) {
             output << "lambda_" + gene.first + "_" + condition + "\t";  // trace header
             all_lambdas.push_back(
                 &assembly.at<Value<double>>(Address("model", gene.first, "lambda_" + condition)));
@@ -145,6 +104,7 @@ int main() {
     }
     output << endl;
 
+    // running the chain
     for (int iteration = 0; iteration < 10000; iteration++) {
         for (auto&& move : all_moves) {
             move->go();
