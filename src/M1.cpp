@@ -67,19 +67,26 @@ int main() {
     // graphical model
     model.composite<M1>("model", counts.counts, samples.conditions, samples.condition_mapping);
 
-    // metropolis hastings moves
+    // suffstats and metropolis hastings moves
     for (auto&& gene : counts.counts) {
         Model& gene_composite = model.get_composite("model").get_composite(gene.first);
         for (auto&& condition : samples.conditions) {  // creating moves connected to their targets
+            gene_composite.component<PoissonSuffstat>("poissonsuffstat_" + condition)
+                .connect<Use<Value<double>>>("lambda", "lambda_" + condition);
+
             gene_composite.component<SimpleMHMove<Scale, double>>("move_lambda_" + condition)
                 .connect<Use<Value<double>>>("target", "lambda_" + condition)
                 .connect<Use<Backup>>("targetbackup", "lambda_" + condition)
-                .connect<Use<LogProb>>("logprob", "lambda_" + condition);
+                .connect<Use<LogProb>>("logprob", "lambda_" + condition)
+                .connect<Use<LogProb>>("logprob", "poissonsuffstat_" + condition);
         }
         for (auto&& sample : gene.second) {  // connecting moves to all children in model
             string condition = samples.condition_mapping.at(sample.first);
-            gene_composite.connect<Use<LogProb>>(PortAddress("logprob", "move_lambda_" + condition),
-                                                 Address("K_" + sample.first));
+            // gene_composite.connect<Use<LogProb>>(PortAddress("logprob", "move_lambda_" +
+            // condition), Address("K_" + sample.first));
+            gene_composite.connect<Use<Value<int>>>(
+                PortAddress("values", "poissonsuffstat_" + condition),
+                Address("K_" + sample.first));
         }
     }
 

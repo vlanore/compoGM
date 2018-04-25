@@ -82,3 +82,34 @@ class GammaSuffstat : public tc::Component, public LogProb, public Proxy {
         return -N * k * log(theta) - (1 / theta) * sum;
     }
 };
+
+class PoissonSuffstat : public tc::Component, public LogProb, public Proxy {
+    std::vector<Value<int>*> values;
+    void add_value(Value<int>* p) { values.push_back(p); }
+
+    Value<double>* lambda_;
+    double sum{0};
+
+  public:
+    PoissonSuffstat() {
+        port("values", &PoissonSuffstat::add_value);
+        port("lambda", &PoissonSuffstat::lambda_);
+    }
+
+    void after_connect() final { acquire(); }
+
+    void acquire() final {
+        for (auto p : values) {
+            auto value = p->get_ref();
+            sum += value;
+        }
+    }
+
+    void release() final { sum = 0; }
+
+    double get_log_prob() final {  // a = lambda
+        int N = values.size();
+        double lambda = lambda_->get_ref();
+        return -N * lambda + log(lambda) * sum;
+    }
+};
