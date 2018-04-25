@@ -32,6 +32,10 @@ license and that you accept its terms.*/
 
 using aria::csv::CsvParser;
 
+/*
+====================================================================================================
+  ~*~ Counts parsing ~*~
+==================================================================================================*/
 struct CountParsingResult {
     std::map<std::string, std::map<std::string, int>> counts;
     std::vector<std::string> samples;  // list of samples in counts file
@@ -62,6 +66,10 @@ CountParsingResult parse_counts(std::string filename) {
     return result;
 }
 
+/*
+====================================================================================================
+  ~*~ Samples parsing ~*~
+==================================================================================================*/
 struct SamplesParsingResult {
     std::set<std::string> conditions;
     std::map<std::string, std::string> condition_mapping;  // sample -> condition
@@ -86,6 +94,10 @@ SamplesParsingResult parse_samples(std::string filename) {
     return result;
 }
 
+/*
+====================================================================================================
+  ~*~ Checking consistency between counts and samples ~*~
+==================================================================================================*/
 void check_consistency(CountParsingResult counts, SamplesParsingResult samples) {
     // Checking that the two files samples identifiers match
     if (std::set<std::string>(counts.samples.begin(), counts.samples.end()) == samples.samples) {

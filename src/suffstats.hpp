@@ -31,6 +31,10 @@ license and that you accept its terms.*/
 #include "interfaces.hpp"
 #include "tinycompo.hpp"
 
+/*
+====================================================================================================
+  ~*~ Gamma Suff Stat ~*~
+==================================================================================================*/
 class GammaSuffstat : public tc::Component, public LogProb, public Proxy {
     std::vector<Value<double>*> values;
     void add_value(Value<double>* p) { values.push_back(p); }
@@ -83,6 +87,10 @@ class GammaSuffstat : public tc::Component, public LogProb, public Proxy {
     }
 };
 
+/*
+====================================================================================================
+  ~*~ Poisson Suff Stat ~*~
+==================================================================================================*/
 class PoissonSuffstat : public tc::Component, public LogProb, public Proxy {
     std::vector<Value<int>*> values;
     void add_value(Value<int>* p) { values.push_back(p); }
