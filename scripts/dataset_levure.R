@@ -31,7 +31,7 @@ dds <- estimateSizeFactors(dds)
 
 size_factors <- data.frame(sample = sampleName[kept], size_factor = sizeFactors(dds))
 
-write.table(file = "counts.tsv", count_table, quote = F, row.names = F)
-write.table(file = "samples.tsv", sample_table, quote = F, row.names = F)
-write.table(file = "size_factors.tsv", size_factors, quote = F, row.names = F)
+write.table(file = "counts.tsv", count_table, quote = F, row.names = F, sep = "\t")
+write.table(file = "samples.tsv", sample_table, quote = F, row.names = F, sep = "\t")
+write.table(file = "size_factors.tsv", size_factors, quote = F, row.names = F, sep = "\t")
 
