@@ -17,7 +17,7 @@ data4jags <- function(genesel, samplesel) {
       ngenes = length(genesel),
       nsamples = length(samplesel),
       K = counts[genesel, 1 + samplesel],
-      ncond = length(unique(samples[samplesel,1])),
+      ncond = length(unique(samples[samplesel,2])),
       cond = as.integer(samples[samplesel,2])
     )
 }
@@ -25,7 +25,7 @@ data4jags <- function(genesel, samplesel) {
 model <- "model {
   for(i in 1:ngenes) {
     for(j in 1:nsamples) {
-      K[i,j] ~ dpois(10 * log10_lambda[i, cond[j]])
+      K[i,j] ~ dpois(10 ** log10_lambda[i, cond[j]])
     }
   }
 

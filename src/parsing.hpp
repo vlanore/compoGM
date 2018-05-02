@@ -44,7 +44,7 @@ struct CountParsingResult {
 CountParsingResult parse_counts(std::string filename) {
     // Files and parsers
     std::ifstream file(filename);
-    auto parser = CsvParser(file).delimiter(' ');
+    auto parser = CsvParser(file).delimiter('\t');
 
     // Result structure
     CountParsingResult result;
@@ -79,7 +79,7 @@ struct SamplesParsingResult {
 SamplesParsingResult parse_samples(std::string filename) {
     // Files and parsers
     std::ifstream file(filename);
-    auto parser = CsvParser(file).delimiter(' ');
+    auto parser = CsvParser(file).delimiter('\t');
 
     // Result structure
     SamplesParsingResult result;

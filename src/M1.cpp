@@ -46,11 +46,15 @@ struct M1 : public Composite {
             Model& gene_composite = model.get_composite(gene.first);
             for (auto&& condition : conditions) {  // lambda
                 gene_composite.component<OrphanNode<Normal>>("lambda_" + condition, 1, 2, 2);
+                gene_composite
+                    .component<DeterministicUnaryNode<double>>("exp_" + condition,
+                                                               [](double x) { return exp(x); })
+                    .connect<Use<Value<double>>>("a", "lambda_" + condition);
             }
             for (auto&& count : gene.second) {  // K (counts)
                 gene_composite.component<UnaryNode<Poisson, int>>("K_" + count.first, count.second)
                     .connect<Use<Value<double>>>("parent",
-                                                 "lambda_" + condition_mapping.at(count.first));
+                                                 "exp_" + condition_mapping.at(count.first));
             }
         }
     }
@@ -60,7 +64,7 @@ int main() {
     Model model;
 
     // Parsing data files
-    auto counts = parse_counts("/home/vlanore/git/data/rnaseq/mini-counts.tsv");
+    auto counts = parse_counts("/home/vlanore/git/data/rnaseq/mini_counts.tsv");
     auto samples = parse_samples("/home/vlanore/git/data/rnaseq/samples.tsv");
     check_consistency(counts, samples);
 

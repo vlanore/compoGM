@@ -32,6 +32,27 @@ license and that you accept its terms.*/
 
 /*
 ====================================================================================================
+  ~*~ DeterministicUnaryNode ~*~
+==================================================================================================*/
+template <class ValueType>
+class DeterministicUnaryNode : public Value<ValueType>, public tc::Component {
+    Value<double>* parent;
+    ValueType (*f)(double);
+    ValueType x;
+
+  public:
+    DeterministicUnaryNode(ValueType (*f)(double)) : f(f) {
+        port("a", &DeterministicUnaryNode::parent);
+    }
+
+    ValueType& get_ref() final {
+        x = f(parent->get_ref());
+        return x;
+    }
+};
+
+/*
+====================================================================================================
   ~*~ BinaryNode ~*~
 ==================================================================================================*/
 template <class PDS>
