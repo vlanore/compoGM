@@ -38,11 +38,15 @@ license and that you accept its terms.*/
 ==================================================================================================*/
 template <class Move, class ValueType>
 class SimpleMHMove : public Go, public tc::Component {
+    // config
     double tuning;
     Value<ValueType>* target;
     Backup* target_backup;
     std::vector<LogProb*> log_probs;
     void add_log_prob(LogProb* ptr) { log_probs.push_back(ptr); }
+
+    // internal stats
+    int reject{0}, total{0};
 
   public:
     SimpleMHMove(double tuning = 1.0) : tuning(tuning) {
@@ -63,6 +67,10 @@ class SimpleMHMove : public Go, public tc::Component {
         bool accept = decide(exp(log_prob_after - log_prob_before + hastings));
         if (not accept) {
             target_backup->restore();
+            reject++;
         }
+        total++;
     }
+
+    double accept_rate() const { return double(total - reject) / total; }
 };

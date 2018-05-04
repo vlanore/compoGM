@@ -25,6 +25,7 @@ more generally, to use and operate it in the same conditions as regards security
 The fact that you are presently reading this means that you have had knowledge of the CeCILL-C
 license and that you accept its terms.*/
 
+#include <iomanip>
 #include <map>
 #include <tinycompo.hpp>
 #include "distributions.hpp"
@@ -45,10 +46,11 @@ struct M1 : public Composite {
             model.composite(gene.first);
             Model& gene_composite = model.get_composite(gene.first);
             for (auto&& condition : conditions) {  // lambda
-                gene_composite.component<OrphanNode<Normal>>("lambda_" + condition, 1, 2, 2);
+                gene_composite.component<OrphanNode<Normal>>("lambda_" + condition, 1, 3,
+                                                             pow(1.5, 2));
                 gene_composite
                     .component<DeterministicUnaryNode<double>>("exp_" + condition,
-                                                               [](double x) { return exp(x); })
+                                                               [](double x) { return pow(10, x); })
                     .connect<Use<Value<double>>>("a", "lambda_" + condition);
             }
             for (auto&& count : gene.second) {  // K (counts)
@@ -64,7 +66,7 @@ int main() {
     Model model;
 
     // Parsing data files
-    auto counts = parse_counts("/home/vlanore/git/data/rnaseq/mini_counts.tsv");
+    auto counts = parse_counts("/home/vlanore/git/data/rnaseq_mini/counts.tsv");
     auto samples = parse_samples("/home/vlanore/git/data/rnaseq/samples.tsv");
     check_consistency(counts, samples);
 
@@ -76,13 +78,13 @@ int main() {
         Model& gene_composite = model.get_composite("model").get_composite(gene.first);
         for (auto&& condition : samples.conditions) {  // creating moves connected to their targets
             gene_composite.component<PoissonSuffstat>("poissonsuffstat_" + condition)
-                .connect<Use<Value<double>>>("lambda", "lambda_" + condition);
+                .connect<Use<Value<double>>>("lambda", "exp_" + condition);
 
-            gene_composite.component<SimpleMHMove<Scale, double>>("move_lambda_" + condition)
+            gene_composite.component<SimpleMHMove<Scale, double>>("move_lambda_" + condition, 0.1)
                 .connect<Use<Value<double>>>("target", "lambda_" + condition)
                 .connect<Use<Backup>>("targetbackup", "lambda_" + condition)
-                .connect<Use<LogProb>>("logprob", "lambda_" + condition)
-                .connect<Use<LogProb>>("logprob", "poissonsuffstat_" + condition);
+                .connect<Use<LogProb>>("logprob", "poissonsuffstat_" + condition)
+                .connect<Use<LogProb>>("logprob", "lambda_" + condition);
         }
         for (auto&& sample : gene.second) {  // connecting moves to all children in model
             string condition = samples.condition_mapping.at(sample.first);
@@ -116,13 +118,20 @@ int main() {
     output << endl;
 
     // running the chain
-    for (int iteration = 0; iteration < 10000; iteration++) {
-        for (auto&& move : all_moves) {
-            move->go();
+    for (int iteration = 0; iteration < 5000; iteration++) {
+        for (int rep = 0; rep < 10; rep++) {
+            for (auto&& move : all_moves) {
+                move->go();
+            }
         }
         for (auto&& lambda : all_lambdas) {
             output << lambda->get_ref() << "\t";
         }
         output << endl;
+    }
+    for (auto&& move : all_moves) {
+        auto ptr = dynamic_cast<SimpleMHMove<Scale, double>*>(move);
+        cerr << setprecision(3) << "Accept rate" << setw(40) << ptr->get_name() << "  -->  "
+             << ptr->accept_rate() * 100 << "%" << endl;
     }
 }
