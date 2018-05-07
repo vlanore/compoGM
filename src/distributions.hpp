@@ -71,6 +71,8 @@ struct Gamma {
 ==================================================================================================*/
 struct Poisson {
   public:
+    using ValueType = int;
+
     static double full_log_prob(int x, double lambda) {
         return x * log(lambda) - lambda - log_factorial(x);
     }

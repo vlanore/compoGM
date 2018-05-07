@@ -90,8 +90,9 @@ class BinaryNode : public Value<double>, public LogProb, public Backup, public t
   An unary node is a node with exactly one parent in the graphical model. typically,  it's a node
   with a one-parameter distribution (such as Exp).
 ==================================================================================================*/
-template <class PDS, class ValueType = double>
-class UnaryNode : public Value<ValueType>, public LogProb, public Backup, public tc::Component {
+template <class PDS>
+class UnaryNode : public Value<typename PDS::ValueType>, public LogProb, public Backup, public tc::Component {
+    using ValueType = typename PDS::ValueType;
     ValueType value{0};
     ValueType bk_value{0};
     Value<double>* parent{nullptr};  // FIXME, template parameter?

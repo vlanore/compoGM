@@ -54,7 +54,7 @@ struct M1 : public Composite {
                     .connect<Use<Value<double>>>("a", "lambda_" + condition);
             }
             for (auto&& count : gene.second) {  // K (counts)
-                gene_composite.component<UnaryNode<Poisson, int>>("K_" + count.first, count.second)
+                gene_composite.component<UnaryNode<Poisson>>("K_" + count.first, count.second)
                     .connect<Use<Value<double>>>("parent",
                                                  "exp_" + condition_mapping.at(count.first));
             }
@@ -66,8 +66,8 @@ int main() {
     Model model;
 
     // Parsing data files
-    auto counts = parse_counts("/home/vlanore/git/data/rnaseq_mini/counts.tsv");
-    auto samples = parse_samples("/home/vlanore/git/data/rnaseq/samples.tsv");
+    auto counts = parse_counts("../data/rnaseq_mini/counts.tsv");
+    auto samples = parse_samples("../data/rnaseq/samples.tsv");
     check_consistency(counts, samples);
 
     // graphical model
