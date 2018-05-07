@@ -35,6 +35,8 @@ license and that you accept its terms.*/
   ~*~ Exponential distribution ~*~
 ==================================================================================================*/
 struct Exp {
+    using ValueType = double;
+
     static double full_log_prob(double x, double lambda) { return log(lambda) - lambda * x; }
 
     static double partial_log_prob_x(double x, double lambda) { return -lambda * x; }
@@ -48,6 +50,8 @@ struct Exp {
   ~*~ Gamma distribution ~*~
 ==================================================================================================*/
 struct Gamma {
+    using ValueType = double;
+
     static double full_log_prob(double x, double k, double theta) {
         return -log(std::tgamma(k)) - k * log(theta) + (k - 1) * log(x) - x / theta;
     }
@@ -70,7 +74,6 @@ struct Gamma {
   ~*~ Poisson distribution ~*~
 ==================================================================================================*/
 struct Poisson {
-  public:
     using ValueType = int;
 
     static double full_log_prob(int x, double lambda) {
@@ -88,8 +91,9 @@ struct Poisson {
 ====================================================================================================
   ~*~ Normal distribution ~*~
 ==================================================================================================*/
-class Normal {
-  public:
+struct Normal {
+    using ValueType = double;
+
     static double full_log_prob(double x, double mu, double sigma) {
         return -(x - mu) * (x - mu) / (2 * sigma * sigma) - 0.5 * log(2 * M_PI * sigma * sigma);
     }

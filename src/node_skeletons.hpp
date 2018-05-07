@@ -56,19 +56,23 @@ class DeterministicUnaryNode : public Value<ValueType>, public tc::Component {
   ~*~ BinaryNode ~*~
 ==================================================================================================*/
 template <class PDS>
-class BinaryNode : public Value<double>, public LogProb, public Backup, public tc::Component {
-    double value{0};
-    double bk_value{0};
+class BinaryNode : public Value<typename PDS::ValueType>,
+                   public LogProb,
+                   public Backup,
+                   public tc::Component {
+    using ValueType = typename PDS::ValueType;
+    ValueType value{0};
+    ValueType bk_value{0};
     Value<double>* a{nullptr};
     Value<double>* b{nullptr};
 
   public:
-    BinaryNode(double value) : value(value) {
+    BinaryNode(ValueType value) : value(value) {
         port("x", &BinaryNode::value);
         port("a", &BinaryNode::a);
         port("b", &BinaryNode::b);
     }
-    double& get_ref() final { return value; }
+    ValueType& get_ref() final { return value; }
     double get_log_prob() final { return PDS::full_log_prob(value, a->get_ref(), b->get_ref()); }
     double get_log_prob_x() final {
         return PDS::partial_log_prob_x(value, a->get_ref(), b->get_ref());
@@ -91,7 +95,10 @@ class BinaryNode : public Value<double>, public LogProb, public Backup, public t
   with a one-parameter distribution (such as Exp).
 ==================================================================================================*/
 template <class PDS>
-class UnaryNode : public Value<typename PDS::ValueType>, public LogProb, public Backup, public tc::Component {
+class UnaryNode : public Value<typename PDS::ValueType>,
+                  public LogProb,
+                  public Backup,
+                  public tc::Component {
     using ValueType = typename PDS::ValueType;
     ValueType value{0};
     ValueType bk_value{0};
@@ -118,18 +125,22 @@ class UnaryNode : public Value<typename PDS::ValueType>, public LogProb, public 
   parameters.
 ==================================================================================================*/
 template <class PDS>
-class OrphanNode : public Value<double>, public LogProb, public Backup, public tc::Component {
-    double value{0};
-    double bk_value{0};
-    std::function<double(double)> f;  // std::function is used as a way to store constructor args
+class OrphanNode : public Value<typename PDS::ValueType>,
+                   public LogProb,
+                   public Backup,
+                   public tc::Component {
+    using ValueType = typename PDS::ValueType;
+    ValueType value{0};
+    ValueType bk_value{0};
+    std::function<double(ValueType)> f;  // std::function is used as a way to store constructor args
 
   public:
     template <class... Args>
     OrphanNode(double value, Args... args)
-        : value(value), f([args...](double v) { return PDS::partial_log_prob_x(v, args...); }) {
+        : value(value), f([args...](ValueType v) { return PDS::partial_log_prob_x(v, args...); }) {
         port("x", &OrphanNode::value);
     }
-    double& get_ref() final { return value; }
+    ValueType& get_ref() final { return value; }
     double get_log_prob() final { return f(value); }
     void backup() final { bk_value = value; }
     void restore() final { value = bk_value; }
