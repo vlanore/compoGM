@@ -27,7 +27,7 @@ license and that you accept its terms.*/
 
 #include <iomanip>
 #include <map>
-#include <tinycompo.hpp>
+#include "connectors.hpp"
 #include "distributions.hpp"
 #include "interfaces.hpp"
 #include "mcmc_moves.hpp"
@@ -42,6 +42,17 @@ using namespace tc;
 struct M1 : public Composite {
     static void contents(Model& model, map<string, map<string, int>>& counts,
                          std::set<string>& conditions, map<string, string>& condition_mapping) {
+        std::set<string> genes;
+        for (auto&& gene : counts) {
+            genes.insert(gene.first);
+        }
+
+        model.composite<NamedMatrix<OrphanNode<Normal>>>("lambda", genes, conditions, 1, 3,
+                                                         pow(1.5, 2));
+
+        model.composite<NamedMatrix<DeterministicUnaryNode<double>>>(
+            "exp", genes, conditions, [](double x) { return pow(10, x); });
+
         for (auto&& gene : counts) {
             model.composite(gene.first);
             Model& gene_composite = model.get_composite(gene.first);
