@@ -25,8 +25,11 @@ more generally, to use and operate it in the same conditions as regards security
 The fact that you are presently reading this means that you have had knowledge of the CeCILL-C
 license and that you accept its terms.*/
 
+#include <future>
 #include <iomanip>
 #include <map>
+#include <thread>
+#include <tinycompo.hpp>
 #include "connectors.hpp"
 #include "distributions.hpp"
 #include "interfaces.hpp"
@@ -47,10 +50,10 @@ struct M1 : public Composite {
             genes.insert(gene.first);
         }
 
-        model.composite<NamedMatrix<OrphanNode<Normal>>>("lambda", genes, conditions, 1, 3,
+        model.component<NamedMatrix<OrphanNode<Normal>>>("lambda", genes, conditions, 1, 3,
                                                          pow(1.5, 2));
 
-        model.composite<NamedMatrix<DeterministicUnaryNode<double>>>(
+        model.component<NamedMatrix<DeterministicUnaryNode<double>>>(
             "exp", genes, conditions, [](double x) { return pow(10, x); });
 
         for (auto&& gene : counts) {
@@ -82,7 +85,7 @@ int main() {
     check_consistency(counts, samples);
 
     // graphical model
-    model.composite<M1>("model", counts.counts, samples.conditions, samples.condition_mapping);
+    model.component<M1>("model", counts.counts, samples.conditions, samples.condition_mapping);
 
     // suffstats and metropolis hastings moves
     for (auto&& gene : counts.counts) {
@@ -99,8 +102,10 @@ int main() {
         }
         for (auto&& sample : gene.second) {  // connecting moves to all children in model
             string condition = samples.condition_mapping.at(sample.first);
+
             // gene_composite.connect<Use<LogProb>>(PortAddress("logprob", "move_lambda_" +
             // condition), Address("K_" + sample.first));
+
             gene_composite.connect<Use<Value<int>>>(
                 PortAddress("values", "poissonsuffstat_" + condition),
                 Address("K_" + sample.first));
@@ -114,26 +119,32 @@ int main() {
     Assembly assembly(model);
 
     // preparations before running
-    vector<Value<double>*> all_lambdas;  // list of lambda nodes for registration
-    vector<Go*> all_moves;
+    auto all_lambdas = assembly.get_all<OrphanNode<Normal>>();
+    auto all_moves = assembly.get_all<SimpleMHMove<Scale, double>>();
+
+    // trace header
     ofstream output("tmp.dat");
     for (auto&& gene : counts.counts) {
         for (auto&& condition : samples.conditions) {
             output << "lambda_" + gene.first + "_" + condition + "\t";  // trace header
-            all_lambdas.push_back(
-                &assembly.at<Value<double>>(Address("model", gene.first, "lambda_" + condition)));
-            all_moves.push_back(
-                &assembly.at<Go>(Address("model", gene.first, "move_lambda_" + condition)));
         }
     }
     output << endl;
 
     // running the chain
+    // vector<future<void>> futures(all_moves.size());
     for (int iteration = 0; iteration < 5000; iteration++) {
         for (int rep = 0; rep < 10; rep++) {
             for (auto&& move : all_moves) {
                 move->go();
             }
+
+            // for (size_t i = 0; i< all_moves.size(); ++i) {
+            //     futures.at(i) = async(&Go::go, all_moves.at(i));
+            // }
+            // for (auto&& future : futures) {
+            //     future.get();
+            // }
         }
         for (auto&& lambda : all_lambdas) {
             output << lambda->get_ref() << "\t";
@@ -141,8 +152,7 @@ int main() {
         output << endl;
     }
     for (auto&& move : all_moves) {
-        auto ptr = dynamic_cast<SimpleMHMove<Scale, double>*>(move);
-        cerr << setprecision(3) << "Accept rate" << setw(40) << ptr->get_name() << "  -->  "
-             << ptr->accept_rate() * 100 << "%" << endl;
+        cerr << setprecision(3) << "Accept rate" << setw(40) << move->get_name() << "  -->  "
+             << move->accept_rate() * 100 << "%" << endl;
     }
 }

@@ -52,7 +52,7 @@ int main() {
     Model m;
     m.component<OrphanNode<Exp>>("k", 0.5, 1.0);
     m.component<OrphanNode<Exp>>("theta", 0.5, 1.0);
-    m.composite<Array<BinaryNode<Gamma>>>("array", 10, -1)
+    m.component<Array<BinaryNode<Gamma>>>("array", 10, -1)
         .connect<MultiProvide<Value<double>>>("a", "k")
         .connect<MultiProvide<Value<double>>>("b", "theta")
         .connect<ArraySet<double>>(

@@ -1,4 +1,4 @@
-CPPFLAGS= -Wall -Wextra -O3 --std=c++11
+CPPFLAGS= -Wall -Wextra -O3 --std=c++11 -pthread
 
 .PHONY: all clean ready test format
 
