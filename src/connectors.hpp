@@ -50,20 +50,26 @@ struct NamedArray : public tc::Composite {
   ~*~ Named Matrix ~*~
 ==================================================================================================*/
 template <class Element>
-struct NamedMatrix : public tc::Composite {
-    template <class... Args>
-    static void contents(tc::Model& m, IndexSet indices_i, IndexSet indices_j, Args... args) {
-        for (auto&& index_i : indices_i) {
-            m.composite(index_i);
-            auto& composite_i = m.get_composite(index_i);
-            for (auto&& index_j : indices_j) {
-                composite_i.component<Element>(index_j, args...);
-            }
-        }
-    }
-};
+using NamedMatrix = NamedArray<NamedArray<Element>>;
 
 /*
 ====================================================================================================
   ~*~ Matrix / array connectors ~*~
 ==================================================================================================*/
+template <class P2PConnector>
+struct ArrayMetaOneToOne {
+    static void connect(tc::Model& m, tc::PortAddress user, tc::Address provider) {
+        auto user_elements = m.get_composite(user.address).all_component_names(0, true);
+        auto provider_elements = m.get_composite(provider).all_component_names(0, true);
+        bool lengths_match = user_elements.size() == provider_elements.size();
+        if (!lengths_match) {
+            throw tc::TinycompoException("ArrayMetaOneToOne: lengths of composites " +
+                                         user.address.to_string() + " and " + provider.to_string() +
+                                         "  don't match.");
+        }
+        for (int i = 0; i < static_cast<int>(user_elements.size()); ++i) {
+            m.connect<P2PConnector>(tc::PortAddress(user.prop, user.address, user_elements.at(i)),
+                                    tc::Address(provider, provider_elements.at(i)));
+        }
+    }
+};
