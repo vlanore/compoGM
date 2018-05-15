@@ -50,11 +50,11 @@ struct M1 : public Composite {
             genes.insert(gene.first);
         }
 
-        model.component<NamedMatrix<OrphanNode<Normal>>>("lambda", genes, conditions, 1, 3,
-                                                         pow(1.5, 2));
+        // model.component<NamedMatrix<OrphanNode<Normal>>>("lambda", genes, conditions, 1, 3,
+        //                                                  pow(1.5, 2));
 
-        model.component<NamedMatrix<DeterministicUnaryNode<double>>>(
-            "exp", genes, conditions, [](double x) { return pow(10, x); });
+        // model.component<NamedMatrix<DeterministicUnaryNode<double>>>(
+        //     "exp", genes, conditions, [](double x) { return pow(10, x); });
 
         for (auto&& gene : counts) {
             model.composite(gene.first);
@@ -94,7 +94,7 @@ int main() {
             gene_composite.component<PoissonSuffstat>("poissonsuffstat_" + condition)
                 .connect<Use<Value<double>>>("lambda", "exp_" + condition);
 
-            gene_composite.component<SimpleMHMove<Scale, double>>("move_lambda_" + condition, 0.1)
+            gene_composite.component<SimpleMHMove<Scale>>("move_lambda_" + condition, 0.1)
                 .connect<Use<Value<double>>>("target", "lambda_" + condition)
                 .connect<Use<Backup>>("targetbackup", "lambda_" + condition)
                 .connect<Use<LogProb>>("logprob", "poissonsuffstat_" + condition)
@@ -120,7 +120,7 @@ int main() {
 
     // preparations before running
     auto all_lambdas = assembly.get_all<OrphanNode<Normal>>();
-    auto all_moves = assembly.get_all<SimpleMHMove<Scale, double>>();
+    auto all_moves = assembly.get_all<SimpleMHMove<Scale>>();
 
     // trace header
     ofstream output("tmp.dat");

@@ -34,6 +34,8 @@ license and that you accept its terms.*/
   ~*~ Scaling move ~*~
 ==================================================================================================*/
 struct Scale {
+    using ValueType = double;
+
     static double move(double& value, double tuning = 1.0) {
         auto multiplier = tuning * (uniform(generator) - 0.5);
         value *= exp(multiplier);

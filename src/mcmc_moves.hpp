@@ -36,8 +36,10 @@ license and that you accept its terms.*/
   ~*~ SimpleMHMove ~*~
   A generic Metropolis-Hastings move.
 ==================================================================================================*/
-template <class Move, class ValueType>
+template <class Move>
 class SimpleMHMove : public Go, public tc::Component {
+    using ValueType = typename Move::ValueType;
+
     // config
     double tuning;
     Value<ValueType>* target;
