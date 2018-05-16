@@ -72,10 +72,20 @@ int main() {
     model.component<M1>("model", counts.genes, samples.conditions,
                         IndexSet(counts.samples.begin(), counts.samples.end()), counts.counts,
                         samples.condition_mapping);
-    model.print();
 
     // suffstats and metropolis hastings moves
-    // model.component<NamedArray<
+    model
+        .component<NamedMatrix<PoissonSuffstat>>("poissonsuffstats", counts.genes,
+                                                 samples.conditions)
+        .connect<ConnectNamedMatricesOneToOne<Use<Value<double>>>>("lambda",
+                                                                   Address("model", "exp"));
+
+    model
+        .component<NamedMatrix<SimpleMHMove<Scale>>>("moves", counts.genes, samples.conditions, 0.1)
+        .connect<ConnectNamedMatricesOneToOne<Use<Value<double>>>>("target",
+                                                                   Address("model", "lambda"))
+        .connect<ConnectNamedMatricesOneToOne<Use<LogProb>>>("logprob", "poissonsuffstats")
+        .connect<ConnectNamedMatricesOneToOne<Use<LogProb>>>("logprob", Address("model", "lambda"));
 
     // for (auto&& gene : counts.counts) {
     //     Model& gene_composite = model.get_composite("model").get_composite(gene.first);
@@ -106,6 +116,7 @@ int main() {
     // // model.get_composite("model").get_composite("HRA1").dot_to_file();
 
     // // assembly
+    model.print();
     Assembly assembly(model);
     assembly.print_all();
 
