@@ -84,17 +84,23 @@ int main() {
 
     model.dot_to_file();
     // model.print();
-    // // model.get_composite("model").get_composite("HRA1").dot_to_file();
+    // model.get_composite("model").get_composite("HRA1").dot_to_file();
 
-    // // assembly
+    // assembly
     Assembly assembly(model);
     // assembly.print_all();
 
-    // // preparations before running
+    // preparations before running
     auto all_lambdas = assembly.get_all<OrphanNode<Normal>>();
     auto all_moves = assembly.get_all<SimpleMHMove<Scale>>();
+    auto all_suffstats = assembly.get_all<PoissonSuffstat>();
 
-    // // trace header
+    // gathering suff stats
+    for (auto&& suffstat : all_suffstats) {
+        suffstat->acquire();
+    }
+
+    // trace header
     ofstream output("tmp.dat");
     for (auto&& gene : counts.counts) {
         for (auto&& condition : samples.conditions) {
