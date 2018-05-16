@@ -49,6 +49,9 @@ class DeterministicUnaryNode : public Value<ValueType>, public tc::Component {
         x = f(parent->get_ref());
         return x;
     }
+    std::string debug() const final {
+        return "DeterministicUnaryNode [" + std::to_string(f(parent->get_ref())) + "]";
+    }
 };
 
 /*
@@ -85,7 +88,7 @@ class BinaryNode : public Value<typename PDS::ValueType>,
     }
     void backup() final { bk_value = value; }
     void restore() final { value = bk_value; }
-    std::string debug() const override { return "BinaryNode [" + std::to_string(value) + "]"; }
+    std::string debug() const final { return "BinaryNode [" + std::to_string(value) + "]"; }
 };
 
 /*
@@ -144,4 +147,5 @@ class OrphanNode : public Value<typename PDS::ValueType>,
     double get_log_prob() final { return f(value); }
     void backup() final { bk_value = value; }
     void restore() final { value = bk_value; }
+    std::string debug() const override { return "OrphanNode [" + std::to_string(value) + "]"; }
 };

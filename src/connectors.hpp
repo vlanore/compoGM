@@ -57,7 +57,7 @@ using NamedMatrix = NamedArray<NamedArray<Element>>;
   ~*~ Matrix / array connectors ~*~
 ==================================================================================================*/
 template <class P2PConnector>
-struct ArrayMetaOneToOne {
+struct ArrayMetaOneToOne : tc::Meta {
     static void connect(tc::Model& m, tc::PortAddress user, tc::Address provider) {
         auto user_elements = m.get_composite(user.address).all_component_names(0, true);
         auto provider_elements = m.get_composite(provider).all_component_names(0, true);
@@ -73,3 +73,31 @@ struct ArrayMetaOneToOne {
         }
     }
 };
+
+template <class P2PConnector>
+using MatrixMetaOneToOne = ArrayMetaOneToOne<ArrayMetaOneToOne<P2PConnector>>;
+
+template <class ValueType, class Setter = tc::Set<ValueType>>
+struct SetNamedArray : tc::Meta {
+    static void connect(tc::Model& m, tc::PortAddress array,
+                        std::map<std::string, ValueType> data) {
+        auto array_elements = m.get_composite(array.address).all_component_names(0, true);
+        IndexSet data_keys;
+        for (auto&& entry : data) {
+            data_keys.insert(entry.first);
+        }
+        bool element_names_match =
+            IndexSet(array_elements.begin(), array_elements.end()) == data_keys;
+        if (!element_names_match) {
+            throw tc::TinycompoException(
+                "SetNamedArray: list of keys of data and elements don't match.");
+        }
+        for (auto&& element : array_elements) {
+            m.connect<Setter>(tc::PortAddress(array.prop, array.address, element),
+                              data.at(element));
+        }
+    }
+};
+
+template <class ValueType>
+using SetNamedMatrix = SetNamedArray<std::map<std::string, ValueType>, SetNamedArray<ValueType>>;
