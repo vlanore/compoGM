@@ -46,17 +46,15 @@ struct M1 : public Composite {
     static void contents(Model& m, IndexSet& genes, IndexSet& conditions, IndexSet& samples,
                          map<string, map<string, int>>& counts,
                          map<string, string>& condition_mapping) {
-        m.component<NamedMatrix<OrphanNode<Normal>>>("lambda", genes, conditions, 1, 3,
-                                                     pow(1.5, 2));
+        m.component<NMatrix<OrphanNode<Normal>>>("lambda", genes, conditions, 1, 3, pow(1.5, 2));
 
-        m.component<NamedMatrix<DeterministicUnaryNode<double>>>(
-             "exp", genes, conditions, [](double x) { return pow(10, x); })
-            .connect<ConnectNamedMatricesOneToOne<Use<Value<double>>>>("a", "lambda");
+        m.component<NMatrix<DeterministicUnaryNode<double>>>("exp", genes, conditions,
+                                                             [](double x) { return pow(10, x); })
+            .connect<NMatrices1To1<Use<Value<double>>>>("a", "lambda");
 
-        m.component<NamedMatrix<UnaryNode<Poisson>>>("K", genes, samples, 0)
-            .connect<SetNamedMatrix<int>>("x", counts)
-            .connect<ConnectNamedArraysOneToOne<ConnectNamedArrays<Use<Value<double>>>>>(
-                "a", "exp", condition_mapping);
+        m.component<NMatrix<UnaryNode<Poisson>>>("K", genes, samples, 0)
+            .connect<SetNMatrix<int>>("x", counts)
+            .connect<NArrays1To1<NArraysMap<Use<Value<double>>>>>("a", "exp", condition_mapping);
     }
 };
 
@@ -69,23 +67,19 @@ int main() {
     check_consistency(counts, samples);
 
     // graphical model
-    model.component<M1>("model", counts.genes, samples.conditions,
-                        IndexSet(counts.samples.begin(), counts.samples.end()), counts.counts,
-                        samples.condition_mapping);
+    model.component<M1>("model", counts.genes, samples.conditions, make_index_set(counts.samples),
+                        counts.counts, samples.condition_mapping);
 
     // suffstats and metropolis hastings moves
-    model
-        .component<NamedMatrix<PoissonSuffstat>>("poissonsuffstats", counts.genes,
-                                                 samples.conditions)
-        .connect<ConnectNamedMatricesOneToOne<Use<Value<double>>>>("lambda",
-                                                                   Address("model", "exp"));
+    model.component<NMatrix<PoissonSuffstat>>("poissonsuffstats", counts.genes, samples.conditions)
+        .connect<NMatrices1To1<Use<Value<double>>>>("lambda", Address("model", "exp"))
+        .connect<NArrays1To1<NArraysMap<Use<Value<int>>>>>(
+            "values", Address("model", "K"), reverse_index_mapping(samples.condition_mapping));
 
-    model
-        .component<NamedMatrix<SimpleMHMove<Scale>>>("moves", counts.genes, samples.conditions, 0.1)
-        .connect<ConnectNamedMatricesOneToOne<Use<Value<double>>>>("target",
-                                                                   Address("model", "lambda"))
-        .connect<ConnectNamedMatricesOneToOne<Use<LogProb>>>("logprob", "poissonsuffstats")
-        .connect<ConnectNamedMatricesOneToOne<Use<LogProb>>>("logprob", Address("model", "lambda"));
+    model.component<NMatrix<SimpleMHMove<Scale>>>("moves", counts.genes, samples.conditions, 0.1)
+        .connect<NMatrices1To1<Use<Value<double>>>>("target", Address("model", "lambda"))
+        .connect<NMatrices1To1<Use<LogProb>>>("logprob", "poissonsuffstats")
+        .connect<NMatrices1To1<Use<LogProb>>>("logprob", Address("model", "lambda"));
 
     // for (auto&& gene : counts.counts) {
     //     Model& gene_composite = model.get_composite("model").get_composite(gene.first);

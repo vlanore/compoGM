@@ -28,15 +28,14 @@ license and that you accept its terms.*/
 #pragma once
 
 #include <tinycompo.hpp>
-
-using IndexSet = std::set<std::string>;
+#include "index_set.hpp"
 
 /*
 ====================================================================================================
   ~*~ Named array ~*~
 ==================================================================================================*/
 template <class Element>
-struct NamedArray : public tc::Composite {
+struct NArray : public tc::Composite {
     template <class... Args>
     static void contents(tc::Model& m, IndexSet indices, Args... args) {
         for (auto&& index : indices) {
@@ -50,21 +49,21 @@ struct NamedArray : public tc::Composite {
   ~*~ Named Matrix ~*~
 ==================================================================================================*/
 template <class Element>
-using NamedMatrix = NamedArray<NamedArray<Element>>;
+using NMatrix = NArray<NArray<Element>>;
 
 /*
 ====================================================================================================
   ~*~ Matrix / array connectors ~*~
 ==================================================================================================*/
 template <class P2PConnector>
-struct ConnectNamedArraysOneToOne : tc::Meta {
+struct NArrays1To1 : tc::Meta {
     template <class... Args>
     static void connect(tc::Model& m, tc::PortAddress user, tc::Address provider, Args... args) {
         auto user_elements = m.get_composite(user.address).all_component_names(0, true);
         auto provider_elements = m.get_composite(provider).all_component_names(0, true);
         bool lengths_match = user_elements.size() == provider_elements.size();
         if (!lengths_match) {
-            throw tc::TinycompoException("ConnectNamedArraysOneToOne: lengths of composites " +
+            throw tc::TinycompoException("NArrays1To1: lengths of composites " +
                                          user.address.to_string() + " and " + provider.to_string() +
                                          "  don't match.");
         }
@@ -76,11 +75,10 @@ struct ConnectNamedArraysOneToOne : tc::Meta {
 };
 
 template <class P2PConnector>
-using ConnectNamedMatricesOneToOne =
-    ConnectNamedArraysOneToOne<ConnectNamedArraysOneToOne<P2PConnector>>;
+using NMatrices1To1 = NArrays1To1<NArrays1To1<P2PConnector>>;
 
 template <class ValueType, class Setter = tc::Set<ValueType>>
-struct SetNamedArray : tc::Meta {
+struct SetNArray : tc::Meta {
     static void connect(tc::Model& m, tc::PortAddress array,
                         std::map<std::string, ValueType> data) {
         auto array_elements = m.get_composite(array.address).all_component_names(0, true);
@@ -92,7 +90,7 @@ struct SetNamedArray : tc::Meta {
             IndexSet(array_elements.begin(), array_elements.end()) == data_keys;
         if (!element_names_match) {
             throw tc::TinycompoException(
-                "SetNamedArray: list of keys of data and elements don't match.");
+                "SetNArray: list of keys of data and elements don't match.");
         }
         for (auto&& element : array_elements) {
             m.connect<Setter>(tc::PortAddress(array.prop, array.address, element),
@@ -102,12 +100,12 @@ struct SetNamedArray : tc::Meta {
 };
 
 template <class ValueType>
-using SetNamedMatrix = SetNamedArray<std::map<std::string, ValueType>, SetNamedArray<ValueType>>;
+using SetNMatrix = SetNArray<std::map<std::string, ValueType>, SetNArray<ValueType>>;
 
 template <class P2PConnector>
-struct ConnectNamedArrays : tc::Meta {
+struct NArraysMap : tc::Meta {
     static void connect(tc::Model& m, tc::PortAddress user, tc::Address provider,
-                        std::map<std::string, std::string> mapping) {
+                        IndexMapping mapping) {
         auto user_elements = m.get_composite(user.address).all_component_names(0, true);
         for (auto&& element : user_elements) {
             m.connect<P2PConnector>(tc::PortAddress(user.prop, user.address, element),
