@@ -105,11 +105,23 @@ using SetNMatrix = SetNArray<std::map<std::string, ValueType>, SetNArray<ValueTy
 template <class P2PConnector>
 struct NArraysMap : tc::Meta {
     static void connect(tc::Model& m, tc::PortAddress user, tc::Address provider,
-                        IndexMapping mapping) {
+                        IndexMapping mapping) {  // mapping user index -> provider index
         auto user_elements = m.get_composite(user.address).all_component_names(0, true);
         for (auto&& element : user_elements) {
             m.connect<P2PConnector>(tc::PortAddress(user.prop, user.address, element),
                                     tc::Address(provider, mapping.at(element)));
+        }
+    }
+};
+
+template <class P2PConnector>
+struct NArraysRevMap : tc::Meta {
+    static void connect(tc::Model& m, tc::PortAddress user, tc::Address provider,
+                        IndexMapping mapping) {  // mapping provider index -> user index
+        auto provider_elements = m.get_composite(provider).all_component_names(0, true);
+        for (auto&& element : provider_elements) {
+            m.connect<P2PConnector>(tc::PortAddress(user.prop, user.address, mapping.at(element)),
+                                    tc::Address(provider, element));
         }
     }
 };

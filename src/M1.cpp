@@ -73,82 +73,58 @@ int main() {
     // suffstats and metropolis hastings moves
     model.component<NMatrix<PoissonSuffstat>>("poissonsuffstats", counts.genes, samples.conditions)
         .connect<NMatrices1To1<Use<Value<double>>>>("lambda", Address("model", "exp"))
-        .connect<NArrays1To1<NArraysMap<Use<Value<int>>>>>(
-            "values", Address("model", "K"), reverse_index_mapping(samples.condition_mapping));
+        .connect<NArrays1To1<NArraysRevMap<Use<Value<int>>>>>("values", Address("model", "K"),
+                                                              samples.condition_mapping);
 
     model.component<NMatrix<SimpleMHMove<Scale>>>("moves", counts.genes, samples.conditions, 0.1)
         .connect<NMatrices1To1<Use<Value<double>>>>("target", Address("model", "lambda"))
+        .connect<NMatrices1To1<Use<Backup>>>("targetbackup", Address("model", "lambda"))
         .connect<NMatrices1To1<Use<LogProb>>>("logprob", "poissonsuffstats")
         .connect<NMatrices1To1<Use<LogProb>>>("logprob", Address("model", "lambda"));
 
-    // for (auto&& gene : counts.counts) {
-    //     Model& gene_composite = model.get_composite("model").get_composite(gene.first);
-    //     for (auto&& condition : samples.conditions) {  // creating moves connected to their
-    //     targets
-    //         gene_composite.component<PoissonSuffstat>("poissonsuffstat_" + condition)
-    //             .connect<Use<Value<double>>>("lambda", "exp_" + condition);
-
-    //         gene_composite.component<SimpleMHMove<Scale>>("move_lambda_" + condition, 0.1)
-    //             .connect<Use<Value<double>>>("target", "lambda_" + condition)
-    //             .connect<Use<Backup>>("targetbackup", "lambda_" + condition)
-    //             .connect<Use<LogProb>>("logprob", "poissonsuffstat_" + condition)
-    //             .connect<Use<LogProb>>("logprob", "lambda_" + condition);
-    //     }
-    //     for (auto&& sample : gene.second) {  // connecting moves to all children in model
-    //         string condition = samples.condition_mapping.at(sample.first);
-
-    //         // gene_composite.connect<Use<LogProb>>(PortAddress("logprob", "move_lambda_" +
-    //         // condition), Address("K_" + sample.first));
-
-    //         gene_composite.connect<Use<Value<int>>>(
-    //             PortAddress("values", "poissonsuffstat_" + condition),
-    //             Address("K_" + sample.first));
-    //     }
-    // }
-
-    // model.dot_to_file();
+    model.dot_to_file();
+    // model.print();
     // // model.get_composite("model").get_composite("HRA1").dot_to_file();
 
     // // assembly
-    model.print();
     Assembly assembly(model);
-    assembly.print_all();
+    // assembly.print_all();
 
     // // preparations before running
-    // auto all_lambdas = assembly.get_all<OrphanNode<Normal>>();
-    // auto all_moves = assembly.get_all<SimpleMHMove<Scale>>();
+    auto all_lambdas = assembly.get_all<OrphanNode<Normal>>();
+    auto all_moves = assembly.get_all<SimpleMHMove<Scale>>();
 
     // // trace header
-    // ofstream output("tmp.dat");
-    // for (auto&& gene : counts.counts) {
-    //     for (auto&& condition : samples.conditions) {
-    //         output << "lambda_" + gene.first + "_" + condition + "\t";  // trace header
-    //     }
-    // }
-    // output << endl;
+    ofstream output("tmp.dat");
+    for (auto&& gene : counts.counts) {
+        for (auto&& condition : samples.conditions) {
+            output << "lambda_" + gene.first + "_" + condition + "\t";  // trace header
+        }
+    }
+    output << endl;
 
-    // // running the chain
-    // // vector<future<void>> futures(all_moves.size());
-    // for (int iteration = 0; iteration < 5000; iteration++) {
-    //     for (int rep = 0; rep < 10; rep++) {
-    //         for (auto&& move : all_moves) {
-    //             move->go();
-    //         }
+    // running the chain
+    // vector<future<void>> futures(all_moves.size());
+    for (int iteration = 0; iteration < 5000; iteration++) {
+        for (int rep = 0; rep < 10; rep++) {
+            for (auto&& move : all_moves) {
+                move->go();
+            }
 
-    //         // for (size_t i = 0; i< all_moves.size(); ++i) {
-    //         //     futures.at(i) = async(&Go::go, all_moves.at(i));
-    //         // }
-    //         // for (auto&& future : futures) {
-    //         //     future.get();
-    //         // }
-    //     }
-    //     for (auto&& lambda : all_lambdas) {
-    //         output << lambda->get_ref() << "\t";
-    //     }
-    //     output << endl;
-    // }
-    // for (auto&& move : all_moves) {
-    //     cerr << setprecision(3) << "Accept rate" << setw(40) << move->get_name() << "  -->  "
-    //          << move->accept_rate() * 100 << "%" << endl;
-    // }
+            // for (size_t i = 0; i< all_moves.size(); ++i) {
+            //     futures.at(i) = async(&Go::go, all_moves.at(i));
+            // }
+            // for (auto&& future : futures) {
+            //     future.get();
+            // }
+        }
+        for (auto&& lambda : all_lambdas) {
+            output << lambda->get_ref() << "\t";
+        }
+        output << endl;
+    }
+    for (auto&& move : all_moves) {
+        cerr << setprecision(3) << "Accept rate" << setw(40) << move->get_name() << "  -->  "
+             << move->accept_rate() * 100 << "%" << endl;
+    }
 }

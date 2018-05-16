@@ -107,6 +107,7 @@ class PoissonSuffstat : public tc::Component, public LogProb, public Proxy {
     void after_connect() final { acquire(); }
 
     void acquire() final {
+        std::cout << "YOLO: " << values.size() << std::endl;
         for (auto p : values) {
             auto value = p->get_ref();
             sum += value;

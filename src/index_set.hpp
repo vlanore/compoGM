@@ -37,10 +37,10 @@ using IndexMapping = std::map<std::string, std::string>;
 
 IndexSet make_index_set(std::vector<std::string>& v) { return IndexSet(v.begin(), v.end()); }
 
-IndexMapping reverse_index_mapping(IndexMapping& input) {
-    IndexMapping result;
-    for (auto&& entry : input) {
-        result.insert(std::make_pair(entry.second, entry.first));
-    }
-    return result;
-}
+// IndexMapping reverse_index_mapping(IndexMapping& input) {
+//     IndexMapping result;
+//     for (auto&& entry : input) {
+//         result.insert(std::make_pair(entry.second, entry.first));
+//     }
+//     return result;
+// }
