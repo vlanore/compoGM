@@ -43,7 +43,7 @@ using namespace std;
 using namespace tc;
 
 struct M1 : public Composite {
-    static void contents(Model& model, map<string, map<string, int>>& counts,
+    static void contents(Model& m, map<string, map<string, int>>& counts,
                          std::set<string>& conditions, map<string, string>& condition_mapping) {
         std::set<string> genes;
         for (auto&& gene : counts) {
@@ -54,35 +54,17 @@ struct M1 : public Composite {
             replicates.insert(replicate.first);
         }
 
-        model.component<NamedMatrix<UnaryNode<Poisson>>>("K", genes, replicates, 0)
-            .connect<SetNamedMatrix<int>>("x", counts);
+        m.component<NamedMatrix<OrphanNode<Normal>>>("lambda", genes, conditions, 1, 3,
+                                                     pow(1.5, 2));
 
-        model.component<NamedMatrix<OrphanNode<Normal>>>("lambda", genes, conditions, 1, 3,
-                                                         pow(1.5, 2));
+        m.component<NamedMatrix<DeterministicUnaryNode<double>>>(
+             "exp", genes, conditions, [](double x) { return pow(10, x); })
+            .connect<ConnectNamedMatricesOneToOne<Use<Value<double>>>>("a", "lambda");
 
-        model
-            .component<NamedMatrix<DeterministicUnaryNode<double>>>(
-                "exp", genes, conditions, [](double x) { return pow(10, x); })
-            .connect<MatrixMetaOneToOne<Use<Value<double>>>>("a", "lambda");
-
-        // for (auto&& gene : counts) {
-        //     model.composite(gene.first);
-        //     Model& gene_composite = model.get_composite(gene.first);
-        //     for (auto&& condition : conditions) {  // lambda
-        //         gene_composite.component<OrphanNode<Normal>>("lambda_" + condition, 1, 3,
-        //                                                      pow(1.5, 2));
-        //         gene_composite
-        //             .component<DeterministicUnaryNode<double>>("exp_" + condition,
-        //                                                        [](double x) { return pow(10, x);
-        //                                                        })
-        //             .connect<Use<Value<double>>>("a", "lambda_" + condition);
-        //     }
-        //     for (auto&& count : gene.second) {  // K (counts)
-        //         gene_composite.component<UnaryNode<Poisson>>("K_" + count.first, count.second)
-        //             .connect<Use<Value<double>>>("parent",
-        //                                          "exp_" + condition_mapping.at(count.first));
-        //     }
-        // }
+        m.component<NamedMatrix<UnaryNode<Poisson>>>("K", genes, replicates, 0)
+            .connect<SetNamedMatrix<int>>("x", counts)
+            .connect<ConnectNamedArraysOneToOne<ConnectNamedArrays<Use<Value<double>>>>>(
+                "a", "exp", condition_mapping);
     }
 };
 
@@ -99,6 +81,8 @@ int main() {
     model.print();
 
     // suffstats and metropolis hastings moves
+
+
     // for (auto&& gene : counts.counts) {
     //     Model& gene_composite = model.get_composite("model").get_composite(gene.first);
     //     for (auto&& condition : samples.conditions) {  // creating moves connected to their

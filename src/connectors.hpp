@@ -57,25 +57,27 @@ using NamedMatrix = NamedArray<NamedArray<Element>>;
   ~*~ Matrix / array connectors ~*~
 ==================================================================================================*/
 template <class P2PConnector>
-struct ArrayMetaOneToOne : tc::Meta {
-    static void connect(tc::Model& m, tc::PortAddress user, tc::Address provider) {
+struct ConnectNamedArraysOneToOne : tc::Meta {
+    template <class... Args>
+    static void connect(tc::Model& m, tc::PortAddress user, tc::Address provider, Args... args) {
         auto user_elements = m.get_composite(user.address).all_component_names(0, true);
         auto provider_elements = m.get_composite(provider).all_component_names(0, true);
         bool lengths_match = user_elements.size() == provider_elements.size();
         if (!lengths_match) {
-            throw tc::TinycompoException("ArrayMetaOneToOne: lengths of composites " +
+            throw tc::TinycompoException("ConnectNamedArraysOneToOne: lengths of composites " +
                                          user.address.to_string() + " and " + provider.to_string() +
                                          "  don't match.");
         }
         for (int i = 0; i < static_cast<int>(user_elements.size()); ++i) {
             m.connect<P2PConnector>(tc::PortAddress(user.prop, user.address, user_elements.at(i)),
-                                    tc::Address(provider, provider_elements.at(i)));
+                                    tc::Address(provider, provider_elements.at(i)), args...);
         }
     }
 };
 
 template <class P2PConnector>
-using MatrixMetaOneToOne = ArrayMetaOneToOne<ArrayMetaOneToOne<P2PConnector>>;
+using ConnectNamedMatricesOneToOne =
+    ConnectNamedArraysOneToOne<ConnectNamedArraysOneToOne<P2PConnector>>;
 
 template <class ValueType, class Setter = tc::Set<ValueType>>
 struct SetNamedArray : tc::Meta {
@@ -101,3 +103,15 @@ struct SetNamedArray : tc::Meta {
 
 template <class ValueType>
 using SetNamedMatrix = SetNamedArray<std::map<std::string, ValueType>, SetNamedArray<ValueType>>;
+
+template <class P2PConnector>
+struct ConnectNamedArrays : tc::Meta {
+    static void connect(tc::Model& m, tc::PortAddress user, tc::Address provider,
+                        std::map<std::string, std::string> mapping) {
+        auto user_elements = m.get_composite(user.address).all_component_names(0, true);
+        for (auto&& element : user_elements) {
+            m.connect<P2PConnector>(tc::PortAddress(user.prop, user.address, element),
+                                    tc::Address(provider, mapping.at(element)));
+        }
+    }
+};

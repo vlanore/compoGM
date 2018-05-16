@@ -110,7 +110,7 @@ class UnaryNode : public Value<typename PDS::ValueType>,
   public:
     UnaryNode(ValueType value) : value(value) {
         port("x", &UnaryNode::value);
-        port("parent", &UnaryNode::parent);
+        port("a", &UnaryNode::parent);
     }
     ValueType& get_ref() final { return value; }
     double get_log_prob() final { return PDS::full_log_prob(value, parent->get_ref()); }
