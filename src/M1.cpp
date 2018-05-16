@@ -43,17 +43,9 @@ using namespace std;
 using namespace tc;
 
 struct M1 : public Composite {
-    static void contents(Model& m, map<string, map<string, int>>& counts,
-                         std::set<string>& conditions, map<string, string>& condition_mapping) {
-        std::set<string> genes;
-        for (auto&& gene : counts) {
-            genes.insert(gene.first);
-        }
-        std::set<string> replicates;
-        for (auto&& replicate : counts.at(*genes.begin())) {  // all genes have same replicates
-            replicates.insert(replicate.first);
-        }
-
+    static void contents(Model& m, IndexSet& genes, IndexSet& conditions, IndexSet& samples,
+                         map<string, map<string, int>>& counts,
+                         map<string, string>& condition_mapping) {
         m.component<NamedMatrix<OrphanNode<Normal>>>("lambda", genes, conditions, 1, 3,
                                                      pow(1.5, 2));
 
@@ -61,7 +53,7 @@ struct M1 : public Composite {
              "exp", genes, conditions, [](double x) { return pow(10, x); })
             .connect<ConnectNamedMatricesOneToOne<Use<Value<double>>>>("a", "lambda");
 
-        m.component<NamedMatrix<UnaryNode<Poisson>>>("K", genes, replicates, 0)
+        m.component<NamedMatrix<UnaryNode<Poisson>>>("K", genes, samples, 0)
             .connect<SetNamedMatrix<int>>("x", counts)
             .connect<ConnectNamedArraysOneToOne<ConnectNamedArrays<Use<Value<double>>>>>(
                 "a", "exp", condition_mapping);
@@ -77,11 +69,13 @@ int main() {
     check_consistency(counts, samples);
 
     // graphical model
-    model.component<M1>("model", counts.counts, samples.conditions, samples.condition_mapping);
+    model.component<M1>("model", counts.genes, samples.conditions,
+                        IndexSet(counts.samples.begin(), counts.samples.end()), counts.counts,
+                        samples.condition_mapping);
     model.print();
 
     // suffstats and metropolis hastings moves
-
+    // model.component<NamedArray<
 
     // for (auto&& gene : counts.counts) {
     //     Model& gene_composite = model.get_composite("model").get_composite(gene.first);

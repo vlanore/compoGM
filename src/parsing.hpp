@@ -38,7 +38,8 @@ using aria::csv::CsvParser;
 ==================================================================================================*/
 struct CountParsingResult {
     std::map<std::string, std::map<std::string, int>> counts;  // gene -> sample -> count
-    std::vector<std::string> samples;                          // list of samples in counts file
+    std::set<std::string> genes;
+    std::vector<std::string> samples;  // list of samples in counts file
 };
 
 CountParsingResult parse_counts(std::string filename) {
@@ -58,6 +59,7 @@ CountParsingResult parse_counts(std::string filename) {
     std::cerr << "-- Number of samples is " << result.samples.size() << std::endl;
     for (++line; line != parser.end(); ++line) {  // rest of the lines
         std::string gene = (*line)[0];
+        result.genes.insert(gene);
         for (int i = 1; i < static_cast<int>(line->size()); ++i) {
             result.counts[gene][result.samples.at(i - 1)] = stoi((*line)[i]);
         }
