@@ -104,10 +104,8 @@ class PoissonSuffstat : public tc::Component, public LogProb, public Proxy {
         port("lambda", &PoissonSuffstat::lambda_);
     }
 
-    void after_connect() final { acquire(); }
-
     void acquire() final {
-        std::cout << "YOLO: " << values.size() << std::endl;
+        sum = 0;
         for (auto p : values) {
             auto value = p->get_ref();
             sum += value;
@@ -117,6 +115,7 @@ class PoissonSuffstat : public tc::Component, public LogProb, public Proxy {
     void release() final { sum = 0; }
 
     double get_log_prob() final {  // a = lambda
+        acquire();
         int N = values.size();
         double lambda = lambda_->get_ref();
         return -N * lambda + log(lambda) * sum;
