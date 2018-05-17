@@ -53,7 +53,7 @@ using NMatrix = NArray<NArray<Element>>;
 
 /*
 ====================================================================================================
-  ~*~ Matrix / array connectors ~*~
+  ~*~ 1 to 1 connectors ~*~
 ==================================================================================================*/
 template <class P2PConnector>
 struct NArrays1To1 : tc::Meta {
@@ -77,6 +77,10 @@ struct NArrays1To1 : tc::Meta {
 template <class P2PConnector>
 using NMatrices1To1 = NArrays1To1<NArrays1To1<P2PConnector>>;
 
+/*
+====================================================================================================
+  ~*~ Set connectors ~*~
+==================================================================================================*/
 template <class ValueType, class Setter = tc::Set<ValueType>>
 struct SetNArray : tc::Meta {
     static void connect(tc::Model& m, tc::PortAddress array,
@@ -102,6 +106,10 @@ struct SetNArray : tc::Meta {
 template <class ValueType>
 using SetNMatrix = SetNArray<std::map<std::string, ValueType>, SetNArray<ValueType>>;
 
+/*
+====================================================================================================
+  ~*~ Map connectors ~*~
+==================================================================================================*/
 template <class P2PConnector>
 struct NArraysMap : tc::Meta {
     static void connect(tc::Model& m, tc::PortAddress user, tc::Address provider,

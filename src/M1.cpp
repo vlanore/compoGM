@@ -67,6 +67,7 @@ int main() {
     check_consistency(counts, samples);
 
     // graphical model
+    std::cout << "-- Creating component model...\n";
     model.component<M1>("model", counts.genes, samples.conditions, make_index_set(counts.samples),
                         counts.counts, samples.condition_mapping);
 
@@ -87,10 +88,11 @@ int main() {
     // model.get_composite("model").get_composite("HRA1").dot_to_file();
 
     // assembly
+    std::cout << "-- Instantiating assembly...\n";
     Assembly assembly(model);
     // assembly.print_all();
 
-    // preparations before running
+    std::cout << "-- Preparations before running chain\n";
     auto all_lambdas = assembly.get_all<OrphanNode<Normal>>();
     auto all_moves = assembly.get_all<SimpleMHMove<Scale>>();
     auto all_suffstats = assembly.get_all<PoissonSuffstat>();
@@ -109,7 +111,7 @@ int main() {
     }
     output << endl;
 
-    // running the chain
+    std::cout << "-- Running the chain\n";
     // vector<future<void>> futures(all_moves.size());
     for (int iteration = 0; iteration < 5000; iteration++) {
         for (int rep = 0; rep < 10; rep++) {
