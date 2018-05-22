@@ -63,7 +63,7 @@ struct M2 : public Composite {
 
         m.component<NMatrix<UnaryNode<Poisson>>>("K", genes, samples, 0)
             .connect<SetNMatrix<int>>("x", counts)
-            .connect<NArrays1To1<NArraysMap<DUse>>>("a", "lambda", condition_mapping);
+            .connect<NMatrices1To1<DUse>>("a", "lambda");
     }
 };
 
