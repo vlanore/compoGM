@@ -57,6 +57,7 @@ struct LogProb {
 template <class ValueType>
 struct Value {
     virtual ValueType& get_ref() = 0;
+    virtual const ValueType& get_ref() const = 0;
 };
 
 /*

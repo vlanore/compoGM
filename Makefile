@@ -26,6 +26,9 @@ test: test_bin
 m1: M1_bin
 	./$<
 
+m2: M2_bin
+	./$<
+
 format:
 	clang-format -i src/*.hpp src/*.cpp
 

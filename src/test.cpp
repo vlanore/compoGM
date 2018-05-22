@@ -78,16 +78,18 @@ int main() {
     m.component<Mean>("meank");
     m.component<Mean>("meantheta");
 
-    m.driver("movescheduler", [](Go* move, Go* move2, Value<double>* k, Value<double>* theta,
-                                 Mean* mean, Mean* mean2) {
-         for (int i = 0; i < 100000; i++) {
-             move->go();
-             move2->go();
-             mean->add(k->get_ref());
-             mean2->add(theta->get_ref());
-         }
-         cout << "Mean: " << mean->mean() * mean2->mean() << endl;
-     }).connect("move1", "move2", "k", "theta", "meank", "meantheta");
+    m.driver(
+         "movescheduler",
+         [](Go* move, Go* move2, Value<double>* k, Value<double>* theta, Mean* mean, Mean* mean2) {
+             for (int i = 0; i < 100000; i++) {
+                 move->go();
+                 move2->go();
+                 mean->add(k->get_ref());
+                 mean2->add(theta->get_ref());
+             }
+             cout << "Mean: " << mean->mean() * mean2->mean() << endl;
+         })
+        .connect("move1", "move2", "k", "theta", "meank", "meantheta");
 
     Assembly a(m);
     a.at<Proxy>("gammasuffstat").acquire();

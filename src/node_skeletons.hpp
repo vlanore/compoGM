@@ -32,13 +32,45 @@ license and that you accept its terms.*/
 
 /*
 ====================================================================================================
+  ~*~ DeterministicTernaryNode ~*~
+==================================================================================================*/
+template <class ValueType>
+class DeterministicTernaryNode : public Value<ValueType>, public tc::Component {
+    Value<double>*a, *b, *c;
+    ValueType (*f)(double, double, double);
+    mutable ValueType x;  // just a buffer for computation of f(a, b, c)
+
+  public:
+    DeterministicTernaryNode(ValueType (*f)(double, double, double)) : f(f) {
+        port("a", &DeterministicTernaryNode::a);
+        port("b", &DeterministicTernaryNode::b);
+        port("c", &DeterministicTernaryNode::c);
+    }
+
+    ValueType& get_ref() final {
+        x = f(a->get_ref(), b->get_ref(), c->get_ref());
+        return x;
+    }
+
+    const ValueType& get_ref() const final {
+        x = f(a->get_ref(), b->get_ref(), c->get_ref());
+        return x;
+    }
+
+    std::string debug() const final {
+        return "DeterministicTernaryNode [" + std::to_string(get_ref()) + "]";
+    }
+};
+
+/*
+====================================================================================================
   ~*~ DeterministicUnaryNode ~*~
 ==================================================================================================*/
 template <class ValueType>
 class DeterministicUnaryNode : public Value<ValueType>, public tc::Component {
     Value<double>* parent;
     ValueType (*f)(double);
-    ValueType x;
+    mutable ValueType x;  // just a buffer for computation of f(a, b, c)
 
   public:
     DeterministicUnaryNode(ValueType (*f)(double)) : f(f) {
@@ -49,8 +81,14 @@ class DeterministicUnaryNode : public Value<ValueType>, public tc::Component {
         x = f(parent->get_ref());
         return x;
     }
+
+    const ValueType& get_ref() const final {
+        x = f(parent->get_ref());
+        return x;
+    }
+
     std::string debug() const final {
-        return "DeterministicUnaryNode [" + std::to_string(f(parent->get_ref())) + "]";
+        return "DeterministicUnaryNode [" + std::to_string(get_ref()) + "]";
     }
 };
 
@@ -76,6 +114,7 @@ class BinaryNode : public Value<typename PDS::ValueType>,
         port("b", &BinaryNode::b);
     }
     ValueType& get_ref() final { return value; }
+    const ValueType& get_ref() const final { return value; }
     double get_log_prob() final { return PDS::full_log_prob(value, a->get_ref(), b->get_ref()); }
     double get_log_prob_x() final {
         return PDS::partial_log_prob_x(value, a->get_ref(), b->get_ref());
@@ -113,6 +152,7 @@ class UnaryNode : public Value<typename PDS::ValueType>,
         port("a", &UnaryNode::parent);
     }
     ValueType& get_ref() final { return value; }
+    const ValueType& get_ref() const final { return value; }
     double get_log_prob() final { return PDS::full_log_prob(value, parent->get_ref()); }
     double get_log_prob_x() final { return PDS::partial_log_prob_x(value, parent->get_ref()); }
     double get_log_prob_a() final { return PDS::partial_log_prob_a(value, parent->get_ref()); }
@@ -144,6 +184,7 @@ class OrphanNode : public Value<typename PDS::ValueType>,
         port("x", &OrphanNode::value);
     }
     ValueType& get_ref() final { return value; }
+    const ValueType& get_ref() const final { return value; }
     double get_log_prob() final { return f(value); }
     void backup() final { bk_value = value; }
     void restore() final { value = bk_value; }
