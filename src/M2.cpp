@@ -36,16 +36,28 @@ struct M2 : public Composite {
     static void contents(Model& m, IndexSet& genes, IndexSet& conditions, IndexSet& samples,
                          map<string, map<string, int>>& counts,
                          map<string, string>& condition_mapping) {
-        m.component<NMatrix<OrphanNode<Normal>>>("lambda", genes, conditions, 1, 3, pow(1.5, 2));
+        m.component<NMatrix<OrphanNode<Normal>>>("q", genes, conditions, 1, -2, 2);
+        m.component<NMatrix<DeterministicUnaryNode<double>>>("exp_q", genes, conditions,
+                                                             [](double a) { return pow(10, a); })
+            .connect<NMatrices1To1<Use<Value<double>>>>("a", "q");
+
+        m.component<NArray<OrphanNode<Normal>>>("alpha", genes, 1, 2, 2);
+        m.component<NArray<DeterministicUnaryNode<double>>>(
+             "1/exp_alpha", genes, [](double a) { return 1. / double(pow(10, a)); })
+            .connect<NArrays1To1<Use<Value<double>>>>("a", "alpha");
+
+        // TODO is it the correct gamma?
+        m.component<NMatrix<BinaryNode<Gamma>>>("tau", genes, samples, 1)
+            .connect<NArrays1To1<Use<Value<double>>>>("a", "1/exp_alpha")
+            .connect<NArrays1To1<Use<Value<double>>>>("b", "1/exp_alpha");
 
         m.component<NMatrix<DeterministicTernaryNode<double>>>(
-            "product", genes, conditions, [](double a, double b, double c) { return a * b * c; });
+            "lambda", genes, conditions, [](double a, double b, double c) { return a * b * c; });
         // .connect<NMatrices1To1<Use<Value<double>>>>("a", "lambda");
 
         m.component<NMatrix<UnaryNode<Poisson>>>("K", genes, samples, 0)
             .connect<SetNMatrix<int>>("x", counts)
-            .connect<NArrays1To1<NArraysMap<Use<Value<double>>>>>("a", "product",
-                                                                  condition_mapping);
+            .connect<NArrays1To1<NArraysMap<Use<Value<double>>>>>("a", "lambda", condition_mapping);
     }
 };
 
