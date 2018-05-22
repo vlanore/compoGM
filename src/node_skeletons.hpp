@@ -32,6 +32,24 @@ license and that you accept its terms.*/
 
 /*
 ====================================================================================================
+  ~*~ Constant ~*~
+==================================================================================================*/
+template <class ValueType>
+class Constant : public Value<ValueType>, public tc::Component {
+    ValueType x;  // just a buffer for computation of f(a, b, c)
+
+  public:
+    Constant(ValueType x) : x(x) { port("x", &Constant::x); }
+
+    ValueType& get_ref() final { return x; }
+
+    const ValueType& get_ref() const final { return x; }
+
+    std::string debug() const final { return "Constant [" + std::to_string(x) + "]"; }
+};
+
+/*
+====================================================================================================
   ~*~ DeterministicTernaryNode ~*~
 ==================================================================================================*/
 template <class ValueType>

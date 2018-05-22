@@ -133,3 +133,17 @@ struct NArraysRevMap : tc::Meta {
         }
     }
 };
+
+/*
+====================================================================================================
+  ~*~ Multiprovide connectors ~*~
+==================================================================================================*/
+template <class P2PConnector>
+struct NArrayMultiprovide : tc::Meta {  // single provider, multiple users
+    static void connect(tc::Model& m, tc::PortAddress user, tc::Address provider) {
+        auto user_elements = m.get_composite(user.address).all_component_names(0, true);
+        for (auto&& element : user_elements) {
+            m.connect<P2PConnector>(tc::PortAddress(user.prop, user.address, element), provider);
+        }
+    }
+};
