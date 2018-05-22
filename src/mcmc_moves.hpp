@@ -36,12 +36,11 @@ license and that you accept its terms.*/
   ~*~ SimpleMHMove ~*~
   A generic Metropolis-Hastings move.
 ==================================================================================================*/
-template <class Move>
-class SimpleMHMove : public Go, public tc::Component {
-    using ValueType = typename Move::ValueType;
+template <class M>
+class SimpleMHMove : public Move, public tc::Component {
+    using ValueType = typename M::ValueType;
 
     // config
-    double tuning;
     Value<ValueType>* target;
     Backup* target_backup;
     std::vector<LogProb*> log_probs;
@@ -51,18 +50,18 @@ class SimpleMHMove : public Go, public tc::Component {
     int reject{0}, total{0};
 
   public:
-    SimpleMHMove(double tuning = 1.0) : tuning(tuning) {
+    SimpleMHMove() {
         port("target", &SimpleMHMove::target);
         port("targetbackup", &SimpleMHMove::target_backup);
         port("logprob", &SimpleMHMove::add_log_prob);
     }
 
-    void go() final {
+    void move(double tuning = 1.0) final {
         target_backup->backup();
         double log_prob_before =
             accumulate(log_probs.begin(), log_probs.end(), 0.0,
                        [](double acc, LogProb* ptr) { return acc + ptr->get_log_prob(); });
-        double hastings = Move::move(target->get_ref(), tuning);
+        double hastings = M::move(target->get_ref(), tuning);
         double log_prob_after =
             accumulate(log_probs.begin(), log_probs.end(), 0.0,
                        [](double acc, LogProb* ptr) { return acc + ptr->get_log_prob(); });

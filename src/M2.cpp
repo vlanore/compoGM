@@ -102,7 +102,7 @@ int main() {
         .connect<NMatrices1To1<Use<LogProb>>>("logprob", Address("model", "K"));
 
     // model.dot_to_file();
-    model.print();
+    // model.print();
     // model.get_composite("model").get_composite("HRA1").dot_to_file();
 
     // assembly
@@ -112,23 +112,31 @@ int main() {
 
     std::cout << "-- Preparations before running chain\n";
     auto all_moves = assembly.get_all<SimpleMHMove<Scale>>();
+    vector<Value<double>*> all_alpha;
+    for (auto&& gene : counts.genes) {
+        all_alpha.push_back(&assembly.at<Value<double>>(Address("model", "alpha", gene)));
+    }
 
     // trace header
-    // ofstream output("tmp.dat");
-    // for (auto&& gene : counts.counts) {
-    //     for (auto&& condition : samples.conditions) {
-    //         output << "lambda_" + gene.first + "_" + condition + "\t";  // trace header
-    //     }
-    // }
-    // output << endl;
+    ofstream output("tmp.dat");
+    for (auto&& gene : counts.counts) {
+        output << "alpha_" + gene.first + "\t";  // trace header
+    }
+    output << endl;
 
     std::cout << "-- Running the chain\n";
-    for (int iteration = 0; iteration < 50; iteration++) {
+    for (int iteration = 0; iteration < 500; iteration++) {
         for (int rep = 0; rep < 10; rep++) {
             for (auto&& move : all_moves) {
-                move->go();
+                move->move(10.0);
+                move->move(1.0);
+                move->move(0.1);
             }
         }
+        for (auto&& alpha : all_alpha) {
+            output << to_string(alpha->get_ref()) << '\t';
+        }
+        output << endl;
     }
     for (auto&& move : all_moves) {
         cerr << setprecision(3) << "Accept rate" << setw(40) << move->get_name() << "  -->  "

@@ -77,7 +77,7 @@ int main() {
         .connect<NArrays1To1<NArraysRevMap<Use<Value<int>>>>>("values", Address("model", "K"),
                                                               samples.condition_mapping);
 
-    model.component<NMatrix<SimpleMHMove<Scale>>>("moves", counts.genes, samples.conditions, 0.1)
+    model.component<NMatrix<SimpleMHMove<Scale>>>("moves", counts.genes, samples.conditions)
         .connect<NMatrices1To1<Use<Value<double>>>>("target", Address("model", "lambda"))
         .connect<NMatrices1To1<Use<Backup>>>("targetbackup", Address("model", "lambda"))
         .connect<NMatrices1To1<Use<LogProb>>>("logprob", "poissonsuffstats")
@@ -116,7 +116,9 @@ int main() {
     for (int iteration = 0; iteration < 5000; iteration++) {
         for (int rep = 0; rep < 10; rep++) {
             for (auto&& move : all_moves) {
-                move->go();
+                move->move(1.0);
+                move->move(0.1);
+                move->move(0.01);
             }
 
             // for (size_t i = 0; i< all_moves.size(); ++i) {

@@ -38,6 +38,15 @@ struct Go {
 
 /*
 ====================================================================================================
+  ~*~ Go interface ~*~
+  Used to start a move with tuning.
+==================================================================================================*/
+struct Move {
+    virtual void move(double tuning = 1.0) = 0;
+};
+
+/*
+====================================================================================================
   ~*~ LogProb interface ~*~
   Used to get a log prob from something (typically a node or suffstat). Partial versions can be
   provided but are not required.

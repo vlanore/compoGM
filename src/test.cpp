@@ -63,13 +63,13 @@ int main() {
         .connect<Use<Value<double>>>("theta", "theta")
         .connect<MultiUse<Value<double>>>("values", "array");
 
-    m.component<SimpleMHMove<Scale>>("move1", 0.5)
+    m.component<SimpleMHMove<Scale>>("move1")
         .connect<Use<Value<double>>>("target", "k")
         .connect<Use<Backup>>("targetbackup", "k")
         .connect<Use<LogProb>>("logprob", "k")
         .connect<Use<LogProb>>("logprob", "gammasuffstat");
 
-    m.component<SimpleMHMove<Scale>>("move2", 0.5)
+    m.component<SimpleMHMove<Scale>>("move2")
         .connect<Use<Value<double>>>("target", "theta")
         .connect<Use<Backup>>("targetbackup", "theta")
         .connect<Use<LogProb>>("logprob", "theta")
@@ -78,17 +78,17 @@ int main() {
     m.component<Mean>("meank");
     m.component<Mean>("meantheta");
 
-    m.driver(
-         "movescheduler",
-         [](Go* move, Go* move2, Value<double>* k, Value<double>* theta, Mean* mean, Mean* mean2) {
-             for (int i = 0; i < 100000; i++) {
-                 move->go();
-                 move2->go();
-                 mean->add(k->get_ref());
-                 mean2->add(theta->get_ref());
-             }
-             cout << "Mean: " << mean->mean() * mean2->mean() << endl;
-         })
+    m.driver("movescheduler",
+             [](Move* move, Move* move2, Value<double>* k, Value<double>* theta, Mean* mean,
+                Mean* mean2) {
+                 for (int i = 0; i < 100000; i++) {
+                     move->move(0.5);
+                     move2->move(0.5);
+                     mean->add(k->get_ref());
+                     mean2->add(theta->get_ref());
+                 }
+                 cout << "Mean: " << mean->mean() * mean2->mean() << endl;
+             })
         .connect("move1", "move2", "k", "theta", "meank", "meantheta");
 
     Assembly a(m);
