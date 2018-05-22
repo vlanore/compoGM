@@ -101,20 +101,8 @@ int main() {
         .connect<NMatrices1To1<Use<LogProb>>>("logprob", Address("model", "tau"))
         .connect<NMatrices1To1<Use<LogProb>>>("logprob", Address("model", "K"));
 
-    // model.component<NMatrix<PoissonSuffstat>>("poissonsuffstats", counts.genes,
-    // samples.conditions)
-    //     .connect<NMatrices1To1<DUse>>("lambda", Address("model", "exp"))
-    //     .connect<NArrays1To1<NArraysRevMap<Use<Value<int>>>>>("values", Address("model", "K"),
-    //                                                           samples.condition_mapping);
-
-    // model.component<NMatrix<SimpleMHMove<Scale>>>("moves", counts.genes, samples.conditions, 0.1)
-    //     .connect<NMatrices1To1<DUse>>("target", Address("model", "lambda"))
-    //     .connect<NMatrices1To1<Use<Backup>>>("targetbackup", Address("model", "lambda"))
-    //     .connect<NMatrices1To1<Use<LogProb>>>("logprob", "poissonsuffstats")
-    //     .connect<NMatrices1To1<Use<LogProb>>>("logprob", Address("model", "lambda"));
-
-    model.dot_to_file();
-    // model.print();
+    // model.dot_to_file();
+    model.print();
     // model.get_composite("model").get_composite("HRA1").dot_to_file();
 
     // assembly
@@ -122,15 +110,8 @@ int main() {
     Assembly assembly(model);
     // assembly.print_all();
 
-    // std::cout << "-- Preparations before running chain\n";
-    // auto all_lambdas = assembly.get_all<OrphanNode<Normal>>();
-    // auto all_moves = assembly.get_all<SimpleMHMove<Scale>>();
-    // auto all_suffstats = assembly.get_all<PoissonSuffstat>();
-
-    // // gathering suff stats
-    // for (auto&& suffstat : all_suffstats) {
-    //     suffstat->acquire();
-    // }
+    std::cout << "-- Preparations before running chain\n";
+    auto all_moves = assembly.get_all<SimpleMHMove<Scale>>();
 
     // trace header
     // ofstream output("tmp.dat");
@@ -141,20 +122,16 @@ int main() {
     // }
     // output << endl;
 
-    // std::cout << "-- Running the chain\n";
-    // for (int iteration = 0; iteration < 5000; iteration++) {
-    //     for (int rep = 0; rep < 10; rep++) {
-    //         for (auto&& move : all_moves) {
-    //             move->go();
-    //         }
-    //     }
-    //     for (auto&& lambda : all_lambdas) {
-    //         output << lambda->get_ref() << "\t";
-    //     }
-    //     output << endl;
-    // }
-    // for (auto&& move : all_moves) {
-    //     cerr << setprecision(3) << "Accept rate" << setw(40) << move->get_name() << "  -->  "
-    //          << move->accept_rate() * 100 << "%" << endl;
-    // }
+    std::cout << "-- Running the chain\n";
+    for (int iteration = 0; iteration < 50; iteration++) {
+        for (int rep = 0; rep < 10; rep++) {
+            for (auto&& move : all_moves) {
+                move->go();
+            }
+        }
+    }
+    for (auto&& move : all_moves) {
+        cerr << setprecision(3) << "Accept rate" << setw(40) << move->get_name() << "  -->  "
+             << move->accept_rate() * 100 << "%" << endl;
+    }
 }
