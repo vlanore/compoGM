@@ -67,7 +67,8 @@ int main() {
     // Parsing data files
     auto counts = parse_counts("../data/rnaseq_mini/counts.tsv");
     auto samples = parse_samples("../data/rnaseq/samples.tsv");
-    check_consistency(counts, samples);
+    auto size_factors = parse_size_factors("../data/rnaseq/size_factors.tsv");
+    check_consistency(counts, samples, size_factors);
 
     // graphical model
     std::cout << "-- Creating component model...\n";

@@ -29,6 +29,7 @@ license and that you accept its terms.*/
 #include <fstream>
 #include <map>
 #include <tinycompo.hpp>
+#include "index_set.hpp"
 
 using aria::csv::CsvParser;
 
@@ -38,7 +39,7 @@ using aria::csv::CsvParser;
 ==================================================================================================*/
 struct CountParsingResult {
     std::map<std::string, std::map<std::string, int>> counts;  // gene -> sample -> count
-    std::set<std::string> genes;
+    IndexSet genes;
     std::vector<std::string> samples;  // list of samples in counts file
 };
 
@@ -73,9 +74,9 @@ CountParsingResult parse_counts(std::string filename) {
   ~*~ Samples parsing ~*~
 ==================================================================================================*/
 struct SamplesParsingResult {
-    std::set<std::string> conditions;
-    std::map<std::string, std::string> condition_mapping;  // sample -> condition
-    std::set<std::string> samples;                         // set of samples in samples file
+    IndexSet conditions;
+    IndexMapping condition_mapping;  // sample -> condition
+    IndexSet samples;                // set of samples in samples file
 };
 
 SamplesParsingResult parse_samples(std::string filename) {
@@ -98,15 +99,53 @@ SamplesParsingResult parse_samples(std::string filename) {
 
 /*
 ====================================================================================================
+  ~*~ Size factors parsing ~*~
+==================================================================================================*/
+struct SizeFactorResult {
+    IndexSet samples;
+    std::map<std::string, double> size_factors;
+};
+
+SizeFactorResult parse_size_factors(std::string filename) {
+    // Files and parsers
+    std::ifstream file(filename);
+    auto parser = CsvParser(file).delimiter('\t');
+
+    // Result structure
+    SizeFactorResult result;
+
+    for (auto line = ++parser.begin(); line != parser.end(); ++line) {
+        result.samples.insert((*line)[0]);
+        result.size_factors[(*line)[0]] = stod((*line)[1]);
+    }
+
+    return result;
+}
+
+/*
+====================================================================================================
   ~*~ Checking consistency between counts and samples ~*~
 ==================================================================================================*/
 void check_consistency(CountParsingResult counts, SamplesParsingResult samples) {
     // Checking that the two files samples identifiers match
-    if (std::set<std::string>(counts.samples.begin(), counts.samples.end()) == samples.samples) {
+    if (IndexSet(counts.samples.begin(), counts.samples.end()) == samples.samples) {
         std::cerr << "-- List of samples in counts and samples match!\n";
     } else {
         std::cerr << "-- Mismatch between sample list in counts file (" << counts.samples.size()
                   << " samples) and samples files (" << samples.samples.size() << " samples)\n";
+        exit(1);
+    }
+}
+
+void check_consistency(CountParsingResult counts, SamplesParsingResult samples,
+                       SizeFactorResult size_factors) {
+    check_consistency(counts, samples);
+    if (size_factors.samples == samples.samples) {
+        std::cerr << "-- List of samples in samples and size factors match!\n";
+    } else {
+        std::cerr << "-- Mismatch between sample list in samples file (" << samples.samples.size()
+                  << " samples) and size factor files (" << size_factors.samples.size()
+                  << " samples)\n";
         exit(1);
     }
 }
