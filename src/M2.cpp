@@ -112,8 +112,10 @@ int main() {
 
     std::cout << "-- Preparations before running chain\n";
     auto all_moves = assembly.get_all<SimpleMHMove<Scale>>();
-    auto all_watched = assembly.at<Assembly>("model").get_all<Value<double>>(
-        std::set<Address>{"q", "alpha", "tau"});
+    auto all_watched = assembly.get_all<Value<double>>(
+        std::set<Address>{Address("model", "q"), Address("model", "alpha"),
+                          Address("model", "tau")},
+        "model");
 
     // trace header
     ofstream output("tmp.dat");
