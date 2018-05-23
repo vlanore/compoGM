@@ -112,33 +112,31 @@ int main() {
 
     std::cout << "-- Preparations before running chain\n";
     auto all_moves = assembly.get_all<SimpleMHMove<Scale>>();
-    vector<Value<double>*> all_alpha;
-    for (auto&& gene : counts.genes) {
-        all_alpha.push_back(&assembly.at<Value<double>>(Address("model", "alpha", gene)));
-    }
+    auto all_watched = assembly.at<Assembly>("model").get_all<Value<double>>(
+        std::set<Address>{"q", "alpha", "tau"});
 
     // trace header
     ofstream output("tmp.dat");
-    for (auto&& gene : counts.counts) {
-        output << "alpha_" + gene.first + "\t";  // trace header
+    for (auto&& name : all_watched.names()) {
+        output << name.to_string() << '\t';
     }
     output << endl;
 
     std::cout << "-- Running the chain\n";
-    for (int iteration = 0; iteration < 500; iteration++) {
+    for (int iteration = 0; iteration < 50; iteration++) {
         for (int rep = 0; rep < 10; rep++) {
-            for (auto&& move : all_moves) {
+            for (auto&& move : all_moves.pointers()) {
                 move->move(10.0);
                 move->move(1.0);
                 move->move(0.1);
             }
         }
-        for (auto&& alpha : all_alpha) {
-            output << to_string(alpha->get_ref()) << '\t';
+        for (auto&& pointer : all_watched.pointers()) {
+            output << to_string(pointer->get_ref()) << '\t';
         }
         output << endl;
     }
-    for (auto&& move : all_moves) {
+    for (auto&& move : all_moves.pointers()) {
         cerr << setprecision(3) << "Accept rate" << setw(40) << move->get_name() << "  -->  "
              << move->accept_rate() * 100 << "%" << endl;
     }

@@ -93,21 +93,19 @@ int main() {
     // assembly.print_all();
 
     std::cout << "-- Preparations before running chain\n";
-    auto all_lambdas = assembly.get_all<OrphanNode<Normal>>();
+    auto all_lambdas = assembly.get_all<OrphanNode<Normal>>("model");
     auto all_moves = assembly.get_all<SimpleMHMove<Scale>>();
     auto all_suffstats = assembly.get_all<PoissonSuffstat>();
 
     // gathering suff stats
-    for (auto&& suffstat : all_suffstats) {
+    for (auto&& suffstat : all_suffstats.pointers()) {
         suffstat->acquire();
     }
 
     // trace header
     ofstream output("tmp.dat");
-    for (auto&& gene : counts.counts) {
-        for (auto&& condition : samples.conditions) {
-            output << "lambda_" + gene.first + "_" + condition + "\t";  // trace header
-        }
+    for (auto&& address : all_lambdas.names()) {
+        output << address.to_string() << "\t";
     }
     output << endl;
 
@@ -115,7 +113,7 @@ int main() {
     // vector<future<void>> futures(all_moves.size());
     for (int iteration = 0; iteration < 5000; iteration++) {
         for (int rep = 0; rep < 10; rep++) {
-            for (auto&& move : all_moves) {
+            for (auto&& move : all_moves.pointers()) {
                 move->move(1.0);
                 move->move(0.1);
                 move->move(0.01);
@@ -128,12 +126,12 @@ int main() {
             //     future.get();
             // }
         }
-        for (auto&& lambda : all_lambdas) {
+        for (auto&& lambda : all_lambdas.pointers()) {
             output << lambda->get_ref() << "\t";
         }
         output << endl;
     }
-    for (auto&& move : all_moves) {
+    for (auto&& move : all_moves.pointers()) {
         cerr << setprecision(3) << "Accept rate" << setw(40) << move->get_name() << "  -->  "
              << move->accept_rate() * 100 << "%" << endl;
     }
