@@ -2,7 +2,7 @@ CPPFLAGS= -Wall -Wextra -O3 --std=c++11 -pthread
 
 .PHONY: all clean ready test format
 
-all: test_bin M1_bin
+all: test_bin M1_bin M2_bin
 
 tinycompo.hpp:
 	@echo "-- Downloading tinycompo.hpp from github..."
