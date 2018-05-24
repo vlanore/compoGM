@@ -25,19 +25,8 @@ more generally, to use and operate it in the same conditions as regards security
 The fact that you are presently reading this means that you have had knowledge of the CeCILL-C
 license and that you accept its terms.*/
 
-#include <future>
 #include <iomanip>
-#include <map>
-#include <thread>
-#include <tinycompo.hpp>
-#include "connectors.hpp"
-#include "distributions.hpp"
-#include "interfaces.hpp"
-#include "mcmc_moves.hpp"
-#include "moves.hpp"
-#include "node_skeletons.hpp"
-#include "parsing.hpp"
-#include "suffstats.hpp"
+#include "compoGM.hpp"
 
 using namespace std;
 using namespace tc;
