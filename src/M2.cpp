@@ -47,8 +47,7 @@ struct M2 : public Composite {
              "1/exp(alpha)", genes, [](double a) { return 1. / double(pow(10, a)); })
             .connect<NArrays1To1<DUse>>("a", "alpha");
 
-        // TODO is it the correct gamma?
-        m.component<NMatrix<BinaryNode<Gamma>>>("tau", genes, samples, 1)
+        m.component<NMatrix<BinaryNode<GammaShapeRate>>>("tau", genes, samples, 1)
             .connect<NArrays1To1<NArrayMultiprovide<DUse>>>("a", "1/exp(alpha)")
             .connect<NArrays1To1<NArrayMultiprovide<DUse>>>("b", "1/exp(alpha)");
 
@@ -125,12 +124,12 @@ int main() {
     output << endl;
 
     std::cout << "-- Running the chain\n";
-    for (int iteration = 0; iteration < 50; iteration++) {
+    for (int iteration = 0; iteration < 500; iteration++) {
         for (int rep = 0; rep < 10; rep++) {
             for (auto&& move : all_moves.pointers()) {
-                move->move(10.0);
                 move->move(1.0);
                 move->move(0.1);
+                move->move(0.01);
             }
         }
         for (auto&& pointer : all_watched.pointers()) {

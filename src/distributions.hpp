@@ -47,9 +47,9 @@ struct Exp {
 
 /*
 ====================================================================================================
-  ~*~ Gamma distribution ~*~
+  ~*~ Gamma distribution (shape/scale) ~*~
 ==================================================================================================*/
-struct Gamma {
+struct GammaShapeScale {
     using ValueType = double;
 
     static double full_log_prob(double x, double k, double theta) {
@@ -66,6 +66,32 @@ struct Gamma {
 
     static double partial_log_prob_b(double x, double k, double theta) {
         return -k * log(theta) - x / theta;
+    }
+};
+
+using Gamma = GammaShapeScale;
+
+/*
+====================================================================================================
+  ~*~ Gamma distribution (shape/rate) ~*~
+==================================================================================================*/
+struct GammaShapeRate {
+    using ValueType = double;
+
+    static double full_log_prob(double x, double alpha, double beta) {
+        return alpha * log(beta) - log(std::tgamma(alpha)) + (alpha - 1) * log(x) - beta * x;
+    }
+
+    static double partial_log_prob_x(double x, double alpha, double beta) {
+        return (alpha - 1) * log(x) - beta * x;
+    }
+
+    static double partial_log_prob_a(double x, double alpha, double beta) {
+        return alpha * log(beta) - log(std::tgamma(alpha)) + (alpha - 1) * log(x);
+    }
+
+    static double partial_log_prob_b(double x, double alpha, double beta) {
+        return alpha * log(beta) - beta * x;
     }
 };
 
