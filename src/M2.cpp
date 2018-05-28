@@ -82,27 +82,17 @@ int main() {
 
     // suffstats and metropolis hastings moves
     model.component<NMatrix<SimpleMHMove<Scale>>>("move_q", counts.genes, samples.conditions)
-        .connect<NMatrices1To1<DUse>>("target", Address("model", "q"))
-        .connect<NMatrices1To1<Use<Backup>>>("targetbackup", Address("model", "q"))
-        .connect<NMatrices1To1<Use<LogProb>>>("logprob", Address("model", "q"))
+        .connect<NMatrices1To1<MoveToTarget<double>>>("target", Address("model", "q"))
         .connect<NArrays1To1<NArraysRevMap<Use<LogProb>>>>("logprob", Address("model", "K"),
                                                            samples.condition_mapping);
 
     model.component<NMatrix<SimpleMHMove<Scale>>>("move_tau", counts.genes, samples.samples)
-        .connect<NMatrices1To1<DUse>>("target", Address("model", "tau"))
-        .connect<NMatrices1To1<Use<Backup>>>("targetbackup", Address("model", "tau"))
-        .connect<NMatrices1To1<Use<LogProb>>>("logprob", Address("model", "tau"))
+        .connect<NMatrices1To1<MoveToTarget<double>>>("target", Address("model", "tau"))
         .connect<NMatrices1To1<Use<LogProb>>>("logprob", Address("model", "K"));
 
     model.component<NArray<SimpleMHMove<Scale>>>("move_alpha", counts.genes)
-        .connect<NArrays1To1<DUse>>("target", Address("model", "alpha"))
-        .connect<NArrays1To1<Use<Backup>>>("targetbackup", Address("model", "alpha"))
         .connect<NArrays1To1<Use<LogProb>>>("logprob", Address("model", "alpha"))
         .connect<NArrays1To1<NArrayMultiuse<Use<LogProb>>>>("logprob", Address("model", "tau"));
-
-    // model.dot_to_file();
-    // model.print();
-    // model.get_composite("model").get_composite("HRA1").dot_to_file();
 
     // assembly
     std::cout << "-- Instantiating assembly...\n";

@@ -67,10 +67,8 @@ int main() {
                                                               samples.condition_mapping);
 
     model.component<NMatrix<SimpleMHMove<Scale>>>("moves", counts.genes, samples.conditions)
-        .connect<NMatrices1To1<Use<Value<double>>>>("target", Address("model", "lambda"))
-        .connect<NMatrices1To1<Use<Backup>>>("targetbackup", Address("model", "lambda"))
-        .connect<NMatrices1To1<Use<LogProb>>>("logprob", "poissonsuffstats")
-        .connect<NMatrices1To1<Use<LogProb>>>("logprob", Address("model", "lambda"));
+        .connect<NMatrices1To1<MoveToTarget<double>>>("target", Address("model", "lambda"))
+        .connect<NMatrices1To1<Use<LogProb>>>("logprob", "poissonsuffstats");
 
     model.dot_to_file();
     // model.print();
