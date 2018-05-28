@@ -88,17 +88,17 @@ int main() {
         .connect<NArrays1To1<NArraysRevMap<Use<LogProb>>>>("logprob", Address("model", "K"),
                                                            samples.condition_mapping);
 
-    model.component<NArray<SimpleMHMove<Scale>>>("move_alpha", counts.genes)
-        .connect<NArrays1To1<DUse>>("target", Address("model", "alpha"))
-        .connect<NArrays1To1<Use<Backup>>>("targetbackup", Address("model", "alpha"))
-        .connect<NArrays1To1<Use<LogProb>>>("logprob", Address("model", "alpha"))
-        .connect<NArrays1To1<NArrayMultiuse<Use<LogProb>>>>("logprob", Address("model", "K"));
-
     model.component<NMatrix<SimpleMHMove<Scale>>>("move_tau", counts.genes, samples.samples)
         .connect<NMatrices1To1<DUse>>("target", Address("model", "tau"))
         .connect<NMatrices1To1<Use<Backup>>>("targetbackup", Address("model", "tau"))
         .connect<NMatrices1To1<Use<LogProb>>>("logprob", Address("model", "tau"))
         .connect<NMatrices1To1<Use<LogProb>>>("logprob", Address("model", "K"));
+
+    model.component<NArray<SimpleMHMove<Scale>>>("move_alpha", counts.genes)
+        .connect<NArrays1To1<DUse>>("target", Address("model", "alpha"))
+        .connect<NArrays1To1<Use<Backup>>>("targetbackup", Address("model", "alpha"))
+        .connect<NArrays1To1<Use<LogProb>>>("logprob", Address("model", "alpha"))
+        .connect<NArrays1To1<NArrayMultiuse<Use<LogProb>>>>("logprob", Address("model", "tau"));
 
     // model.dot_to_file();
     // model.print();
