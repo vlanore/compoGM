@@ -17,7 +17,7 @@ data4jags <- function(genesel, samplesel) {
       ngenes = length(genesel),
       nsamples = length(samplesel),
       K = counts[genesel, 1 + samplesel],
-      ncond = length(unique(samples[samplesel,1])),
+      ncond = length(unique(samples[samplesel,2])),
       cond = as.integer(samples[samplesel,2])
     )
 }
