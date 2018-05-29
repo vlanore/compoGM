@@ -91,7 +91,7 @@ int main() {
         .connect<NMatrices1To1<Use<LogProb>>>("logprob", Address("model", "K"));
 
     model.component<NArray<SimpleMHMove<Scale>>>("move_alpha", counts.genes)
-        .connect<NArrays1To1<Use<LogProb>>>("logprob", Address("model", "alpha"))
+        .connect<NArrays1To1<MoveToTarget<double>>>("target", Address("model", "alpha"))
         .connect<NArrays1To1<NArrayMultiuse<Use<LogProb>>>>("logprob", Address("model", "tau"));
 
     // assembly
@@ -114,7 +114,7 @@ int main() {
     output << endl;
 
     std::cout << "-- Running the chain\n";
-    for (int iteration = 0; iteration < 500; iteration++) {
+    for (int iteration = 0; iteration < 5000; iteration++) {
         for (int rep = 0; rep < 10; rep++) {
             for (auto&& move : all_moves.pointers()) {
                 move->move(1.0);
