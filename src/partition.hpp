@@ -27,12 +27,18 @@ license and that you accept its terms.*/
 
 #pragma once
 
-#include <map>
-#include <set>
-#include <string>
-#include <vector>
+#include <iterator>
+#include "index_set.hpp"
 
-using IndexSet = std::set<std::string>;
-using IndexMapping = std::map<std::string, std::string>;
+struct Partition {
+    int rank{0}, size{0};
+    Partition(int r, int s) : rank(r), size(s) {}
+};
 
-IndexSet make_index_set(std::vector<std::string>& v) { return IndexSet(v.begin(), v.end()); }
+IndexSet partition(IndexSet s, Partition p) {
+    auto begin = s.begin();
+    std::advance(begin, p.rank * s.size() / p.size);
+    auto end = s.begin();
+    std::advance(end, (p.rank + 1) * s.size() / p.size);
+    return IndexSet(begin, end);
+}

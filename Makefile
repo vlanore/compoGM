@@ -1,6 +1,6 @@
 CPPFLAGS= -Wall -Wextra -O3 --std=c++11 -pthread
 
-.PHONY: all clean ready test format
+.PHONY: all clean ready test format tmp m1 m2
 
 all: test_bin M1_bin M2_bin
 
@@ -27,6 +27,9 @@ m1: M1_bin
 	./$<
 
 m2: M2_bin
+	./$<
+
+tmp: tmp_bin
 	./$<
 
 format:
