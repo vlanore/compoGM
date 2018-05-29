@@ -90,12 +90,12 @@ struct SetNArray : tc::Meta {
         for (auto&& entry : data) {
             data_keys.insert(entry.first);
         }
-        bool element_names_match =
-            IndexSet(array_elements.begin(), array_elements.end()) == data_keys;
-        if (!element_names_match) {
-            throw tc::TinycompoException(
-                "SetNArray: list of keys of data and elements don't match.");
-        }
+        // bool element_names_match =
+        //     IndexSet(array_elements.begin(), array_elements.end()) == data_keys;
+        // if (!element_names_match) {
+        //     throw tc::TinycompoException(
+        //         "SetNArray: list of keys of data and elements don't match.");
+        // }
         for (auto&& element : array_elements) {
             m.connect<Setter>(tc::PortAddress(array.prop, array.address, element),
                               data.at(element));

@@ -35,6 +35,8 @@ struct Partition {
     Partition(int r, int s) : rank(r), size(s) {}
 };
 
+// thread_local Partition p(0, 0);
+
 IndexSet partition(IndexSet s, Partition p) {
     auto begin = s.begin();
     std::advance(begin, p.rank * s.size() / p.size);

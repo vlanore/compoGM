@@ -26,7 +26,9 @@ The fact that you are presently reading this means that you have had knowledge o
 license and that you accept its terms.*/
 
 #include <iomanip>
+#include <thread>
 #include "compoGM.hpp"
+#include "partition.hpp"
 
 using namespace std;
 using namespace tc;
@@ -47,37 +49,38 @@ struct M1 : public Composite {
     }
 };
 
-int main() {
-    Model model;
+void compute(Partition p) {
+    Assembly assembly;
+    {
+        Model model;
 
-    // Parsing data files
-    auto counts = parse_counts("../data/rnaseq_mini/counts.tsv");
-    auto samples = parse_samples("../data/rnaseq/samples.tsv");
-    check_consistency(counts, samples);
+        // Parsing data files
+        auto counts = parse_counts("../data/rnaseq_mini/counts.tsv");
+        auto samples = parse_samples("../data/rnaseq/samples.tsv");
+        check_consistency(counts, samples);
 
-    // graphical model
-    std::cout << "-- Creating component model...\n";
-    model.component<M1>("model", counts.genes, samples.conditions, make_index_set(counts.samples),
-                        counts.counts, samples.condition_mapping);
+        IndexSet pgenes = partition(counts.genes, p);
+        cout << "Thread " << p.rank << " has " << pgenes.size() << " genes.\n";
 
-    // suffstats and metropolis hastings moves
-    model.component<NMatrix<PoissonSuffstat>>("poissonsuffstats", counts.genes, samples.conditions)
-        .connect<NMatrices1To1<Use<Value<double>>>>("lambda", Address("model", "exp"))
-        .connect<NArrays1To1<NArraysRevMap<Use<Value<int>>>>>("values", Address("model", "K"),
-                                                              samples.condition_mapping);
+        // graphical model
+        std::cout << "-- Creating component model...\n";
+        model.component<M1>("model", pgenes, samples.conditions, make_index_set(counts.samples),
+                            counts.counts, samples.condition_mapping);
 
-    model.component<NMatrix<SimpleMHMove<Scale>>>("moves", counts.genes, samples.conditions)
-        .connect<NMatrices1To1<MoveToTarget<double>>>("target", Address("model", "lambda"))
-        .connect<NMatrices1To1<Use<LogProb>>>("logprob", "poissonsuffstats");
+        // suffstats and metropolis hastings moves
+        model.component<NMatrix<PoissonSuffstat>>("poissonsuffstats", pgenes, samples.conditions)
+            .connect<NMatrices1To1<Use<Value<double>>>>("lambda", Address("model", "exp"))
+            .connect<NArrays1To1<NArraysRevMap<Use<Value<int>>>>>("values", Address("model", "K"),
+                                                                  samples.condition_mapping);
 
-    model.dot_to_file();
-    // model.print();
-    // model.get_composite("model").get_composite("HRA1").dot_to_file();
+        model.component<NMatrix<SimpleMHMove<Scale>>>("moves", pgenes, samples.conditions)
+            .connect<NMatrices1To1<MoveToTarget<double>>>("target", Address("model", "lambda"))
+            .connect<NMatrices1To1<Use<LogProb>>>("logprob", "poissonsuffstats");
 
-    // assembly
-    std::cout << "-- Instantiating assembly...\n";
-    Assembly assembly(model);
-    // assembly.print_all();
+        // assembly
+        std::cout << "-- Instantiating assembly...\n";
+        assembly.instantiate_from(model);
+    }
 
     std::cout << "-- Preparations before running chain\n";
     auto all_lambdas = assembly.get_all<OrphanNode<Normal>>("model");
@@ -90,14 +93,13 @@ int main() {
     }
 
     // trace header
-    ofstream output("tmp.dat");
+    ofstream output("tmp" + to_string(p.rank) + ".dat");
     for (auto&& address : all_lambdas.names()) {
         output << address.to_string() << "\t";
     }
     output << endl;
 
     std::cout << "-- Running the chain\n";
-    // vector<future<void>> futures(all_moves.size());
     for (int iteration = 0; iteration < 5000; iteration++) {
         for (int rep = 0; rep < 10; rep++) {
             for (auto&& move : all_moves.pointers()) {
@@ -105,13 +107,6 @@ int main() {
                 move->move(0.1);
                 move->move(0.01);
             }
-
-            // for (size_t i = 0; i< all_moves.size(); ++i) {
-            //     futures.at(i) = async(&Go::go, all_moves.at(i));
-            // }
-            // for (auto&& future : futures) {
-            //     future.get();
-            // }
         }
         for (auto&& lambda : all_lambdas.pointers()) {
             output << lambda->get_ref() << "\t";
@@ -121,5 +116,16 @@ int main() {
     for (auto&& move : all_moves.pointers()) {
         cerr << setprecision(3) << "Accept rate" << setw(40) << move->get_name() << "  -->  "
              << move->accept_rate() * 100 << "%" << endl;
+    }
+}
+
+int main() {
+    vector<thread> threads;
+    int nb_threads = 2;
+    for (int i = 0; i < nb_threads; i++) {
+        threads.emplace_back(compute, Partition(i, nb_threads));
+    }
+    for (auto&& t : threads) {
+        t.join();
     }
 }
