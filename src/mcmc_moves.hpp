@@ -61,11 +61,11 @@ class SimpleMHMove : public Move, public tc::Component {
         double log_prob_before =
             accumulate(log_probs.begin(), log_probs.end(), 0.0,
                        [](double acc, LogProb* ptr) { return acc + ptr->get_log_prob(); });
-        double hastings = M::move(target->get_ref(), tuning);
+        double log_hastings = M::move(target->get_ref(), tuning);
         double log_prob_after =
             accumulate(log_probs.begin(), log_probs.end(), 0.0,
                        [](double acc, LogProb* ptr) { return acc + ptr->get_log_prob(); });
-        bool accept = decide(exp(log_prob_after - log_prob_before + hastings));
+        bool accept = decide(exp(log_prob_after - log_prob_before + log_hastings));
         if (not accept) {
             target_backup->restore();
             reject++;

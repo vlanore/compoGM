@@ -28,9 +28,11 @@ license and that you accept its terms.*/
 #include <iomanip>
 #include <thread>
 #include "compoGM.hpp"
+#include "partition.hpp"
 
 using namespace std;
 using namespace tc;
+using namespace compoGM_thread;
 using DUse = Use<Value<double>>;
 
 struct M2 : public Composite {
@@ -66,37 +68,41 @@ struct M2 : public Composite {
     }
 };
 
-int main() {
-    Model model;
+void compute() {
+    Assembly assembly;
+    {
+        Model model;
 
-    // Parsing data files
-    auto counts = parse_counts("../data/rnaseq_mini/counts.tsv");
-    auto samples = parse_samples("../data/rnaseq/samples.tsv");
-    auto size_factors = parse_size_factors("../data/rnaseq/size_factors.tsv");
-    check_consistency(counts, samples, size_factors);
+        // Parsing data files
+        auto counts = parse_counts("../data/rnaseq_mini/counts.tsv");
+        auto samples = parse_samples("../data/rnaseq/samples.tsv");
+        auto size_factors = parse_size_factors("../data/rnaseq/size_factors.tsv");
+        check_consistency(counts, samples, size_factors);
+        auto pgenes = partition(counts.genes, p);
 
-    // graphical model
-    std::cout << "-- Creating component model...\n";
-    model.component<M2>("model", counts.genes, samples.conditions, make_index_set(counts.samples),
-                        counts.counts, samples.condition_mapping, size_factors.size_factors);
+        // graphical model
+        std::cout << "-- Creating component model...\n";
+        model.component<M2>("model", pgenes, samples.conditions, make_index_set(counts.samples),
+                            counts.counts, samples.condition_mapping, size_factors.size_factors);
 
-    // suffstats and metropolis hastings moves
-    model.component<NMatrix<SimpleMHMove<Shift>>>("move_q", counts.genes, samples.conditions)
-        .connect<NMatrices1To1<MoveToTarget<double>>>("target", Address("model", "log10(q)"))
-        .connect<NArrays1To1<NArraysRevMap<Use<LogProb>>>>("logprob", Address("model", "K"),
-                                                           samples.condition_mapping);
+        // suffstats and metropolis hastings moves
+        model.component<NMatrix<SimpleMHMove<Shift>>>("move_q", pgenes, samples.conditions)
+            .connect<NMatrices1To1<MoveToTarget<double>>>("target", Address("model", "log10(q)"))
+            .connect<NArrays1To1<NArraysRevMap<Use<LogProb>>>>("logprob", Address("model", "K"),
+                                                               samples.condition_mapping);
 
-    model.component<NMatrix<SimpleMHMove<Scale>>>("move_tau", counts.genes, samples.samples)
-        .connect<NMatrices1To1<MoveToTarget<double>>>("target", Address("model", "tau"))
-        .connect<NMatrices1To1<Use<LogProb>>>("logprob", Address("model", "K"));
+        model.component<NMatrix<SimpleMHMove<Scale>>>("move_tau", pgenes, samples.samples)
+            .connect<NMatrices1To1<MoveToTarget<double>>>("target", Address("model", "tau"))
+            .connect<NMatrices1To1<Use<LogProb>>>("logprob", Address("model", "K"));
 
-    model.component<NArray<SimpleMHMove<Shift>>>("move_alpha", counts.genes)
-        .connect<NArrays1To1<MoveToTarget<double>>>("target", Address("model", "log10(alpha)"))
-        .connect<NArrays1To1<NArrayMultiuse<Use<LogProb>>>>("logprob", Address("model", "tau"));
+        model.component<NArray<SimpleMHMove<Shift>>>("move_alpha", pgenes)
+            .connect<NArrays1To1<MoveToTarget<double>>>("target", Address("model", "log10(alpha)"))
+            .connect<NArrays1To1<NArrayMultiuse<Use<LogProb>>>>("logprob", Address("model", "tau"));
 
-    // assembly
-    std::cout << "-- Instantiating assembly...\n";
-    Assembly assembly(model);
+        // assembly
+        std::cout << "-- Instantiating assembly...\n";
+        assembly.instantiate_from(model);
+    }
 
     std::cout << "-- Preparations before running chain\n";
     auto all_moves = assembly.get_all<Move>();
@@ -104,7 +110,7 @@ int main() {
         std::set<Address>{Address("model", "log10(q)"), Address("model", "log10(alpha)")}, "model");
 
     // trace header
-    auto trace = make_trace(all_watched, "tmp.dat");
+    auto trace = make_trace(all_watched, "tmp" + to_string(p.rank) + ".dat");
     trace.header();
 
     std::cout << "-- Running the chain\n";
@@ -122,4 +128,10 @@ int main() {
     //     cerr << setprecision(3) << "Accept rate" << setw(40) << move->get_name() << "  -->  "
     //          << move->accept_rate() * 100 << "%" << endl;
     // }
+}
+
+int main() {
+    int nb_threads = 2;
+    auto threads = spawn(0, nb_threads, compute);
+    join(threads);
 }
