@@ -28,6 +28,7 @@ license and that you accept its terms.*/
 #pragma once
 
 #include <iterator>
+#include <thread>
 #include "index_set.hpp"
 
 struct Partition {
@@ -35,7 +36,14 @@ struct Partition {
     Partition(int r, int s) : rank(r), size(s) {}
 };
 
-// thread_local Partition p(0, 0);
+namespace compoGM_thread {
+thread_local Partition p(0, 0);
+}
+
+void set_partition(int rank, int size) {
+    compoGM_thread::p.rank = rank;
+    compoGM_thread::p.size = size;
+}
 
 IndexSet partition(IndexSet s, Partition p) {
     auto begin = s.begin();
@@ -43,4 +51,25 @@ IndexSet partition(IndexSet s, Partition p) {
     auto end = s.begin();
     std::advance(end, (p.rank + 1) * s.size() / p.size);
     return IndexSet(begin, end);
+}
+
+using Threads = std::vector<std::thread>;
+
+template <class F, class... Args>
+Threads spawn(int rank_start, int rank_end, F f, Args... args) {
+    Threads result;
+    for (int i = rank_start; i < rank_end; i++) {
+        std::thread t([i, rank_end, f, args...]() {
+            set_partition(i, rank_end);
+            f(args...);
+        });
+        result.push_back(std::move(t));
+    }
+    return result;
+}
+
+void join(Threads& threads) {
+    for (auto&& t : threads) {
+        t.join();
+    }
 }

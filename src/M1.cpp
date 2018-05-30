@@ -32,6 +32,7 @@ license and that you accept its terms.*/
 
 using namespace std;
 using namespace tc;
+using namespace compoGM_thread;
 
 struct M1 : public Composite {
     static void contents(Model& m, IndexSet& genes, IndexSet& conditions, IndexSet& samples,
@@ -49,7 +50,7 @@ struct M1 : public Composite {
     }
 };
 
-void compute(Partition p) {
+void compute() {
     Assembly assembly;
     {
         Model model;
@@ -120,12 +121,7 @@ void compute(Partition p) {
 }
 
 int main() {
-    vector<thread> threads;
     int nb_threads = 2;
-    for (int i = 0; i < nb_threads; i++) {
-        threads.emplace_back(compute, Partition(i, nb_threads));
-    }
-    for (auto&& t : threads) {
-        t.join();
-    }
+    auto threads = spawn(0, nb_threads, compute);
+    join(threads);
 }
