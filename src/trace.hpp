@@ -25,13 +25,47 @@ more generally, to use and operate it in the same conditions as regards security
 The fact that you are presently reading this means that you have had knowledge of the CeCILL-C
 license and that you accept its terms.*/
 
-#include "arrays.hpp"
-#include "distributions.hpp"
-#include "gm_connectors.hpp"
+#pragma once
+
+#include <fstream>
+#include <iostream>
 #include "interfaces.hpp"
-#include "mcmc_moves.hpp"
-#include "moves.hpp"
-#include "node_skeletons.hpp"
-#include "parsing.hpp"
-#include "suffstats.hpp"
-#include "trace.hpp"
+#include "tinycompo.hpp"
+
+template <class I>
+class Trace {
+    std::unique_ptr<std::ofstream> internal_stream{nullptr};
+    std::ostream& os;
+    tc::InstanceSet<I> components;
+
+  public:
+    Trace(tc::InstanceSet<I> components, std::ostream& os = std::cout)
+        : os(os), components(components) {}
+    Trace(tc::InstanceSet<I> components, std::string filename)
+        : internal_stream(new std::ofstream(filename)),
+          os(*internal_stream),
+          components(components) {}
+
+    void header() const {
+        auto names = components.names();
+        for (size_t i = 0; i < names.size() - 1; i++) {
+            const auto& c = names[i];
+            os << c.to_string() << '\t';
+        }
+        os << names.at(names.size() - 1).to_string() << std::endl;
+    }
+
+    void line() const {
+        auto pointers = components.pointers();
+        for (size_t i = 0; i < pointers.size() - 1; i++) {
+            const auto& c = pointers[i];
+            os << c->get_ref() << '\t';
+        }
+        os << pointers.at(pointers.size() - 1)->get_ref() << std::endl;
+    }
+};
+
+template <class I, class Arg>
+Trace<I> make_trace(tc::InstanceSet<I> components, Arg arg) {
+    return Trace<I>(components, arg);
+}

@@ -63,5 +63,5 @@ save_trace <- function(trace) {
   }
 }
 
-trace <- run_mcmc(1:3, 1:dim(samples)[1])
+trace <- run_mcmc(1:4, 1:dim(samples)[1])
 save_trace(trace)

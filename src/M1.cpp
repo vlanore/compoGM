@@ -94,11 +94,8 @@ void compute() {
     }
 
     // trace header
-    ofstream output("tmp" + to_string(p.rank) + ".dat");
-    for (auto&& address : all_lambdas.names()) {
-        output << address.to_string() << "\t";
-    }
-    output << endl;
+    auto trace = make_trace(all_lambdas, "tmp" + to_string(p.rank) + ".dat");
+    trace.header();
 
     std::cout << "-- Running the chain\n";
     for (int iteration = 0; iteration < 5000; iteration++) {
@@ -109,10 +106,7 @@ void compute() {
                 move->move(0.01);
             }
         }
-        for (auto&& lambda : all_lambdas.pointers()) {
-            output << lambda->get_ref() << "\t";
-        }
-        output << endl;
+        trace.line();
     }
     for (auto&& move : all_moves.pointers()) {
         cerr << setprecision(3) << "Accept rate" << setw(40) << move->get_name() << "  -->  "

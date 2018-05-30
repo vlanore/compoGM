@@ -37,12 +37,12 @@ struct M2 : public Composite {
     static void contents(Model& m, IndexSet& genes, IndexSet& conditions, IndexSet& samples,
                          map<string, map<string, int>>& counts, IndexMapping& condition_mapping,
                          map<string, double>& size_factors) {
-        m.component<NMatrix<OrphanNode<Normal>>>("q", genes, conditions, 1, -2, 2);
+        m.component<NMatrix<OrphanNode<Normal>>>("q", genes, conditions, 1, 3, 1.5);
         m.component<NMatrix<DeterministicUnaryNode<double>>>("exp(q)", genes, conditions,
                                                              [](double a) { return pow(10, a); })
             .connect<NMatrices1To1<DUse>>("a", "q");
 
-        m.component<NArray<OrphanNode<Normal>>>("alpha", genes, 1, 2, 2);
+        m.component<NArray<OrphanNode<Normal>>>("alpha", genes, 1, -2, 2);
         m.component<NArray<DeterministicUnaryNode<double>>>(
              "1/exp(alpha)", genes, [](double a) { return 1. / double(pow(10, a)); })
             .connect<NArrays1To1<DUse>>("a", "alpha");
