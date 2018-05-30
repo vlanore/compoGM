@@ -37,19 +37,19 @@ struct M2 : public Composite {
     static void contents(Model& m, IndexSet& genes, IndexSet& conditions, IndexSet& samples,
                          map<string, map<string, int>>& counts, IndexMapping& condition_mapping,
                          map<string, double>& size_factors) {
-        m.component<NMatrix<OrphanNode<Normal>>>("q", genes, conditions, 1, 3, 1.5);
-        m.component<NMatrix<DeterministicUnaryNode<double>>>("exp(q)", genes, conditions,
+        m.component<NMatrix<OrphanNode<Normal>>>("log10(q)", genes, conditions, 1, 3, 1.5);
+        m.component<NMatrix<DeterministicUnaryNode<double>>>("q", genes, conditions,
                                                              [](double a) { return pow(10, a); })
-            .connect<NMatrices1To1<DUse>>("a", "q");
+            .connect<NMatrices1To1<DUse>>("a", "log10(q)");
 
-        m.component<NArray<OrphanNode<Normal>>>("alpha", genes, 1, -2, 2);
+        m.component<NArray<OrphanNode<Normal>>>("log10(alpha)", genes, 1, -2, 2);
         m.component<NArray<DeterministicUnaryNode<double>>>(
-             "1/exp(alpha)", genes, [](double a) { return 1. / double(pow(10, a)); })
-            .connect<NArrays1To1<DUse>>("a", "alpha");
+             "1/alpha", genes, [](double a) { return 1. / double(pow(10, a)); })
+            .connect<NArrays1To1<DUse>>("a", "log10(alpha)");
 
         m.component<NMatrix<BinaryNode<GammaShapeRate>>>("tau", genes, samples, 1)
-            .connect<NArrays1To1<NArrayMultiprovide<DUse>>>("a", "1/exp(alpha)")
-            .connect<NArrays1To1<NArrayMultiprovide<DUse>>>("b", "1/exp(alpha)");
+            .connect<NArrays1To1<NArrayMultiprovide<DUse>>>("a", "1/alpha")
+            .connect<NArrays1To1<NArrayMultiprovide<DUse>>>("b", "1/alpha");
 
         m.component<NArray<Constant<double>>>("sf", samples, 0)
             .connect<SetNArray<double>>("x", size_factors);
@@ -57,7 +57,7 @@ struct M2 : public Composite {
         m.component<NMatrix<DeterministicTernaryNode<double>>>(
              "lambda", genes, samples, [](double a, double b, double c) { return a * b * c; })
             .connect<NArrayMultiprovide<NArrays1To1<DUse>>>("a", "sf")
-            .connect<NArrays1To1<NArraysMap<DUse>>>("b", "exp(q)", condition_mapping)
+            .connect<NArrays1To1<NArraysMap<DUse>>>("b", "q", condition_mapping)
             .connect<NMatrices1To1<DUse>>("c", "tau");
 
         m.component<NMatrix<UnaryNode<Poisson>>>("K", genes, samples, 0)
@@ -81,8 +81,8 @@ int main() {
                         counts.counts, samples.condition_mapping, size_factors.size_factors);
 
     // suffstats and metropolis hastings moves
-    model.component<NMatrix<SimpleMHMove<Scale>>>("move_q", counts.genes, samples.conditions)
-        .connect<NMatrices1To1<MoveToTarget<double>>>("target", Address("model", "q"))
+    model.component<NMatrix<SimpleMHMove<Shift>>>("move_q", counts.genes, samples.conditions)
+        .connect<NMatrices1To1<MoveToTarget<double>>>("target", Address("model", "log10(q)"))
         .connect<NArrays1To1<NArraysRevMap<Use<LogProb>>>>("logprob", Address("model", "K"),
                                                            samples.condition_mapping);
 
@@ -90,31 +90,25 @@ int main() {
         .connect<NMatrices1To1<MoveToTarget<double>>>("target", Address("model", "tau"))
         .connect<NMatrices1To1<Use<LogProb>>>("logprob", Address("model", "K"));
 
-    model.component<NArray<SimpleMHMove<Scale>>>("move_alpha", counts.genes)
-        .connect<NArrays1To1<MoveToTarget<double>>>("target", Address("model", "alpha"))
+    model.component<NArray<SimpleMHMove<Shift>>>("move_alpha", counts.genes)
+        .connect<NArrays1To1<MoveToTarget<double>>>("target", Address("model", "log10(alpha)"))
         .connect<NArrays1To1<NArrayMultiuse<Use<LogProb>>>>("logprob", Address("model", "tau"));
 
     // assembly
     std::cout << "-- Instantiating assembly...\n";
     Assembly assembly(model);
-    // assembly.print_all();
 
     std::cout << "-- Preparations before running chain\n";
-    auto all_moves = assembly.get_all<SimpleMHMove<Scale>>();
+    auto all_moves = assembly.get_all<Move>();
     auto all_watched = assembly.get_all<Value<double>>(
-        std::set<Address>{Address("model", "q"), Address("model", "alpha"),
-                          Address("model", "tau")},
-        "model");
+        std::set<Address>{Address("model", "log10(q)"), Address("model", "log10(alpha)")}, "model");
 
     // trace header
-    ofstream output("tmp.dat");
-    for (auto&& name : all_watched.names()) {
-        output << name.to_string() << '\t';
-    }
-    output << endl;
+    auto trace = make_trace(all_watched, "tmp.dat");
+    trace.header();
 
     std::cout << "-- Running the chain\n";
-    for (int iteration = 0; iteration < 5000; iteration++) {
+    for (int iteration = 0; iteration < 500; iteration++) {
         for (int rep = 0; rep < 10; rep++) {
             for (auto&& move : all_moves.pointers()) {
                 move->move(1.0);
@@ -122,13 +116,10 @@ int main() {
                 move->move(0.01);
             }
         }
-        for (auto&& pointer : all_watched.pointers()) {
-            output << to_string(pointer->get_ref()) << '\t';
-        }
-        output << endl;
+        trace.line();
     }
-    for (auto&& move : all_moves.pointers()) {
-        cerr << setprecision(3) << "Accept rate" << setw(40) << move->get_name() << "  -->  "
-             << move->accept_rate() * 100 << "%" << endl;
-    }
+    // for (auto&& move : all_moves.pointers()) {
+    //     cerr << setprecision(3) << "Accept rate" << setw(40) << move->get_name() << "  -->  "
+    //          << move->accept_rate() * 100 << "%" << endl;
+    // }
 }

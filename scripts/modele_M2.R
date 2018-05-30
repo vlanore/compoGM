@@ -51,7 +51,7 @@ run_mcmc <- function(genesel, samplesel) {
                        n.chains = n.chains)
     update(mcmc, 5000)
     sample <- coda.samples(mcmc,
-                           variable.names = c("log10_q", "alpha"),
+                           variable.names = c("log10_q", "log10_alpha"),
                            n.iter = 5000)
     sample
 }

@@ -42,3 +42,17 @@ struct Scale {
         return multiplier;
     }
 };
+
+/*
+====================================================================================================
+  ~*~ Shift move ~*~
+==================================================================================================*/
+struct Shift {
+    using ValueType = double;
+
+    static double move(double& value, double tuning = 1.0) {
+        auto shift = tuning * (uniform(generator) - 0.5);
+        value += shift;
+        return 0;
+    }
+};
