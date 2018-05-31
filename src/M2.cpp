@@ -86,6 +86,7 @@ void compute(int argc, char** argv) {
         auto size_factors = parse_size_factors(data_location + "/size_factors.tsv");
         check_consistency(counts, samples, size_factors);
         auto pgenes = partition(counts.genes, p);
+        cout << "-- Thread " << p.rank << " has " << pgenes.size() << " genes." << endl;
 
         // graphical model
         std::cout << "-- Creating component model...\n";
