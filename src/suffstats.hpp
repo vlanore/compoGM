@@ -112,7 +112,7 @@ class PoissonSuffstat : public tc::Component, public LogProb, public Proxy {
         }
     }
 
-    void release() final { sum = 0; }
+    void release() final {}
 
     double get_log_prob() final {  // a = lambda
         int N = values.size();

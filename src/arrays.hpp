@@ -149,7 +149,7 @@ struct NArrayMultiprovide : tc::Meta {  // single provider, multiple users
 };
 
 template <class P2PConnector>
-struct NArrayMultiuse : tc::Meta {  // single provider, multiple users
+struct NArrayMultiuse : tc::Meta {  // single user, multiple providers
     static void connect(tc::Model& m, tc::PortAddress user, tc::Address provider) {
         auto provider_elements = m.get_composite(provider).all_component_names(0, true);
         for (auto&& element : provider_elements) {

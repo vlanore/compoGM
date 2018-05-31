@@ -28,6 +28,7 @@ license and that you accept its terms.*/
 #include <iomanip>
 #include <thread>
 #include "compoGM.hpp"
+#include "mpi_helpers.hpp"
 #include "partition.hpp"
 
 using namespace std;
@@ -68,7 +69,7 @@ struct M2 : public Composite {
     }
 };
 
-void compute() {
+void compute(int, char**) {
     Assembly assembly;
     {
         Model model;
@@ -86,6 +87,11 @@ void compute() {
                             counts.counts, samples.condition_mapping, size_factors.size_factors);
 
         // suffstats and metropolis hastings moves
+        // model.component<NArray<GammaSuffstat>>("tau_suffstats", pgenes)
+        //     .connect<NArrays1To1<NArrayMultiuse<DUse>>>("values", Address("model", "tau"))
+        //     .connect<NArrays1To1<DUse>>("k", Address("model", "1/alpha"))
+        //     .connect<NArrays1To1<DUse>>("theta", Address("model", "1/alpha"));
+
         model.component<NMatrix<SimpleMHMove<Shift>>>("move_q", pgenes, samples.conditions)
             .connect<NMatrices1To1<MoveToTarget<double>>>("target", Address("model", "log10(q)"))
             .connect<NArrays1To1<NArraysRevMap<Use<LogProb>>>>("logprob", Address("model", "K"),
@@ -130,8 +136,9 @@ void compute() {
     // }
 }
 
-int main() {
-    int nb_threads = 2;
-    auto threads = spawn(0, nb_threads, compute);
-    join(threads);
+int main(int argc, char** argv) {
+    // int nb_threads = 1;
+    // auto threads = spawn(0, nb_threads, compute);
+    // join(threads);
+    mpi_run(argc, argv, compute);
 }

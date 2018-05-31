@@ -28,6 +28,7 @@ license and that you accept its terms.*/
 #include <iomanip>
 #include <thread>
 #include "compoGM.hpp"
+#include "mpi_helpers.hpp"
 #include "partition.hpp"
 
 using namespace std;
@@ -50,13 +51,13 @@ struct M1 : public Composite {
     }
 };
 
-void compute() {
+void compute(int, char**) {
     Assembly assembly;
     {
         Model model;
 
         // Parsing data files
-        auto counts = parse_counts("../data/rnaseq_mini/counts.tsv");
+        auto counts = parse_counts("../data/rnaseq/counts.tsv");
         auto samples = parse_samples("../data/rnaseq/samples.tsv");
         check_consistency(counts, samples);
 
@@ -114,8 +115,9 @@ void compute() {
     }
 }
 
-int main() {
-    int nb_threads = 2;
-    auto threads = spawn(0, nb_threads, compute);
-    join(threads);
+int main(int argc, char** argv) {
+    // int nb_threads = 2;
+    mpi_run(argc, argv, compute);
+    // auto threads = spawn(0, nb_threads, compute, argc, argv);
+    // join(threads);
 }
