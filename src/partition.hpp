@@ -32,13 +32,24 @@ license and that you accept its terms.*/
 #include "index_set.hpp"
 
 struct Partition {
+    static const std::vector<int> colors;
     int rank{0}, size{0};
-    Partition(int r, int s) : rank(r), size(s) {}
+    template <class... Args>
+    void message(const std::string& format, Args&&... args) {
+        std::string color = "\e[0m\e[" + std::to_string(colors[rank % colors.size()]) + "m";
+        std::string bold = "\e[0m\e[1m";
+        std::string normal = "\e[0m";
+        std::string format2 = bold + "[" + color + "%d" + bold + "/" + color + "%d" + bold + "] " +
+                              normal + format + "\n";
+        printf(format2.c_str(), rank, size, std::forward<Args>(args)...);
+    }
 };
 
+const std::vector<int> Partition::colors{31, 32, 33, 34, 35, 36, 91, 92, 93, 94, 95, 96};
+
 namespace compoGM_thread {
-thread_local Partition p(0, 0);
-}
+thread_local Partition p;
+}  // namespace compoGM_thread
 
 void set_partition(int rank, int size) {
     compoGM_thread::p.rank = rank;
@@ -61,7 +72,9 @@ Threads spawn(int rank_start, int rank_end, F f, Args... args) {
     for (int i = rank_start; i < rank_end; i++) {
         std::thread t([i, rank_end, f, args...]() {
             set_partition(i, rank_end);
+            compoGM_thread::p.message("Started new thread");
             f(args...);
+            compoGM_thread::p.message("End of thread");
         });
         result.push_back(std::move(t));
     }

@@ -30,6 +30,7 @@ license and that you accept its terms.*/
 #include <map>
 #include <tinycompo.hpp>
 #include "index_set.hpp"
+#include "partition.hpp"
 
 using aria::csv::CsvParser;
 
@@ -57,7 +58,7 @@ CountParsingResult parse_counts(std::string filename) {
         result.samples.push_back((*line)[i]);
         // cout << "Sample " << i << ": " << (*line)[i] << std::endl;
     }
-    std::cerr << "-- Number of samples is " << result.samples.size() << std::endl;
+    compoGM_thread::p.message("Number of samples is %d", result.samples.size());
     for (++line; line != parser.end(); ++line) {  // rest of the lines
         std::string gene = (*line)[0];
         result.genes.insert(gene);
@@ -65,7 +66,7 @@ CountParsingResult parse_counts(std::string filename) {
             result.counts[gene][result.samples.at(i - 1)] = stoi((*line)[i]);
         }
     }
-    std::cerr << "-- Number of genes is " << result.counts.size() << std::endl;
+    compoGM_thread::p.message("Number of genes is %d", result.counts.size());
     return result;
 }
 
@@ -93,7 +94,7 @@ SamplesParsingResult parse_samples(std::string filename) {
         result.condition_mapping[(*line)[0]] = (*line)[1];
         // cout << (*line)[0] << ", " << (*line)[1] << endl;
     }
-    std::cerr << "-- Number of conditions is " << result.conditions.size() << std::endl;
+    compoGM_thread::p.message("Number of conditions is %d", result.conditions.size());
     return result;
 }
 
@@ -129,10 +130,12 @@ SizeFactorResult parse_size_factors(std::string filename) {
 void check_consistency(CountParsingResult counts, SamplesParsingResult samples) {
     // Checking that the two files samples identifiers match
     if (IndexSet(counts.samples.begin(), counts.samples.end()) == samples.samples) {
-        std::cerr << "-- List of samples in counts and samples match!\n";
+        compoGM_thread::p.message("List of samples in counts and samples match!");
     } else {
-        std::cerr << "-- Mismatch between sample list in counts file (" << counts.samples.size()
-                  << " samples) and samples files (" << samples.samples.size() << " samples)\n";
+        compoGM_thread::p.message(
+            "Mismatch between sample list in counts file (%d samples) and samples file (%d "
+            "samples)",
+            counts.samples.size(), samples.samples.size());
         exit(1);
     }
 }
@@ -141,11 +144,12 @@ void check_consistency(CountParsingResult counts, SamplesParsingResult samples,
                        SizeFactorResult size_factors) {
     check_consistency(counts, samples);
     if (size_factors.samples == samples.samples) {
-        std::cerr << "-- List of samples in samples and size factors match!\n";
+        compoGM_thread::p.message("List of samples in samples and size factors match!");
     } else {
-        std::cerr << "-- Mismatch between sample list in samples file (" << samples.samples.size()
-                  << " samples) and size factor files (" << size_factors.samples.size()
-                  << " samples)\n";
+        compoGM_thread::p.message(
+            "Mismatch between sample list in samples file (%d samples) and size factor file (%d "
+            "samples)",
+            samples.samples.size(), size_factors.samples.size());
         exit(1);
     }
 }

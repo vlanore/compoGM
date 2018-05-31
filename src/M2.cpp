@@ -71,7 +71,7 @@ struct M2 : public Composite {
 
 void compute(int argc, char** argv) {
     if (argc < 2) {
-        cerr << "usage:\n\tM1_bin <data_location>\n";
+        cerr << "usage:\n\tM2_bin <data_location>\n";
         exit(1);
     }
 
@@ -86,10 +86,10 @@ void compute(int argc, char** argv) {
         auto size_factors = parse_size_factors(data_location + "/size_factors.tsv");
         check_consistency(counts, samples, size_factors);
         auto pgenes = partition(counts.genes, p);
-        cout << "-- Thread " << p.rank << " has " << pgenes.size() << " genes." << endl;
+        p.message("%d genes in partitioned gene list.", pgenes.size());
 
         // graphical model
-        std::cout << "-- Creating component model...\n";
+        p.message("Creating component model...");
         model.component<M2>("model", pgenes, samples.conditions, make_index_set(counts.samples),
                             counts.counts, samples.condition_mapping, size_factors.size_factors);
 
@@ -113,11 +113,11 @@ void compute(int argc, char** argv) {
             .connect<NArrays1To1<NArrayMultiuse<Use<LogProb>>>>("logprob", Address("model", "tau"));
 
         // assembly
-        std::cout << "-- Instantiating assembly...\n";
+        p.message("Instantiating assembly...");
         assembly.instantiate_from(model);
     }
 
-    std::cout << "-- Preparations before running chain\n";
+    p.message("Preparations before running chain");
     auto all_moves = assembly.get_all<Move>();
     auto all_watched = assembly.get_all<Value<double>>(
         std::set<Address>{Address("model", "log10(q)"), Address("model", "log10(alpha)")}, "model");
@@ -126,7 +126,7 @@ void compute(int argc, char** argv) {
     auto trace = make_trace(all_watched, "tmp" + to_string(p.rank) + ".dat");
     trace.header();
 
-    std::cout << "-- Running the chain\n";
+    p.message("Running the chain");
     for (int iteration = 0; iteration < 500; iteration++) {
         for (int rep = 0; rep < 10; rep++) {
             for (auto&& move : all_moves.pointers()) {

@@ -35,6 +35,8 @@ void mpi_run(int argc, char** argv, F f) {
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &compoGM_thread::p.rank);
     MPI_Comm_size(MPI_COMM_WORLD, &compoGM_thread::p.size);
+    compoGM_thread::p.message("Started MPI process");
     f(argc, argv);
+    compoGM_thread::p.message("End of MPI process");
     MPI_Finalize();
 }

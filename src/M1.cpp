@@ -68,10 +68,10 @@ void compute(int argc, char** argv) {
         check_consistency(counts, samples);
 
         IndexSet pgenes = partition(counts.genes, p);
-        cout << "-- Thread " << p.rank << " has " << pgenes.size() << " genes.\n";
+        p.message("%d genes in partitioned gene list", pgenes.size());
 
         // graphical model
-        std::cout << "-- Creating component model...\n";
+        p.message("Creating component model...");
         model.component<M1>("model", pgenes, samples.conditions, make_index_set(counts.samples),
                             counts.counts, samples.condition_mapping);
 
@@ -86,11 +86,11 @@ void compute(int argc, char** argv) {
             .connect<NMatrices1To1<Use<LogProb>>>("logprob", "poissonsuffstats");
 
         // assembly
-        std::cout << "-- Instantiating assembly...\n";
+        p.message("Instantiating assembly...");
         assembly.instantiate_from(model);
     }
 
-    std::cout << "-- Preparations before running chain\n";
+    p.message("Preparations before running chain");
     auto all_lambdas = assembly.get_all<OrphanNode<Normal>>("model");
     auto all_moves = assembly.get_all<SimpleMHMove<Scale>>();
     auto all_suffstats = assembly.get_all<PoissonSuffstat>();
@@ -104,7 +104,7 @@ void compute(int argc, char** argv) {
     auto trace = make_trace(all_lambdas, "tmp" + to_string(p.rank) + ".dat");
     trace.header();
 
-    std::cout << "-- Running the chain\n";
+    p.message("Running the chain");
     for (int iteration = 0; iteration < 5000; iteration++) {
         for (int rep = 0; rep < 10; rep++) {
             for (auto&& move : all_moves.pointers()) {
