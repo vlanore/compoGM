@@ -24,10 +24,10 @@ test: test_bin
 	./$<
 
 m1: M1_bin
-	./$<
+	./$< ~/data/rnaseq_mini
 
 m2: M2_bin
-	./$<
+	./$< ~/data/rnaseq_mini
 
 tmp: tmp_bin
 	./$<

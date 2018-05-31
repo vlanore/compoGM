@@ -69,15 +69,21 @@ struct M2 : public Composite {
     }
 };
 
-void compute(int, char**) {
+void compute(int argc, char** argv) {
+    if (argc < 2) {
+        cerr << "usage:\n\tM1_bin <data_location>\n";
+        exit(1);
+    }
+
     Assembly assembly;
     {
         Model model;
 
         // Parsing data files
-        auto counts = parse_counts("../data/rnaseq_mini/counts.tsv");
-        auto samples = parse_samples("../data/rnaseq/samples.tsv");
-        auto size_factors = parse_size_factors("../data/rnaseq/size_factors.tsv");
+        string data_location = argv[1];
+        auto counts = parse_counts(data_location + "/counts.tsv");
+        auto samples = parse_samples(data_location + "/samples.tsv");
+        auto size_factors = parse_size_factors(data_location + "/size_factors.tsv");
         check_consistency(counts, samples, size_factors);
         auto pgenes = partition(counts.genes, p);
 

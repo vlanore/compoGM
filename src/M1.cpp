@@ -51,18 +51,24 @@ struct M1 : public Composite {
     }
 };
 
-void compute(int, char**) {
+void compute(int argc, char** argv) {
+    if (argc < 2) {
+        cerr << "usage:\n\tM1_bin <data_location>\n";
+        exit(1);
+    }
+
     Assembly assembly;
     {
         Model model;
 
         // Parsing data files
-        auto counts = parse_counts("../data/rnaseq/counts.tsv");
-        auto samples = parse_samples("../data/rnaseq/samples.tsv");
+        string data_folder = argv[1];
+        auto counts = parse_counts(data_folder + "/counts.tsv");
+        auto samples = parse_samples(data_folder + "/samples.tsv");
         check_consistency(counts, samples);
 
         IndexSet pgenes = partition(counts.genes, p);
-        cout << "Thread " << p.rank << " has " << pgenes.size() << " genes.\n";
+        cout << "-- Thread " << p.rank << " has " << pgenes.size() << " genes.\n";
 
         // graphical model
         std::cout << "-- Creating component model...\n";
