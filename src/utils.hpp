@@ -35,9 +35,9 @@ std::uniform_real_distribution<double> uniform{0.0, 1.0};
 bool decide(double prob) { return uniform(generator) <= prob; }
 
 double log_factorial(int n) {
-    if (n < 2) {
-        return 0;
-    } else {
-        return log(n) + log_factorial(n - 1);
+    double result = 0;
+    for (int i = 1; i <= n; i++) {
+        result += log(n);
     }
+    return result;
 }

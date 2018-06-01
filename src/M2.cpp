@@ -74,10 +74,9 @@ void compute(int argc, char** argv) {
         cerr << "usage:\n\tM2_bin <data_location>\n";
         exit(1);
     }
-
     Assembly assembly;
     {
-        Model model;
+        Model& model = assembly.get_model();
 
         // Parsing data files
         string data_location = argv[1];
@@ -114,20 +113,21 @@ void compute(int argc, char** argv) {
 
         // assembly
         p.message("Instantiating assembly...");
-        assembly.instantiate_from(model);
+        assembly.instantiate();
     }
 
     p.message("Preparations before running chain");
     auto all_moves = assembly.get_all<Move>();
     auto all_watched = assembly.get_all<Value<double>>(
         std::set<Address>{Address("model", "log10(q)"), Address("model", "log10(alpha)")}, "model");
+    assembly.get_model() = Model();
 
     // trace header
     auto trace = make_trace(all_watched, "tmp" + to_string(p.rank) + ".dat");
     trace.header();
 
     p.message("Running the chain");
-    for (int iteration = 0; iteration < 500; iteration++) {
+    for (int iteration = 0; iteration < 50; iteration++) {
         for (int rep = 0; rep < 10; rep++) {
             for (auto&& move : all_moves.pointers()) {
                 move->move(1.0);
@@ -137,15 +137,11 @@ void compute(int argc, char** argv) {
         }
         trace.line();
     }
-    // for (auto&& move : all_moves.pointers()) {
-    //     cerr << setprecision(3) << "Accept rate" << setw(40) << move->get_name() << "  -->  "
-    //          << move->accept_rate() * 100 << "%" << endl;
-    // }
 }
 
 int main(int argc, char** argv) {
-    // int nb_threads = 1;
-    // auto threads = spawn(0, nb_threads, compute);
-    // join(threads);
-    mpi_run(argc, argv, compute);
+    int nb_threads = 2;
+    auto threads = spawn(0, nb_threads, compute, argc, argv);
+    join(threads);
+    // mpi_run(argc, argv, compute);
 }
