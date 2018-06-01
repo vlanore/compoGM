@@ -43,8 +43,8 @@ class SimpleMHMove : public Move, public tc::Component {
     // config
     Value<ValueType>* target;
     Backup* target_backup;
-    std::vector<LogProb*> log_probs;
-    void add_log_prob(LogProb* ptr) { log_probs.push_back(ptr); }
+    std::vector<LogProbSelector> log_probs;
+    void add_log_prob(LogProbSelector selector) { log_probs.push_back(selector); }
 
     // internal stats
     int reject{0}, total{0};
@@ -60,11 +60,11 @@ class SimpleMHMove : public Move, public tc::Component {
         target_backup->backup();
         double log_prob_before =
             accumulate(log_probs.begin(), log_probs.end(), 0.0,
-                       [](double acc, LogProb* ptr) { return acc + ptr->get_log_prob(); });
+                       [](double acc, LogProbSelector s) { return acc + s.get_log_prob(); });
         double log_hastings = M::move(target->get_ref(), tuning);
         double log_prob_after =
             accumulate(log_probs.begin(), log_probs.end(), 0.0,
-                       [](double acc, LogProb* ptr) { return acc + ptr->get_log_prob(); });
+                       [](double acc, LogProbSelector s) { return acc + s.get_log_prob(); });
         bool accept = decide(exp(log_prob_after - log_prob_before + log_hastings));
         if (not accept) {
             target_backup->restore();

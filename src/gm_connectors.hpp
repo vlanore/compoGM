@@ -30,11 +30,21 @@ license and that you accept its terms.*/
 #include "arrays.hpp"
 #include "interfaces.hpp"
 
+struct DirectedLogProb {
+    static void _connect(tc::Assembly& a, tc::PortAddress user, tc::Address provider,
+                         LogProbSelector::Direction direction) {
+        auto& user_ref = a.at(user.address);
+        auto& provider_ref = a.at<LogProb>(provider);
+        user_ref.set(user.prop, LogProbSelector(direction, &provider_ref));
+    }
+};
+
 template <typename ValueType>
 struct MoveToTarget : tc::Meta {
     static void connect(tc::Model& m, tc::PortAddress move, tc::Address target) {
         m.connect<tc::Use<Value<ValueType>>>(move, target);
         m.connect<tc::Use<Backup>>(tc::PortAddress("targetbackup", move.address), target);
-        m.connect<tc::Use<LogProb>>(tc::PortAddress("logprob", move.address), target);
+        m.connect<DirectedLogProb>(tc::PortAddress("logprob", move.address), target,
+                                   LogProbSelector::X);
     }
 };

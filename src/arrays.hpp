@@ -112,24 +112,28 @@ using SetNMatrix = SetNArray<std::map<std::string, ValueType>, SetNArray<ValueTy
 ==================================================================================================*/
 template <class P2PConnector>
 struct NArraysMap : tc::Meta {
+    template <class... Args>
     static void connect(tc::Model& m, tc::PortAddress user, tc::Address provider,
-                        IndexMapping mapping) {  // mapping user index -> provider index
+                        IndexMapping mapping,
+                        Args... args) {  // mapping user index -> provider index
         auto user_elements = m.get_composite(user.address).all_component_names(0, true);
         for (auto&& element : user_elements) {
             m.connect<P2PConnector>(tc::PortAddress(user.prop, user.address, element),
-                                    tc::Address(provider, mapping.at(element)));
+                                    tc::Address(provider, mapping.at(element)), args...);
         }
     }
 };
 
 template <class P2PConnector>
 struct NArraysRevMap : tc::Meta {
+    template <class... Args>
     static void connect(tc::Model& m, tc::PortAddress user, tc::Address provider,
-                        IndexMapping mapping) {  // mapping provider index -> user index
+                        IndexMapping mapping,
+                        Args... args) {  // mapping provider index -> user index
         auto provider_elements = m.get_composite(provider).all_component_names(0, true);
         for (auto&& element : provider_elements) {
             m.connect<P2PConnector>(tc::PortAddress(user.prop, user.address, mapping.at(element)),
-                                    tc::Address(provider, element));
+                                    tc::Address(provider, element), args...);
         }
     }
 };
@@ -140,20 +144,23 @@ struct NArraysRevMap : tc::Meta {
 ==================================================================================================*/
 template <class P2PConnector>
 struct NArrayMultiprovide : tc::Meta {  // single provider, multiple users
-    static void connect(tc::Model& m, tc::PortAddress user, tc::Address provider) {
+    template <class... Args>
+    static void connect(tc::Model& m, tc::PortAddress user, tc::Address provider, Args... args) {
         auto user_elements = m.get_composite(user.address).all_component_names(0, true);
         for (auto&& element : user_elements) {
-            m.connect<P2PConnector>(tc::PortAddress(user.prop, user.address, element), provider);
+            m.connect<P2PConnector>(tc::PortAddress(user.prop, user.address, element), provider,
+                                    args...);
         }
     }
 };
 
 template <class P2PConnector>
 struct NArrayMultiuse : tc::Meta {  // single user, multiple providers
-    static void connect(tc::Model& m, tc::PortAddress user, tc::Address provider) {
+    template <class... Args>
+    static void connect(tc::Model& m, tc::PortAddress user, tc::Address provider, Args... args) {
         auto provider_elements = m.get_composite(provider).all_component_names(0, true);
         for (auto&& element : provider_elements) {
-            m.connect<P2PConnector>(user, tc::Address(provider, element));
+            m.connect<P2PConnector>(user, tc::Address(provider, element), args...);
         }
     }
 };

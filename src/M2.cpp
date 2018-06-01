@@ -28,7 +28,7 @@ license and that you accept its terms.*/
 #include <iomanip>
 #include <thread>
 #include "compoGM.hpp"
-#include "mpi_helpers.hpp"
+// #include "mpi_helpers.hpp"
 #include "partition.hpp"
 
 using namespace std;
@@ -100,16 +100,18 @@ void compute(int argc, char** argv) {
 
         model.component<NMatrix<SimpleMHMove<Shift>>>("move_q", pgenes, samples.conditions)
             .connect<NMatrices1To1<MoveToTarget<double>>>("target", Address("model", "log10(q)"))
-            .connect<NArrays1To1<NArraysRevMap<Use<LogProb>>>>("logprob", Address("model", "K"),
-                                                               samples.condition_mapping);
+            .connect<NArrays1To1<NArraysRevMap<DirectedLogProb>>>(
+                "logprob", Address("model", "K"), samples.condition_mapping, LogProbSelector::A);
 
         model.component<NMatrix<SimpleMHMove<Scale>>>("move_tau", pgenes, samples.samples)
             .connect<NMatrices1To1<MoveToTarget<double>>>("target", Address("model", "tau"))
-            .connect<NMatrices1To1<Use<LogProb>>>("logprob", Address("model", "K"));
+            .connect<NMatrices1To1<DirectedLogProb>>("logprob", Address("model", "K"),
+                                                     LogProbSelector::A);
 
         model.component<NArray<SimpleMHMove<Shift>>>("move_alpha", pgenes)
             .connect<NArrays1To1<MoveToTarget<double>>>("target", Address("model", "log10(alpha)"))
-            .connect<NArrays1To1<NArrayMultiuse<Use<LogProb>>>>("logprob", Address("model", "tau"));
+            .connect<NArrays1To1<NArrayMultiuse<DirectedLogProb>>>(
+                "logprob", Address("model", "tau"), LogProbSelector::Full);
 
         // assembly
         p.message("Instantiating assembly...");
@@ -127,7 +129,7 @@ void compute(int argc, char** argv) {
     trace.header();
 
     p.message("Running the chain");
-    for (int iteration = 0; iteration < 50; iteration++) {
+    for (int iteration = 0; iteration < 5000; iteration++) {
         for (int rep = 0; rep < 10; rep++) {
             for (auto&& move : all_moves.pointers()) {
                 move->move(1.0);

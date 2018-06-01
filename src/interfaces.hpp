@@ -26,6 +26,8 @@ The fact that you are presently reading this means that you have had knowledge o
 license and that you accept its terms.*/
 
 #pragma once
+#include <cstdio>
+#include <cstdlib>
 
 /*
 ====================================================================================================
@@ -86,4 +88,37 @@ struct Backup {
 struct Proxy {
     virtual void acquire() = 0;
     virtual void release() = 0;
+};
+
+/*
+====================================================================================================
+  ~*~ LogProbSelector ~*~
+==================================================================================================*/
+class LogProbSelector : public LogProb {
+  public:
+    enum Direction { X, A, B, Full, Invalid };
+
+  private:
+    Direction d;
+    LogProb* ptr;
+
+  public:
+    LogProbSelector(Direction d = Invalid, LogProb* ptr = nullptr) : d(d), ptr(ptr) {}
+    virtual ~LogProbSelector() = default;
+
+    double get_log_prob() final {
+        switch (d) {
+            case X:
+                return ptr->get_log_prob_x();
+            case A:
+                return ptr->get_log_prob_a();
+            case B:
+                return ptr->get_log_prob_b();
+            case Full:
+                return ptr->get_log_prob();
+            default:
+                printf("Error: trying to use uninitialized LogProbSelector!\n");
+                exit(1);
+        }
+    }
 };

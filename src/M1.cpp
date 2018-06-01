@@ -28,7 +28,7 @@ license and that you accept its terms.*/
 #include <iomanip>
 #include <thread>
 #include "compoGM.hpp"
-#include "mpi_helpers.hpp"
+// #include "mpi_helpers.hpp"
 #include "partition.hpp"
 
 using namespace std;
@@ -83,7 +83,8 @@ void compute(int argc, char** argv) {
 
         model.component<NMatrix<SimpleMHMove<Scale>>>("moves", pgenes, samples.conditions)
             .connect<NMatrices1To1<MoveToTarget<double>>>("target", Address("model", "lambda"))
-            .connect<NMatrices1To1<Use<LogProb>>>("logprob", "poissonsuffstats");
+            .connect<NMatrices1To1<DirectedLogProb>>("logprob", "poissonsuffstats",
+                                                     LogProbSelector::Full);
 
         // assembly
         p.message("Instantiating assembly...");
@@ -122,8 +123,7 @@ void compute(int argc, char** argv) {
 }
 
 int main(int argc, char** argv) {
-    // int nb_threads = 2;
-    mpi_run(argc, argv, compute);
-    // auto threads = spawn(0, nb_threads, compute, argc, argv);
-    // join(threads);
+    // mpi_run(argc, argv, compute);
+    auto threads = spawn(0, 2, compute, argc, argv);
+    join(threads);
 }

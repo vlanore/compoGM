@@ -26,12 +26,7 @@ The fact that you are presently reading this means that you have had knowledge o
 license and that you accept its terms.*/
 
 #include <tinycompo.hpp>
-#include "distributions.hpp"
-#include "interfaces.hpp"
-#include "mcmc_moves.hpp"
-#include "moves.hpp"
-#include "node_skeletons.hpp"
-#include "suffstats.hpp"
+#include "compoGM.hpp"
 
 using namespace std;
 using namespace tc;
@@ -66,14 +61,14 @@ int main() {
     m.component<SimpleMHMove<Scale>>("move1")
         .connect<Use<Value<double>>>("target", "k")
         .connect<Use<Backup>>("targetbackup", "k")
-        .connect<Use<LogProb>>("logprob", "k")
-        .connect<Use<LogProb>>("logprob", "gammasuffstat");
+        .connect<DirectedLogProb>("logprob", "k", LogProbSelector::A)
+        .connect<DirectedLogProb>("logprob", "gammasuffstat", LogProbSelector::Full);
 
     m.component<SimpleMHMove<Scale>>("move2")
         .connect<Use<Value<double>>>("target", "theta")
         .connect<Use<Backup>>("targetbackup", "theta")
-        .connect<Use<LogProb>>("logprob", "theta")
-        .connect<Use<LogProb>>("logprob", "gammasuffstat");
+        .connect<DirectedLogProb>("logprob", "theta", LogProbSelector::B)
+        .connect<DirectedLogProb>("logprob", "gammasuffstat", LogProbSelector::Full);
 
     m.component<Mean>("meank");
     m.component<Mean>("meantheta");
