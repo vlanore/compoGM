@@ -34,6 +34,7 @@ license and that you accept its terms.*/
 struct Partition {
     static const std::vector<int> colors;
     int rank{0}, size{0};
+
     template <class... Args>
     void message(const std::string& format, Args&&... args) {
         std::string color = "\e[0m\e[" + std::to_string(colors[rank % colors.size()]) + "m";
@@ -42,6 +43,18 @@ struct Partition {
         std::string format2 = bold + "[" + color + "%d" + bold + "/" + color + "%d" + bold + "] " +
                               normal + format + "\n";
         printf(format2.c_str(), rank, size, std::forward<Args>(args)...);
+    }
+
+    template <class... Args>
+    [[noreturn]] void fail(const std::string& format, Args&&... args) {
+        std::string color = "\e[0m\e[" + std::to_string(colors[rank % colors.size()]) + "m";
+        std::string bold = "\e[0m\e[1m";
+        std::string redbold = "\e[0m\e[1m\e[31m";
+        std::string normal = "\e[0m";
+        std::string format2 = bold + "[" + color + "%d" + bold + "/" + color + "%d" + bold + "] " +
+                              redbold + "Error: " + normal + format + "\n";
+        printf(format2.c_str(), rank, size, std::forward<Args>(args)...);
+        exit(1);
     }
 };
 

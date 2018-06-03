@@ -34,6 +34,17 @@ license and that you accept its terms.*/
 
 using aria::csv::CsvParser;
 
+std::ifstream open_file(std::string filename) {
+    compoGM_thread::p.message("Opening file %s", filename.c_str());
+    std::ifstream file{filename};
+    if (file.good()) {
+        return file;
+    } else {
+        compoGM_thread::p.fail("Something went wrong while trying to open file %s!",
+                               filename.c_str());
+    }
+}
+
 /*
 ====================================================================================================
   ~*~ Counts parsing ~*~
@@ -46,7 +57,7 @@ struct CountParsingResult {
 
 CountParsingResult parse_counts(std::string filename) {
     // Files and parsers
-    std::ifstream file(filename);
+    auto file = open_file(filename);
     auto parser = CsvParser(file).delimiter('\t');
 
     // Result structure
@@ -82,7 +93,7 @@ struct SamplesParsingResult {
 
 SamplesParsingResult parse_samples(std::string filename) {
     // Files and parsers
-    std::ifstream file(filename);
+    auto file = open_file(filename);
     auto parser = CsvParser(file).delimiter('\t');
 
     // Result structure
@@ -109,7 +120,7 @@ struct SizeFactorResult {
 
 SizeFactorResult parse_size_factors(std::string filename) {
     // Files and parsers
-    std::ifstream file(filename);
+    auto file = open_file(filename);
     auto parser = CsvParser(file).delimiter('\t');
 
     // Result structure
