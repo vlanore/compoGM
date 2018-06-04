@@ -29,15 +29,11 @@ license and that you accept its terms.*/
 
 #include <random>
 
+#include <cstdio>
+
 std::random_device r;
 std::default_random_engine generator(r());
 std::uniform_real_distribution<double> uniform{0.0, 1.0};
 bool decide(double prob) { return uniform(generator) <= prob; }
 
-double log_factorial(int n) {
-    double result = 0;
-    for (int i = 1; i <= n; i++) {
-        result += log(n);
-    }
-    return result;
-}
+double log_factorial(int n) { return std::lgamma(n + 1); }

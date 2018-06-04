@@ -125,9 +125,7 @@ void compute(int argc, char** argv) {
     auto moves_alpha = assembly.get_all<Move>("move_alpha");
     auto suffstats_tau = assembly.get_all<Proxy>("tau_suffstats");
     auto all_watched = assembly.get_all<Value<double>>(
-        std::set<Address>{Address("model", "log10(q)"), Address("model", "log10(alpha)"),
-                          Address("model", "tau")},
-        "model");
+        std::set<Address>{Address("model", "log10(q)"), Address("model", "log10(alpha)")}, "model");
     assembly.get_model() = Model();
 
     // trace header
@@ -161,7 +159,7 @@ void compute(int argc, char** argv) {
 }
 
 int main(int argc, char** argv) {
-    auto threads = spawn(0, 4, compute, argc, argv);
+    auto threads = spawn(0, 1, compute, argc, argv);
     join(threads);
     // mpi_run(argc, argv, compute);
 }
