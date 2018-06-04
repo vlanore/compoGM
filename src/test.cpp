@@ -53,9 +53,9 @@ int main() {
         .connect<ArraySet<double>>(
             "x", vector<double>{1.5, 1.5, 1.5, 1.5, 1.5, 1.0, 1.0, 0.5, 0.5, 1.2});
 
-    m.component<GammaSuffstat>("gammasuffstat")
-        .connect<Use<Value<double>>>("k", "k")
-        .connect<Use<Value<double>>>("theta", "theta")
+    m.component<GammaShapeScaleSuffstat>("gammasuffstat")
+        .connect<Use<Value<double>>>("a", "k")
+        .connect<Use<Value<double>>>("b", "theta")
         .connect<MultiUse<Value<double>>>("values", "array");
 
     m.component<SimpleMHMove<Scale>>("move1")

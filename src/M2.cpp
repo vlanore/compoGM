@@ -93,10 +93,10 @@ void compute(int argc, char** argv) {
                             counts.counts, samples.condition_mapping, size_factors.size_factors);
 
         // suffstats and metropolis hastings moves
-        // model.component<NArray<GammaSuffstat>>("tau_suffstats", pgenes)
-        //     .connect<NArrays1To1<NArrayMultiuse<DUse>>>("values", Address("model", "tau"))
-        //     .connect<NArrays1To1<DUse>>("k", Address("model", "1/alpha"))
-        //     .connect<NArrays1To1<DUse>>("theta", Address("model", "1/alpha"));
+        model.component<NArray<GammaSuffstatShapeRate>>("tau_suffstats", pgenes)
+            .connect<NArrays1To1<NArrayMultiuse<DUse>>>("values", Address("model", "tau"))
+            .connect<NArrays1To1<DUse>>("k", Address("model", "1/alpha"))
+            .connect<NArrays1To1<DUse>>("theta", Address("model", "1/alpha"));
 
         model.component<NMatrix<SimpleMHMove<Shift>>>("move_q", pgenes, samples.conditions)
             .connect<NMatrices1To1<MoveToTarget<double>>>("target", Address("model", "log10(q)"))
@@ -121,7 +121,9 @@ void compute(int argc, char** argv) {
     p.message("Preparations before running chain");
     auto all_moves = assembly.get_all<Move>();
     auto all_watched = assembly.get_all<Value<double>>(
-        std::set<Address>{Address("model", "log10(q)"), Address("model", "log10(alpha)")}, "model");
+        std::set<Address>{Address("model", "log10(q)"), Address("model", "log10(alpha)"),
+                          Address("model", "tau")},
+        "model");
     assembly.get_model() = Model();
 
     // trace header
@@ -142,8 +144,7 @@ void compute(int argc, char** argv) {
 }
 
 int main(int argc, char** argv) {
-    int nb_threads = 2;
-    auto threads = spawn(0, nb_threads, compute, argc, argv);
+    auto threads = spawn(0, 4, compute, argc, argv);
     join(threads);
     // mpi_run(argc, argv, compute);
 }

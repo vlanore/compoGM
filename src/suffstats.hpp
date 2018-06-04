@@ -35,20 +35,54 @@ license and that you accept its terms.*/
 ====================================================================================================
   ~*~ Gamma Suff Stat ~*~
 ==================================================================================================*/
-class GammaSuffstat : public tc::Component, public LogProb, public Proxy {
+struct GammaShapeScaleSSFormula {
+    static double full_log_prob(double k, double theta, int N, double sum, double sum_log) {
+        return -N * log(std::tgamma(k)) - N * k * log(theta) + (k - 1) * sum_log -
+               (1 / theta) * sum;
+    }
+
+    static double partial_log_prob_a(double k, double, int N, double, double sum_log) {  // a = k
+        return -N * log(std::tgamma(k)) + (k - 1) * sum_log;
+    }
+
+    static double partial_log_prob_b(double k, double theta, int N, double sum,
+                                     double) {  // b = theta
+        return -N * k * log(theta) - (1 / theta) * sum;
+    }
+};
+
+struct GammaShapeRateSSFormula {
+    static double full_log_prob(double alpha, double beta, int N, double sum, double sum_log) {
+        return N * alpha * log(beta) - N * log(std::tgamma(alpha)) + (alpha - 1) * sum_log -
+               beta * sum;
+    }
+
+    static double partial_log_prob_a(double alpha, double beta, int N, double,
+                                     double sum_log) {  // a = alpha
+        return N * alpha * log(beta) - N * log(std::tgamma(alpha)) + (alpha - 1) * sum_log;
+    }
+
+    static double partial_log_prob_b(double alpha, double beta, int N, double sum,
+                                     double) {  // b = beta
+        return N * alpha * log(beta) - beta * sum;
+    }
+};
+
+template <class Formula>
+class GammaSSTemplate : public tc::Component, public LogProb, public Proxy {
     std::vector<Value<double>*> values;
     void add_value(Value<double>* p) { values.push_back(p); }
 
-    Value<double>* k_;
-    Value<double>* theta_;
+    Value<double>* a_;
+    Value<double>* b_;
     double sum{0};
     double sum_log{0};
 
   public:
-    GammaSuffstat() {
-        port("values", &GammaSuffstat::add_value);
-        port("k", &GammaSuffstat::k_);
-        port("theta", &GammaSuffstat::theta_);
+    GammaSSTemplate() {
+        port("values", &GammaSSTemplate::add_value);
+        port("a", &GammaSSTemplate::a_);
+        port("b", &GammaSSTemplate::b_);
     }
 
     void acquire() final {
@@ -65,27 +99,22 @@ class GammaSuffstat : public tc::Component, public LogProb, public Proxy {
     }
 
     double get_log_prob() final {
-        int N = values.size();
-        double k = k_->get_ref();
-        double theta = theta_->get_ref();
-        return -N * log(std::tgamma(k)) - N * k * log(theta) + (k - 1) * sum_log -
-               (1 / theta) * sum;
+        return Formula::full_log_prob(a_->get_ref(), b_->get_ref(), values.size(), sum, sum_log);
     }
 
     double get_log_prob_a() final {  // a = k
-        int N = values.size();
-        double k = k_->get_ref();
-        double theta = theta_->get_ref();
-        return -N * log(std::tgamma(k)) - N * k * log(theta) + (k - 1) * sum_log;
+        return Formula::partial_log_prob_a(a_->get_ref(), b_->get_ref(), values.size(), sum,
+                                           sum_log);
     }
 
     double get_log_prob_b() final {  // b = theta
-        int N = values.size();
-        double k = k_->get_ref();
-        double theta = theta_->get_ref();
-        return -N * k * log(theta) - (1 / theta) * sum;
+        return Formula::partial_log_prob_b(a_->get_ref(), b_->get_ref(), values.size(), sum,
+                                           sum_log);
     }
 };
+
+using GammaShapeRateSuffstat = GammaSSTemplate<GammaShapeRateSSFormula>;
+using GammaShapeScaleSuffstat = GammaSSTemplate<GammaShapeScaleSSFormula>;
 
 /*
 ====================================================================================================
