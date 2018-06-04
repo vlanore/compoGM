@@ -93,10 +93,10 @@ void compute(int argc, char** argv) {
                             counts.counts, samples.condition_mapping, size_factors.size_factors);
 
         // suffstats and metropolis hastings moves
-        model.component<NArray<GammaSuffstatShapeRate>>("tau_suffstats", pgenes)
+        model.component<NArray<GammaShapeRateSuffstat>>("tau_suffstats", pgenes)
             .connect<NArrays1To1<NArrayMultiuse<DUse>>>("values", Address("model", "tau"))
-            .connect<NArrays1To1<DUse>>("k", Address("model", "1/alpha"))
-            .connect<NArrays1To1<DUse>>("theta", Address("model", "1/alpha"));
+            .connect<NArrays1To1<DUse>>("a", Address("model", "1/alpha"))
+            .connect<NArrays1To1<DUse>>("b", Address("model", "1/alpha"));
 
         model.component<NMatrix<SimpleMHMove<Shift>>>("move_q", pgenes, samples.conditions)
             .connect<NMatrices1To1<MoveToTarget<double>>>("target", Address("model", "log10(q)"))
@@ -110,8 +110,10 @@ void compute(int argc, char** argv) {
 
         model.component<NArray<SimpleMHMove<Shift>>>("move_alpha", pgenes)
             .connect<NArrays1To1<MoveToTarget<double>>>("target", Address("model", "log10(alpha)"))
-            .connect<NArrays1To1<NArrayMultiuse<DirectedLogProb>>>(
-                "logprob", Address("model", "tau"), LogProbSelector::Full);
+            .connect<NArrays1To1<DirectedLogProb>>("logprob", "tau_suffstats",
+                                                   LogProbSelector::Full);
+        // .connect<NArrays1To1<NArrayMultiuse<DirectedLogProb>>>(
+        //     "logprob", Address("model", "tau"), LogProbSelector::Full);
 
         // assembly
         p.message("Instantiating assembly...");
@@ -119,7 +121,9 @@ void compute(int argc, char** argv) {
     }
 
     p.message("Preparations before running chain");
-    auto all_moves = assembly.get_all<Move>();
+    auto moves_q_tau = assembly.get_all<Move>(std::set<Address>{"move_q", "move_tau"});
+    auto moves_alpha = assembly.get_all<Move>("move_alpha");
+    auto suffstats_tau = assembly.get_all<Proxy>("tau_suffstats");
     auto all_watched = assembly.get_all<Value<double>>(
         std::set<Address>{Address("model", "log10(q)"), Address("model", "log10(alpha)"),
                           Address("model", "tau")},
@@ -132,11 +136,24 @@ void compute(int argc, char** argv) {
 
     p.message("Running the chain");
     for (int iteration = 0; iteration < 5000; iteration++) {
-        for (int rep = 0; rep < 10; rep++) {
-            for (auto&& move : all_moves.pointers()) {
+        for (int big_rep = 0; big_rep < 10; big_rep++) {
+            for (auto&& move : moves_q_tau.pointers()) {
                 move->move(1.0);
                 move->move(0.1);
                 move->move(0.01);
+            }
+            for (auto&& ss : suffstats_tau.pointers()) {
+                ss->acquire();
+            }
+            for (auto&& move : moves_alpha.pointers()) {
+                for (int rep = 0; rep < 10; rep++) {
+                    move->move(1.0);
+                    move->move(0.1);
+                    move->move(0.01);
+                }
+            }
+            for (auto&& ss : suffstats_tau.pointers()) {
+                ss->release();
             }
         }
         trace.line();
