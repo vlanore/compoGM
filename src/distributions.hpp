@@ -53,7 +53,7 @@ struct GammaShapeScale {
     using ValueType = double;
 
     static double full_log_prob(double x, double k, double theta) {
-        return -log(std::tgamma(k)) - k * log(theta) + (k - 1) * log(x) - x / theta;
+        return -std::lgamma(k) - k * log(theta) + (k - 1) * log(x) - x / theta;
     }
 
     static double partial_log_prob_x(double x, double k, double theta) {
@@ -61,7 +61,7 @@ struct GammaShapeScale {
     }
 
     static double partial_log_prob_a(double, double k, double theta) {
-        return -log(std::tgamma(k)) - k * log(theta) + (k - 1);
+        return -std::lgamma(k) - k * log(theta) + (k - 1);
     }
 
     static double partial_log_prob_b(double x, double k, double theta) {
@@ -79,7 +79,7 @@ struct GammaShapeRate {
     using ValueType = double;
 
     static double full_log_prob(double x, double alpha, double beta) {
-        return alpha * log(beta) - log(std::tgamma(alpha)) + (alpha - 1) * log(x) - beta * x;
+        return alpha * log(beta) - std::lgamma(alpha) + (alpha - 1) * log(x) - beta * x;
     }
 
     static double partial_log_prob_x(double x, double alpha, double beta) {
@@ -87,7 +87,7 @@ struct GammaShapeRate {
     }
 
     static double partial_log_prob_a(double x, double alpha, double beta) {
-        return alpha * log(beta) - log(std::tgamma(alpha)) + (alpha - 1) * log(x);
+        return alpha * log(beta) - std::lgamma(alpha) + (alpha - 1) * log(x);
     }
 
     static double partial_log_prob_b(double x, double alpha, double beta) {

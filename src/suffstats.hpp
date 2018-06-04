@@ -37,12 +37,11 @@ license and that you accept its terms.*/
 ==================================================================================================*/
 struct GammaShapeScaleSSFormula {
     static double full_log_prob(double k, double theta, int N, double sum, double sum_log) {
-        return -N * log(std::tgamma(k)) - N * k * log(theta) + (k - 1) * sum_log -
-               (1 / theta) * sum;
+        return -N * std::lgamma(k) - N * k * log(theta) + (k - 1) * sum_log - (1 / theta) * sum;
     }
 
     static double partial_log_prob_a(double k, double, int N, double, double sum_log) {  // a = k
-        return -N * log(std::tgamma(k)) + (k - 1) * sum_log;
+        return -N * std::lgamma(k) + (k - 1) * sum_log;
     }
 
     static double partial_log_prob_b(double k, double theta, int N, double sum,
@@ -53,13 +52,12 @@ struct GammaShapeScaleSSFormula {
 
 struct GammaShapeRateSSFormula {
     static double full_log_prob(double alpha, double beta, int N, double sum, double sum_log) {
-        return N * alpha * log(beta) - N * log(std::tgamma(alpha)) + (alpha - 1) * sum_log -
-               beta * sum;
+        return N * alpha * log(beta) - N * std::lgamma(alpha) + (alpha - 1) * sum_log - beta * sum;
     }
 
     static double partial_log_prob_a(double alpha, double beta, int N, double,
                                      double sum_log) {  // a = alpha
-        return N * alpha * log(beta) - N * log(std::tgamma(alpha)) + (alpha - 1) * sum_log;
+        return N * alpha * log(beta) - N * std::lgamma(alpha) + (alpha - 1) * sum_log;
     }
 
     static double partial_log_prob_b(double alpha, double beta, int N, double sum,
