@@ -29,6 +29,9 @@ m1: M1_bin
 m2: M2_bin
 	./$< ~/data/rnaseq_mini
 
+m3: M3_bin
+	./$< ~/data/rnaseq_mini
+
 tmp: tmp_bin
 	./$<
 

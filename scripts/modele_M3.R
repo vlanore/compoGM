@@ -26,7 +26,7 @@ model <- "model {
   for(i in 1:ngenes) {
     for(j in 1:nsamples) {
       K[i,j] ~ dpois(lambda[i,j])
-      lambda[i,j] <- sf[j] * log10_q[i,cond[j]] * tau[i,j]
+      lambda[i,j] <- sf[j] * 10 ** log10_q[i,cond[j]] * tau[i,j]
       tau[i,j] ~ dgamma(1/alpha[i], 1/alpha[i])
     }
   }
@@ -68,5 +68,5 @@ save_trace <- function(trace) {
   }
 }
 
-trace <- run_mcmc(1:3, 1:dim(samples)[1])
+trace <- run_mcmc(1:4, 1:dim(samples)[1])
 save_trace(trace)

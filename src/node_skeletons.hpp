@@ -50,6 +50,34 @@ class Constant : public Value<ValueType>, public tc::Component {
 
 /*
 ====================================================================================================
+  ~*~ DeterministicMultiNode ~*~
+==================================================================================================*/
+template <class ValueType>
+class DeterministicMultiNode : public Value<ValueType>, public tc::Component {
+    std::vector<Value<double>*> parents;
+    ValueType (*f)(const std::vector<Value<double>*>&);
+    mutable ValueType x;  // just a buffer for computation of f(parents)
+    void add_parent(Value<double>* ptr) {
+        parents.push_back(ptr);
+    }
+
+public:
+    DeterministicMultiNode(ValueType (*f)(const std::vector<Value<double>*>&)) : f(f) {
+        port("parent", &DeterministicMultiNode::add_parent);
+    }
+
+    ValueType& get_ref() final {
+        x = f(parents);
+        return x;
+    }
+
+    const ValueType& get_ref() const final {
+        x = f(parents);
+        return x;
+    }
+};
+/*
+====================================================================================================
   ~*~ DeterministicTernaryNode ~*~
 ==================================================================================================*/
 template <class ValueType>
