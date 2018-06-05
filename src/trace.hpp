@@ -52,7 +52,9 @@ class Trace {
             const auto& c = names[i];
             os << c.to_string() << '\t';
         }
-        os << names.at(names.size() - 1).to_string() << std::endl;
+        if (names.size() != 0) {
+            os << names.at(names.size() - 1).to_string() << std::endl;
+        }
     }
 
     void line() const {
@@ -61,7 +63,9 @@ class Trace {
             const auto& c = pointers[i];
             os << c->get_ref() << '\t';
         }
-        os << pointers.at(pointers.size() - 1)->get_ref() << std::endl;
+        if (pointers.size() != 0) {
+            os << pointers.at(pointers.size() - 1)->get_ref() << std::endl;
+        }
     }
 };
 

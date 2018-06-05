@@ -1,4 +1,4 @@
-CPPFLAGS= -Wall -Wextra -O3 --std=c++11 -pthread
+CPPFLAGS= -Wall -Wextra -O3 --std=c++11 -pthread -g
 
 .PHONY: all clean ready test format tmp m1 m2
 
@@ -21,6 +21,9 @@ clean:
 	rm -f *_bin *.hpp
 
 test: test_bin
+	./$<
+
+m0: M0_bin
 	./$<
 
 m1: M1_bin
