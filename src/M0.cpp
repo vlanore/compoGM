@@ -52,40 +52,49 @@ struct M0 : public Composite {
 };
 
 void compute(int, char**) {
-    Model model;
-
     IndexSet experiments{"e0", "e1"};
     IndexSet samples{"s0", "s1"};
     map<string, map<string, int>> data{{"e0", {{"s0", 12}, {"s1", 13}}},
                                        {"e1", {{"s0", 17}, {"s1", 19}}}};
 
-    p.message("Creating component model...");
+    Model model;
     model.component<M0>("model", experiments, samples, data);
+
+    model.component<GammaShapeScaleSuffstat>("beta_suffstats")
+        .connect<DUse>("a", Address("model", "alpha"))
+        .connect<DUse>("b", Address("model", "alpha"))
+        .connect<NArrayMultiuse<DUse>>("values", Address("model", "beta"));
 
     model.component<SimpleMHMove<Scale>>("move_alpha")
         .connect<MoveToTarget<double>>("target", Address("model", "alpha"))
-        .connect<NArrayMultiuse<DirectedLogProb>>("logprob", Address("model", "beta"),
-                                                  LogProbSelector::Full);
+        .connect<DirectedLogProb>("logprob", "beta_suffstats", LogProbSelector::Full);
 
     model.component<NArray<SimpleMHMove<Scale>>>("move_beta", experiments)
         .connect<NArrays1To1<MoveToTarget<double>>>("target", Address("model", "beta"))
         .connect<NArrays1To1<NArrayMultiuse<DirectedLogProb>>>(
             "logprob", Address("model", "lambda"), LogProbSelector::A);
 
-    p.message("Instantiating assembly...");
+    model
+        .driver("p0_driver",
+                [](Move* move, Proxy* suffstats) {
+                    suffstats->acquire();
+                    move->move(1.0);
+                    move->move(0.1);
+                    move->move(0.01);
+                    suffstats->release();
+                })
+        .connect("move_alpha", "beta_suffstats");
+
     Assembly assembly(model);
+    auto& p0_driver = assembly.at<_AbstractDriver>("p0_driver");
+    auto move_beta = assembly.get_all<Move>("move_beta");
 
-    p.message("Preparations before running chain");
-    auto all_lambdas = assembly.get_all<Value<double>>("model");
-    auto all_moves = assembly.get_all<Move>();
-
-    p.message("Preparing trace");
-    auto trace = make_trace(all_lambdas, "tmp.dat");
+    auto trace = make_trace(assembly.get_all<Value<double>>("model"), "tmp.dat");
     trace.header();
 
-    p.message("Running the chain");
     for (int iteration = 0; iteration < 5000; iteration++) {
-        for (auto& move : all_moves.pointers()) {
+        p0_driver.go();
+        for (auto& move : move_beta.pointers()) {
             move->move(1.0);
             move->move(0.1);
             move->move(0.01);
