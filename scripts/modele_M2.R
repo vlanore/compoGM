@@ -63,9 +63,5 @@ save_trace <- function(trace) {
   }
 }
 
-<<<<<<< HEAD
-trace <- run_mcmc(1:4, 1:dim(samples)[1])
-=======
 trace <- run_mcmc(1:10, 1:dim(samples)[1])
->>>>>>> scripts/modele_M2: truncate distribution to avoid errors in jags
 save_trace(trace)
