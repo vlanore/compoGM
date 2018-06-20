@@ -111,7 +111,7 @@ print("Monitors created...")
 ################
 #     MCMC     #
 ################
-mymcmc = mcmc(mymodel, monitors, moves, nruns=n_chains)
+mymcmc = mcmc(mymodel, monitors, moves, nruns=1)
 print("MCMC created...")
 
 # NO BURNIN
