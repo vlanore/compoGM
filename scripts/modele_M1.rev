@@ -1,0 +1,108 @@
+## run with rb model_M1.rev
+
+input_dir <- "dataset-levure"
+dest  <- "Output"
+n_chains <- 3
+
+counts <- readDataDelimitedFile(input_dir+"/counts.tsv", delimiter="\t", header=TRUE, rownames=TRUE)
+samples <- readDataDelimitedFile(input_dir+"/samples.tsv", delimiter="\t", header=TRUE)
+size_factors <- readDataDelimitedFile(input_dir+"/size_factors.tsv", delimiter="\t", header=TRUE, rownames=TRUE)
+
+print("Data read...")
+ngenes = counts.size()
+nsamples = samples.size()
+#ncond = length(unique(samples[samplesel,2]))
+
+print("Number of genes: " + ngenes)
+print("Number of samples: " + nsamples)
+
+samp_type[1]="Snf2"
+samp_type[2]="WT"
+ncond = samp_type.size()
+
+for (i in 1:nsamples){
+  if(samples[i][2]==samp_type[1]){
+    cond[i]<-1
+  }else if(samples[i][2]==samp_type[2]){
+    cond[i]<-2
+  }else{
+    print("Error in parsing samples")
+    q()
+  }
+}
+print("Data ready...")
+
+#############
+# THE Model #
+#############
+sd_param <- power(1.5,2)
+mean_param <- 3
+for(i in 1:ngenes) {
+  for(k in 1:ncond) {
+    log10_lambda[i][k]~dnNormal(mean_param,sd_param)
+  }
+}
+
+for(i in 1:ngenes) {
+  for(j in 1:nsamples) {
+    K[i][j]~dnPoisson(power(10,log10_lambda[i][cond[j]]))
+  }
+}
+
+for(i in 1:ngenes) {
+  tmp[i] <- counts[i]
+  print(i)
+  for(j in 1:nsamples) {
+    K[i][j].clamp(tmp[i][j])
+  }
+}
+
+# We define our model.
+# We can use any node of our model as a handle.
+
+mymodel = model(mean_param)
+print("Model created...")
+
+#############
+# THE moves #
+#############
+# set my move index
+mvi = 0
+for(i in 1:ngenes) {
+  for(k in 1:ncond) {
+    moves[++mvi] = mvScale(log10_lambda[i][k],lambda=1.0,tune=false,weight=1.0)
+    moves[++mvi] = mvScale(log10_lambda[i][k],lambda=0.1,tune=false,weight=1.0)
+    moves[++mvi] = mvScale(log10_lambda[i][k],lambda=0.01,tune=false,weight=1.0)
+    #moves[++mvi] = mvSlide(log10_lambda[i][k],delta=1.0,tune=false,weight=1.0)
+    #moves[++mvi] = mvSlide(log10_lambda[i][k],delta=0.1,tune=false,weight=1.0)
+    #moves[++mvi] = mvSlide(log10_lambda[i][k],delta=0.01,tune=false,weight=1.0)
+  }
+}
+print("Moves set up...")
+
+################
+# THE monitors #
+################
+mni = 0
+
+monitors[++mni] = mnModel(filename=dest+"/M1_out.log",printgen=20, separator = TAB)
+monitors[++mni] = mnStochasticVariable(filename=dest+"/M1_out_Stoch.log",printgen=20)
+monitors[++mni] = mnScreen(printgen=50)
+print("Monitors created...")
+
+################
+#     MCMC     #
+################
+mymcmc = mcmc(mymodel, monitors, moves, nruns=n_chains)
+print("MCMC created...")
+
+# NO BURNIN
+#mymcmc.burnin(generations=1000,tuningInterval=200,underPrior=false)
+
+# FEW GENERATIONS
+mymcmc.run(generations=5000,underPrior=false)
+
+mymcmc.operatorSummary()
+
+# you may want to quit RevBayes now
+q()
