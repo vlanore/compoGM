@@ -27,7 +27,7 @@ model <- "model {
     for(j in 1:nsamples) {
       K[i,j] ~ dpois(lambda[i,j])
       lambda[i,j] <- sf[j] * 10 ** log10_q[i,cond[j]] * tau[i,j]
-      tau[i,j] ~ dgamma(1/alpha[i], 1/alpha[i])
+      tau[i,j] ~ dgamma(1/alpha[i], 1/alpha[i]) T(0.00001,)
     }
   }
 
@@ -63,5 +63,9 @@ save_trace <- function(trace) {
   }
 }
 
+<<<<<<< HEAD
 trace <- run_mcmc(1:4, 1:dim(samples)[1])
+=======
+trace <- run_mcmc(1:10, 1:dim(samples)[1])
+>>>>>>> scripts/modele_M2: truncate distribution to avoid errors in jags
 save_trace(trace)
