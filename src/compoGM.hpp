@@ -35,3 +35,11 @@ license and that you accept its terms.*/
 #include "parsing.hpp"
 #include "suffstats.hpp"
 #include "trace.hpp"
+
+using tc::Address;
+using tc::Assembly;
+using tc::Component;
+using tc::Composite;
+using tc::Model;
+using tc::PortAddress;
+using tc::Use;

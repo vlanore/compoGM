@@ -32,7 +32,6 @@ license and that you accept its terms.*/
 #include "partition.hpp"
 
 using namespace std;
-using namespace tc;
 using namespace compoGM_thread;
 using DUse = Use<Value<double>>;
 
@@ -40,31 +39,31 @@ struct M2 : public Composite {
     static void contents(Model& m, IndexSet& genes, IndexSet& conditions, IndexSet& samples,
                          map<string, map<string, int>>& counts, IndexMapping& condition_mapping,
                          map<string, double>& size_factors) {
-        m.component<NMatrix<OrphanNode<Normal>>>("log10(q)", genes, conditions, 1, 3, 1.5);
-        m.component<NMatrix<DeterministicUnaryNode<double>>>("q", genes, conditions,
-                                                             [](double a) { return pow(10, a); })
+        m.component<Matrix<OrphanNode<Normal>>>("log10(q)", genes, conditions, 1, 3, 1.5);
+        m.component<Matrix<DeterministicUnaryNode<double>>>("q", genes, conditions,
+                                                            [](double a) { return pow(10, a); })
             .connect<NMatrices1To1<DUse>>("a", "log10(q)");
 
-        m.component<NArray<OrphanNode<Normal>>>("log10(alpha)", genes, 1, -2, 2);
-        m.component<NArray<DeterministicUnaryNode<double>>>(
+        m.component<Array<OrphanNode<Normal>>>("log10(alpha)", genes, 1, -2, 2);
+        m.component<Array<DeterministicUnaryNode<double>>>(
              "1/alpha", genes, [](double a) { return 1. / double(pow(10, a)); })
-            .connect<NArrays1To1<DUse>>("a", "log10(alpha)");
+            .connect<Arrays1To1<DUse>>("a", "log10(alpha)");
 
-        m.component<NMatrix<BinaryNode<GammaShapeRate>>>("tau", genes, samples, 1)
-            .connect<NArrays1To1<NArrayMultiprovide<DUse>>>("a", "1/alpha")
-            .connect<NArrays1To1<NArrayMultiprovide<DUse>>>("b", "1/alpha");
+        m.component<Matrix<BinaryNode<GammaShapeRate>>>("tau", genes, samples, 1)
+            .connect<Arrays1To1<ArrayMultiprovide<DUse>>>("a", "1/alpha")
+            .connect<Arrays1To1<ArrayMultiprovide<DUse>>>("b", "1/alpha");
 
-        m.component<NArray<Constant<double>>>("sf", samples, 0)
-            .connect<SetNArray<double>>("x", size_factors);
+        m.component<Array<Constant<double>>>("sf", samples, 0)
+            .connect<SetArray<double>>("x", size_factors);
 
-        m.component<NMatrix<DeterministicTernaryNode<double>>>(
+        m.component<Matrix<DeterministicTernaryNode<double>>>(
              "lambda", genes, samples, [](double a, double b, double c) { return a * b * c; })
-            .connect<NArrayMultiprovide<NArrays1To1<DUse>>>("a", "sf")
-            .connect<NArrays1To1<NArraysMap<DUse>>>("b", "q", condition_mapping)
+            .connect<ArrayMultiprovide<Arrays1To1<DUse>>>("a", "sf")
+            .connect<Arrays1To1<ArraysMap<DUse>>>("b", "q", condition_mapping)
             .connect<NMatrices1To1<DUse>>("c", "tau");
 
-        m.component<NMatrix<UnaryNode<Poisson>>>("K", genes, samples, 0)
-            .connect<SetNMatrix<int>>("x", counts)
+        m.component<Matrix<UnaryNode<Poisson>>>("K", genes, samples, 0)
+            .connect<SetMatrix<int>>("x", counts)
             .connect<NMatrices1To1<DUse>>("a", "lambda");
     }
 };
@@ -93,26 +92,26 @@ void compute(int argc, char** argv) {
                             counts.counts, samples.condition_mapping, size_factors.size_factors);
 
         // suffstats and metropolis hastings moves
-        model.component<NArray<GammaShapeRateSuffstat>>("tau_suffstats", pgenes)
-            .connect<NArrays1To1<NArrayMultiuse<DUse>>>("values", Address("model", "tau"))
-            .connect<NArrays1To1<DUse>>("a", Address("model", "1/alpha"))
-            .connect<NArrays1To1<DUse>>("b", Address("model", "1/alpha"));
+        model.component<Array<GammaShapeRateSuffstat>>("tau_suffstats", pgenes)
+            .connect<Arrays1To1<ArrayMultiuse<DUse>>>("values", Address("model", "tau"))
+            .connect<Arrays1To1<DUse>>("a", Address("model", "1/alpha"))
+            .connect<Arrays1To1<DUse>>("b", Address("model", "1/alpha"));
 
-        model.component<NMatrix<SimpleMHMove<Shift>>>("move_q", pgenes, samples.conditions)
+        model.component<Matrix<SimpleMHMove<Shift>>>("move_q", pgenes, samples.conditions)
             .connect<NMatrices1To1<MoveToTarget<double>>>("target", Address("model", "log10(q)"))
-            .connect<NArrays1To1<NArraysRevMap<DirectedLogProb>>>(
+            .connect<Arrays1To1<ArraysRevMap<DirectedLogProb>>>(
                 "logprob", Address("model", "K"), samples.condition_mapping, LogProbSelector::A);
 
-        model.component<NMatrix<SimpleMHMove<Scale>>>("move_tau", pgenes, samples.samples)
+        model.component<Matrix<SimpleMHMove<Scale>>>("move_tau", pgenes, samples.samples)
             .connect<NMatrices1To1<MoveToTarget<double>>>("target", Address("model", "tau"))
             .connect<NMatrices1To1<DirectedLogProb>>("logprob", Address("model", "K"),
                                                      LogProbSelector::A);
 
-        model.component<NArray<SimpleMHMove<Shift>>>("move_alpha", pgenes)
-            .connect<NArrays1To1<MoveToTarget<double>>>("target", Address("model", "log10(alpha)"))
-            .connect<NArrays1To1<DirectedLogProb>>("logprob", "tau_suffstats",
-                                                   LogProbSelector::Full);
-        // .connect<NArrays1To1<NArrayMultiuse<DirectedLogProb>>>(
+        model.component<Array<SimpleMHMove<Shift>>>("move_alpha", pgenes)
+            .connect<Arrays1To1<MoveToTarget<double>>>("target", Address("model", "log10(alpha)"))
+            .connect<Arrays1To1<DirectedLogProb>>("logprob", "tau_suffstats",
+                                                  LogProbSelector::Full);
+        // .connect<Arrays1To1<ArrayMultiuse<DirectedLogProb>>>(
         //     "logprob", Address("model", "tau"), LogProbSelector::Full);
 
         // assembly

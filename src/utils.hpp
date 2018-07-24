@@ -27,9 +27,8 @@ license and that you accept its terms.*/
 
 #pragma once
 
-#include <random>
-
 #include <cstdio>
+#include <random>
 
 std::random_device r;
 std::default_random_engine generator(r());

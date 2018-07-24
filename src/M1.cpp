@@ -32,22 +32,21 @@ license and that you accept its terms.*/
 #include "partition.hpp"
 
 using namespace std;
-using namespace tc;
 using namespace compoGM_thread;
 
 struct M1 : public Composite {
     static void contents(Model& m, IndexSet& genes, IndexSet& conditions, IndexSet& samples,
                          map<string, map<string, int>>& counts,
                          map<string, string>& condition_mapping) {
-        m.component<NMatrix<OrphanNode<Normal>>>("lambda", genes, conditions, 1, 3, pow(1.5, 2));
+        m.component<Matrix<OrphanNode<Normal>>>("lambda", genes, conditions, 1, 3, pow(1.5, 2));
 
-        m.component<NMatrix<DeterministicUnaryNode<double>>>("exp", genes, conditions,
-                                                             [](double x) { return pow(10, x); })
+        m.component<Matrix<DeterministicUnaryNode<double>>>("exp", genes, conditions,
+                                                            [](double x) { return pow(10, x); })
             .connect<NMatrices1To1<Use<Value<double>>>>("a", "lambda");
 
-        m.component<NMatrix<UnaryNode<Poisson>>>("K", genes, samples, 0)
-            .connect<SetNMatrix<int>>("x", counts)
-            .connect<NArrays1To1<NArraysMap<Use<Value<double>>>>>("a", "exp", condition_mapping);
+        m.component<Matrix<UnaryNode<Poisson>>>("K", genes, samples, 0)
+            .connect<SetMatrix<int>>("x", counts)
+            .connect<Arrays1To1<ArraysMap<Use<Value<double>>>>>("a", "exp", condition_mapping);
     }
 };
 
@@ -76,12 +75,12 @@ void compute(int argc, char** argv) {
                             counts.counts, samples.condition_mapping);
 
         // suffstats and metropolis hastings moves
-        model.component<NMatrix<PoissonSuffstat>>("poissonsuffstats", pgenes, samples.conditions)
+        model.component<Matrix<PoissonSuffstat>>("poissonsuffstats", pgenes, samples.conditions)
             .connect<NMatrices1To1<Use<Value<double>>>>("lambda", Address("model", "exp"))
-            .connect<NArrays1To1<NArraysRevMap<Use<Value<int>>>>>("values", Address("model", "K"),
-                                                                  samples.condition_mapping);
+            .connect<Arrays1To1<ArraysRevMap<Use<Value<int>>>>>("values", Address("model", "K"),
+                                                                samples.condition_mapping);
 
-        model.component<NMatrix<SimpleMHMove<Scale>>>("moves", pgenes, samples.conditions)
+        model.component<Matrix<SimpleMHMove<Scale>>>("moves", pgenes, samples.conditions)
             .connect<NMatrices1To1<MoveToTarget<double>>>("target", Address("model", "lambda"))
             .connect<NMatrices1To1<DirectedLogProb>>("logprob", "poissonsuffstats",
                                                      LogProbSelector::Full);

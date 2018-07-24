@@ -29,7 +29,10 @@ license and that you accept its terms.*/
 #include "compoGM.hpp"
 
 using namespace std;
-using namespace tc;
+using tc::Assembly;
+using tc::Component;
+using tc::Model;
+using tc::Use;
 
 class Mean : public Component {
     double sum;
@@ -47,16 +50,16 @@ int main() {
     Model m;
     m.component<OrphanNode<Exp>>("k", 0.5, 1.0);
     m.component<OrphanNode<Exp>>("theta", 0.5, 1.0);
-    m.component<Array<BinaryNode<Gamma>>>("array", 10, -1)
-        .connect<MultiProvide<Value<double>>>("a", "k")
-        .connect<MultiProvide<Value<double>>>("b", "theta")
-        .connect<ArraySet<double>>(
+    m.component<tc::Array<BinaryNode<Gamma>>>("array", 10, -1)
+        .connect<tc::MultiProvide<Value<double>>>("a", "k")
+        .connect<tc::MultiProvide<Value<double>>>("b", "theta")
+        .connect<tc::ArraySet<double>>(
             "x", vector<double>{1.5, 1.5, 1.5, 1.5, 1.5, 1.0, 1.0, 0.5, 0.5, 1.2});
 
     m.component<GammaShapeScaleSuffstat>("gammasuffstat")
         .connect<Use<Value<double>>>("a", "k")
         .connect<Use<Value<double>>>("b", "theta")
-        .connect<MultiUse<Value<double>>>("values", "array");
+        .connect<tc::MultiUse<Value<double>>>("values", "array");
 
     m.component<SimpleMHMove<Scale>>("move1")
         .connect<Use<Value<double>>>("target", "k")

@@ -35,7 +35,7 @@ license and that you accept its terms.*/
   ~*~ Named array ~*~
 ==================================================================================================*/
 template <class Element>
-struct NArray : public tc::Composite {
+struct Array : public tc::Composite {
     template <class... Args>
     static void contents(tc::Model& m, IndexSet indices, Args... args) {
         for (auto&& index : indices) {
@@ -49,21 +49,21 @@ struct NArray : public tc::Composite {
   ~*~ Named Matrix ~*~
 ==================================================================================================*/
 template <class Element>
-using NMatrix = NArray<NArray<Element>>;
+using Matrix = Array<Array<Element>>;
 
 /*
 ====================================================================================================
   ~*~ 1 to 1 connectors ~*~
 ==================================================================================================*/
 template <class P2PConnector>
-struct NArrays1To1 : tc::Meta {
+struct Arrays1To1 : tc::Meta {
     template <class... Args>
     static void connect(tc::Model& m, tc::PortAddress user, tc::Address provider, Args... args) {
         auto user_elements = m.get_composite(user.address).all_component_names(0, true);
         auto provider_elements = m.get_composite(provider).all_component_names(0, true);
         bool lengths_match = user_elements.size() == provider_elements.size();
         if (!lengths_match) {
-            throw tc::TinycompoException("NArrays1To1: lengths of composites " +
+            throw tc::TinycompoException("Arrays1To1: lengths of composites " +
                                          user.address.to_string() + " and " + provider.to_string() +
                                          "  don't match.");
         }
@@ -75,14 +75,14 @@ struct NArrays1To1 : tc::Meta {
 };
 
 template <class P2PConnector>
-using NMatrices1To1 = NArrays1To1<NArrays1To1<P2PConnector>>;
+using NMatrices1To1 = Arrays1To1<Arrays1To1<P2PConnector>>;
 
 /*
 ====================================================================================================
   ~*~ Set connectors ~*~
 ==================================================================================================*/
 template <class ValueType, class Setter = tc::Set<ValueType>>
-struct SetNArray : tc::Meta {
+struct SetArray : tc::Meta {
     static void connect(tc::Model& m, tc::PortAddress array,
                         std::map<std::string, ValueType> data) {
         auto array_elements = m.get_composite(array.address).all_component_names(0, true);
@@ -94,7 +94,7 @@ struct SetNArray : tc::Meta {
         //     IndexSet(array_elements.begin(), array_elements.end()) == data_keys;
         // if (!element_names_match) {
         //     throw tc::TinycompoException(
-        //         "SetNArray: list of keys of data and elements don't match.");
+        //         "SetArray: list of keys of data and elements don't match.");
         // }
         for (auto&& element : array_elements) {
             m.connect<Setter>(tc::PortAddress(array.prop, array.address, element),
@@ -104,14 +104,14 @@ struct SetNArray : tc::Meta {
 };
 
 template <class ValueType>
-using SetNMatrix = SetNArray<std::map<std::string, ValueType>, SetNArray<ValueType>>;
+using SetMatrix = SetArray<std::map<std::string, ValueType>, SetArray<ValueType>>;
 
 /*
 ====================================================================================================
   ~*~ Map connectors ~*~
 ==================================================================================================*/
 template <class P2PConnector>
-struct NArraysMap : tc::Meta {
+struct ArraysMap : tc::Meta {
     template <class... Args>
     static void connect(tc::Model& m, tc::PortAddress user, tc::Address provider,
                         IndexMapping mapping,
@@ -125,7 +125,7 @@ struct NArraysMap : tc::Meta {
 };
 
 template <class P2PConnector>
-struct NArraysRevMap : tc::Meta {
+struct ArraysRevMap : tc::Meta {
     template <class... Args>
     static void connect(tc::Model& m, tc::PortAddress user, tc::Address provider,
                         IndexMapping mapping,
@@ -143,7 +143,7 @@ struct NArraysRevMap : tc::Meta {
   ~*~ One-to-many and many-to-one connectors ~*~
 ==================================================================================================*/
 template <class P2PConnector>
-struct NArrayMultiprovide : tc::Meta {  // single provider, multiple users
+struct ArrayMultiprovide : tc::Meta {  // single provider, multiple users
     template <class... Args>
     static void connect(tc::Model& m, tc::PortAddress user, tc::Address provider, Args... args) {
         auto user_elements = m.get_composite(user.address).all_component_names(0, true);
@@ -155,7 +155,7 @@ struct NArrayMultiprovide : tc::Meta {  // single provider, multiple users
 };
 
 template <class P2PConnector>
-struct NArrayMultiuse : tc::Meta {  // single user, multiple providers
+struct ArrayMultiuse : tc::Meta {  // single user, multiple providers
     template <class... Args>
     static void connect(tc::Model& m, tc::PortAddress user, tc::Address provider, Args... args) {
         auto provider_elements = m.get_composite(provider).all_component_names(0, true);
