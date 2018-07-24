@@ -42,29 +42,29 @@ struct M2 : public Composite {
         m.component<Matrix<OrphanNode<Normal>>>("log10(q)", genes, conditions, 1, 3, 1.5);
         m.component<Matrix<DeterministicUnaryNode<double>>>("q", genes, conditions,
                                                             [](double a) { return pow(10, a); })
-            .connect<NMatrices1To1<DUse>>("a", "log10(q)");
+            .connect<ManyToMany2D<DUse>>("a", "log10(q)");
 
         m.component<Array<OrphanNode<Normal>>>("log10(alpha)", genes, 1, -2, 2);
         m.component<Array<DeterministicUnaryNode<double>>>(
              "1/alpha", genes, [](double a) { return 1. / double(pow(10, a)); })
-            .connect<Arrays1To1<DUse>>("a", "log10(alpha)");
+            .connect<ManyToMany<DUse>>("a", "log10(alpha)");
 
         m.component<Matrix<BinaryNode<GammaShapeRate>>>("tau", genes, samples, 1)
-            .connect<Arrays1To1<ArrayMultiprovide<DUse>>>("a", "1/alpha")
-            .connect<Arrays1To1<ArrayMultiprovide<DUse>>>("b", "1/alpha");
+            .connect<ManyToMany<ManyToOne<DUse>>>("a", "1/alpha")
+            .connect<ManyToMany<ManyToOne<DUse>>>("b", "1/alpha");
 
         m.component<Array<Constant<double>>>("sf", samples, 0)
             .connect<SetArray<double>>("x", size_factors);
 
         m.component<Matrix<DeterministicTernaryNode<double>>>(
              "lambda", genes, samples, [](double a, double b, double c) { return a * b * c; })
-            .connect<ArrayMultiprovide<Arrays1To1<DUse>>>("a", "sf")
-            .connect<Arrays1To1<ArraysMap<DUse>>>("b", "q", condition_mapping)
-            .connect<NMatrices1To1<DUse>>("c", "tau");
+            .connect<ManyToOne<ManyToMany<DUse>>>("a", "sf")
+            .connect<ManyToMany<ArraysMap<DUse>>>("b", "q", condition_mapping)
+            .connect<ManyToMany2D<DUse>>("c", "tau");
 
         m.component<Matrix<UnaryNode<Poisson>>>("K", genes, samples, 0)
             .connect<SetMatrix<int>>("x", counts)
-            .connect<NMatrices1To1<DUse>>("a", "lambda");
+            .connect<ManyToMany2D<DUse>>("a", "lambda");
     }
 };
 
@@ -93,25 +93,25 @@ void compute(int argc, char** argv) {
 
         // suffstats and metropolis hastings moves
         model.component<Array<GammaShapeRateSuffstat>>("tau_suffstats", pgenes)
-            .connect<Arrays1To1<ArrayMultiuse<DUse>>>("values", Address("model", "tau"))
-            .connect<Arrays1To1<DUse>>("a", Address("model", "1/alpha"))
-            .connect<Arrays1To1<DUse>>("b", Address("model", "1/alpha"));
+            .connect<ManyToMany<OneToMany<DUse>>>("values", Address("model", "tau"))
+            .connect<ManyToMany<DUse>>("a", Address("model", "1/alpha"))
+            .connect<ManyToMany<DUse>>("b", Address("model", "1/alpha"));
 
         model.component<Matrix<SimpleMHMove<Shift>>>("move_q", pgenes, samples.conditions)
-            .connect<NMatrices1To1<MoveToTarget<double>>>("target", Address("model", "log10(q)"))
-            .connect<Arrays1To1<ArraysRevMap<DirectedLogProb>>>(
+            .connect<ManyToMany2D<MoveToTarget<double>>>("target", Address("model", "log10(q)"))
+            .connect<ManyToMany<ArraysRevMap<DirectedLogProb>>>(
                 "logprob", Address("model", "K"), samples.condition_mapping, LogProbSelector::A);
 
         model.component<Matrix<SimpleMHMove<Scale>>>("move_tau", pgenes, samples.samples)
-            .connect<NMatrices1To1<MoveToTarget<double>>>("target", Address("model", "tau"))
-            .connect<NMatrices1To1<DirectedLogProb>>("logprob", Address("model", "K"),
-                                                     LogProbSelector::A);
+            .connect<ManyToMany2D<MoveToTarget<double>>>("target", Address("model", "tau"))
+            .connect<ManyToMany2D<DirectedLogProb>>("logprob", Address("model", "K"),
+                                                    LogProbSelector::A);
 
         model.component<Array<SimpleMHMove<Shift>>>("move_alpha", pgenes)
-            .connect<Arrays1To1<MoveToTarget<double>>>("target", Address("model", "log10(alpha)"))
-            .connect<Arrays1To1<DirectedLogProb>>("logprob", "tau_suffstats",
+            .connect<ManyToMany<MoveToTarget<double>>>("target", Address("model", "log10(alpha)"))
+            .connect<ManyToMany<DirectedLogProb>>("logprob", "tau_suffstats",
                                                   LogProbSelector::Full);
-        // .connect<Arrays1To1<ArrayMultiuse<DirectedLogProb>>>(
+        // .connect<ManyToMany<OneToMany<DirectedLogProb>>>(
         //     "logprob", Address("model", "tau"), LogProbSelector::Full);
 
         // assembly

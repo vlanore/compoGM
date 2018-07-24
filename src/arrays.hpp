@@ -56,14 +56,14 @@ using Matrix = Array<Array<Element>>;
   ~*~ 1 to 1 connectors ~*~
 ==================================================================================================*/
 template <class P2PConnector>
-struct Arrays1To1 : tc::Meta {
+struct ManyToMany : tc::Meta {
     template <class... Args>
     static void connect(tc::Model& m, tc::PortAddress user, tc::Address provider, Args... args) {
         auto user_elements = m.get_composite(user.address).all_component_names(0, true);
         auto provider_elements = m.get_composite(provider).all_component_names(0, true);
         bool lengths_match = user_elements.size() == provider_elements.size();
         if (!lengths_match) {
-            throw tc::TinycompoException("Arrays1To1: lengths of composites " +
+            throw tc::TinycompoException("ManyToMany: lengths of composites " +
                                          user.address.to_string() + " and " + provider.to_string() +
                                          "  don't match.");
         }
@@ -75,7 +75,7 @@ struct Arrays1To1 : tc::Meta {
 };
 
 template <class P2PConnector>
-using NMatrices1To1 = Arrays1To1<Arrays1To1<P2PConnector>>;
+using ManyToMany2D = ManyToMany<ManyToMany<P2PConnector>>;
 
 /*
 ====================================================================================================
@@ -143,7 +143,7 @@ struct ArraysRevMap : tc::Meta {
   ~*~ One-to-many and many-to-one connectors ~*~
 ==================================================================================================*/
 template <class P2PConnector>
-struct ArrayMultiprovide : tc::Meta {  // single provider, multiple users
+struct ManyToOne : tc::Meta {  // single provider, multiple users
     template <class... Args>
     static void connect(tc::Model& m, tc::PortAddress user, tc::Address provider, Args... args) {
         auto user_elements = m.get_composite(user.address).all_component_names(0, true);
@@ -155,7 +155,7 @@ struct ArrayMultiprovide : tc::Meta {  // single provider, multiple users
 };
 
 template <class P2PConnector>
-struct ArrayMultiuse : tc::Meta {  // single user, multiple providers
+struct OneToMany : tc::Meta {  // single user, multiple providers
     template <class... Args>
     static void connect(tc::Model& m, tc::PortAddress user, tc::Address provider, Args... args) {
         auto provider_elements = m.get_composite(provider).all_component_names(0, true);

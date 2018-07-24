@@ -42,11 +42,11 @@ struct M1 : public Composite {
 
         m.component<Matrix<DeterministicUnaryNode<double>>>("exp", genes, conditions,
                                                             [](double x) { return pow(10, x); })
-            .connect<NMatrices1To1<Use<Value<double>>>>("a", "lambda");
+            .connect<ManyToMany2D<Use<Value<double>>>>("a", "lambda");
 
         m.component<Matrix<UnaryNode<Poisson>>>("K", genes, samples, 0)
             .connect<SetMatrix<int>>("x", counts)
-            .connect<Arrays1To1<ArraysMap<Use<Value<double>>>>>("a", "exp", condition_mapping);
+            .connect<ManyToMany<ArraysMap<Use<Value<double>>>>>("a", "exp", condition_mapping);
     }
 };
 
@@ -76,14 +76,14 @@ void compute(int argc, char** argv) {
 
         // suffstats and metropolis hastings moves
         model.component<Matrix<PoissonSuffstat>>("poissonsuffstats", pgenes, samples.conditions)
-            .connect<NMatrices1To1<Use<Value<double>>>>("lambda", Address("model", "exp"))
-            .connect<Arrays1To1<ArraysRevMap<Use<Value<int>>>>>("values", Address("model", "K"),
+            .connect<ManyToMany2D<Use<Value<double>>>>("lambda", Address("model", "exp"))
+            .connect<ManyToMany<ArraysRevMap<Use<Value<int>>>>>("values", Address("model", "K"),
                                                                 samples.condition_mapping);
 
         model.component<Matrix<SimpleMHMove<Scale>>>("moves", pgenes, samples.conditions)
-            .connect<NMatrices1To1<MoveToTarget<double>>>("target", Address("model", "lambda"))
-            .connect<NMatrices1To1<DirectedLogProb>>("logprob", "poissonsuffstats",
-                                                     LogProbSelector::Full);
+            .connect<ManyToMany2D<MoveToTarget<double>>>("target", Address("model", "lambda"))
+            .connect<ManyToMany2D<DirectedLogProb>>("logprob", "poissonsuffstats",
+                                                    LogProbSelector::Full);
 
         // assembly
         p.message("Instantiating assembly...");

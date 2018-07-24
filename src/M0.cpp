@@ -32,7 +32,6 @@ license and that you accept its terms.*/
 #include "partition.hpp"
 
 using namespace std;
-using namespace tc;
 using namespace compoGM_thread;
 using DUse = Use<Value<double>>;
 
@@ -41,13 +40,13 @@ struct M0 : public Composite {
                          map<string, map<string, int>>& data) {
         m.component<OrphanNode<Exp>>("alpha", 1, 1);
 
-        m.component<NArray<BinaryNode<Gamma>>>("beta", experiments, 1)
-            .connect<NArrayMultiprovide<DUse>>("a", "alpha")
-            .connect<NArrayMultiprovide<DUse>>("b", "alpha");
+        m.component<Array<BinaryNode<Gamma>>>("beta", experiments, 1)
+            .connect<ManyToOne<DUse>>("a", "alpha")
+            .connect<ManyToOne<DUse>>("b", "alpha");
 
-        m.component<NMatrix<UnaryNode<Poisson>>>("lambda", experiments, samples, 0)
-            .connect<NArrays1To1<NArrayMultiprovide<DUse>>>("a", "beta")
-            .connect<SetNMatrix<int>>("x", data);
+        m.component<Matrix<UnaryNode<Poisson>>>("lambda", experiments, samples, 0)
+            .connect<ManyToMany<ManyToOne<DUse>>>("a", "beta")
+            .connect<SetMatrix<int>>("x", data);
     }
 };
 
@@ -63,16 +62,16 @@ void compute(int, char**) {
     model.component<GammaShapeScaleSuffstat>("beta_suffstats")
         .connect<DUse>("a", Address("model", "alpha"))
         .connect<DUse>("b", Address("model", "alpha"))
-        .connect<NArrayMultiuse<DUse>>("values", Address("model", "beta"));
+        .connect<OneToMany<DUse>>("values", Address("model", "beta"));
 
     model.component<SimpleMHMove<Scale>>("move_alpha")
         .connect<MoveToTarget<double>>("target", Address("model", "alpha"))
         .connect<DirectedLogProb>("logprob", "beta_suffstats", LogProbSelector::Full);
 
-    model.component<NArray<SimpleMHMove<Scale>>>("move_beta", experiments)
-        .connect<NArrays1To1<MoveToTarget<double>>>("target", Address("model", "beta"))
-        .connect<NArrays1To1<NArrayMultiuse<DirectedLogProb>>>(
-            "logprob", Address("model", "lambda"), LogProbSelector::A);
+    model.component<Array<SimpleMHMove<Scale>>>("move_beta", experiments)
+        .connect<ManyToMany<MoveToTarget<double>>>("target", Address("model", "beta"))
+        .connect<ManyToMany<OneToMany<DirectedLogProb>>>("logprob", Address("model", "lambda"),
+                                                         LogProbSelector::A);
 
     model
         .driver("p0_driver",
@@ -86,7 +85,7 @@ void compute(int, char**) {
         .connect("move_alpha", "beta_suffstats");
 
     Assembly assembly(model);
-    auto& p0_driver = assembly.at<_AbstractDriver>("p0_driver");
+    auto& p0_driver = assembly.at<tc::_AbstractDriver>("p0_driver");
     auto move_beta = assembly.get_all<Move>("move_beta");
 
     auto trace = make_trace(assembly.get_all<Value<double>>("model"), "tmp.dat");
