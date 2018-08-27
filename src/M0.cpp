@@ -70,9 +70,9 @@ void compute(int, char**) {
 
     model.component<Array<SimpleMHMove<Scale>>>("move_beta", experiments)
         .connect<ConnectMove<double>>("target", "model", Address("model", "beta"));
-        // .connect<ManyToMany<MoveToTarget<double>>>("target", Address("model", "beta"))
-        // .connect<ManyToMany<OneToMany<DirectedLogProb>>>("logprob", Address("model", "lambda"),
-        //                                                  LogProbSelector::A);
+    // .connect<ManyToMany<MoveToTarget<double>>>("target", Address("model", "beta"))
+    // .connect<ManyToMany<OneToMany<DirectedLogProb>>>("logprob", Address("model", "lambda"),
+    //                                                  LogProbSelector::A);
 
     model
         .driver("p0_driver",
@@ -84,6 +84,8 @@ void compute(int, char**) {
                     suffstats->release();
                 })
         .connect("move_alpha", "beta_suffstats");
+
+    model.print();
 
     Assembly assembly(model);
     auto& p0_driver = assembly.at<tc::_AbstractDriver>("p0_driver");

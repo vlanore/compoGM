@@ -66,36 +66,12 @@ struct AdaptiveConnect : tc::Meta {
             }
             return false;
         };
-        auto check = [](bool c) {
-            if (!c) {
-                std::cerr << "Error in AdaptiveConnect, connection malformed!\n";
-                exit(1);
-            }
-        };
-        auto dim1 = [&m](tc::Address a) { return m.get_composite(a).size(); };
-        auto dim2 = [&m](tc::Address a) {
-            auto& contents = m.get_composite(a);
-            return contents.get_composite(contents.all_addresses().front()).size();
-        };
         if (is_matrix(user.address)) {
             std::cout << "user is a matrix\n";
             if (is_matrix(provider)) {  // matrix to matrix
-                check(dim1(user.address) == dim1(provider) and
-                      dim2(user.address) == dim2(provider));
                 m.connect<ManyToMany2D<Connector>>(user, provider, args...);
             } else if (m.is_composite(provider)) {  // matrix to vector
-                if (dim1(user.address) == dim1(provider)) {
-                    check(dim2(user.address) != dim1(provider));  // would be ambiguous
-                    m.connect<ManyToMany<ManyToOne<Connector>>>(user, provider, args...);
-                } else if (dim2(user.address) == dim1(provider)) {
-                    m.connect<ManyToOne<ManyToMany<Connector>>>(user, provider, args...);
-                } else {
-                    std::cerr << "Error in AdaptiveConnect: trying to connect matrix of size "
-                              << dim1(user.address) << "x" << dim2(user.address)
-                              << " to vector of size " << dim1(provider)
-                              << ". Cannot determine correct connection!\n";
-                    exit(1);
-                }
+                m.connect<ManyToMany<ManyToOne<Connector>>>(user, provider, args...);
             } else {  // matrix to component
                 m.connect<ManyToOne<ManyToOne<Connector>>>(user, provider, args...);
             }
@@ -103,21 +79,9 @@ struct AdaptiveConnect : tc::Meta {
             std::cout << "user is a vector\n";
             if (is_matrix(provider)) {  // vector to matrix
                 std::cout << "provider is a matrix\n";
-                if (dim1(user.address) == dim1(provider)) {
-                    check(dim1(user.address) != dim2(provider));  // would be ambiguous
-                    m.connect<ManyToMany<OneToMany<Connector>>>(user, provider, args...);
-                } else if (dim1(user.address) == dim2(provider)) {
-                    m.connect<OneToMany<ManyToMany<Connector>>>(user, provider, args...);
-                } else {
-                    std::cerr << "Error in AdaptiveConnect: trying to connect vector of size "
-                              << dim1(user.address) << " to matric of size " << dim1(provider)
-                              << "x" << dim2(provider)
-                              << ". Cannot determine correct connection!\n";
-                    exit(1);
-                }
+                m.connect<ManyToMany<OneToMany<Connector>>>(user, provider, args...);
             } else if (m.is_composite(provider)) {  // vector to vector
                 std::cout << "provider is a vector\n";
-                check(dim1(user.address) == dim1(provider));
                 m.connect<ManyToMany<Connector>>(user, provider, args...);
             } else {  // vector to component
                 std::cout << "provider is a component\n";
@@ -178,7 +142,7 @@ struct ConnectMove : tc::Meta {
 
         // connect move to things
         std::cout << "yolo\n";
-        m.connect<MoveToTarget<ValueType>>(move, target);  // to target
+        m.connect<AdaptiveConnect<MoveToTarget<ValueType>>>(move, target);  // to target
 
         for (auto c : blanket) {
             std::cout << "Connect " << move.address.to_string() << " to "
