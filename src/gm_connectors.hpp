@@ -55,19 +55,15 @@ template <class Connector, class... Args>
 struct AdaptiveConnect : tc::Meta {
     static void connect(tc::Model& m, tc::PortAddress user, tc::Address provider, Args... args) {
         auto is_matrix = [&m](tc::Address a) {
-            std::cout << "Is " << a.to_string() << " a matrix?\n";
             if (m.is_composite(a)) {
-                std::cout << "It is a composite\n";
                 auto& contents = m.get_composite(a);
                 if (contents.is_composite(contents.all_addresses().front().first())) {
-                    std::cout << "Its contents are also a composite\n";
                     return true;
                 }
             }
             return false;
         };
         if (is_matrix(user.address)) {
-            std::cout << "user is a matrix\n";
             if (is_matrix(provider)) {  // matrix to matrix
                 m.connect<ManyToMany2D<Connector>>(user, provider, args...);
             } else if (m.is_composite(provider)) {  // matrix to vector
@@ -76,19 +72,14 @@ struct AdaptiveConnect : tc::Meta {
                 m.connect<ManyToOne<ManyToOne<Connector>>>(user, provider, args...);
             }
         } else if (m.is_composite(user.address)) {
-            std::cout << "user is a vector\n";
             if (is_matrix(provider)) {  // vector to matrix
-                std::cout << "provider is a matrix\n";
                 m.connect<ManyToMany<OneToMany<Connector>>>(user, provider, args...);
             } else if (m.is_composite(provider)) {  // vector to vector
-                std::cout << "provider is a vector\n";
                 m.connect<ManyToMany<Connector>>(user, provider, args...);
             } else {  // vector to component
-                std::cout << "provider is a component\n";
                 m.connect<ManyToOne<Connector>>(user, provider, args...);
             }
         } else {
-            std::cout << "user is a component\n";
             if (is_matrix(provider)) {  // component to matrix
                 m.connect<OneToMany<OneToMany<Connector>>>(user, provider, args...);
             } else if (m.is_composite(provider)) {  // component to vector
@@ -128,25 +119,20 @@ struct ConnectMove : tc::Meta {
         }
         f();
         std::string target_name_str = target_name_in_model.to_string();
-        std::cout << "target is " << target_name_str << "\n";
 
         // FIXME considering a simple case where there are no deterministic nodes
         // in this case the markov blanket is simply nodes pointing to the target
         std::set<std::string> blanket;
         for (auto e : edges) {
-            std::cout << e.first << ", " << e.second << "\n";
             if (tc::Address(e.second).first() == target_name_str) {
                 blanket.insert(tc::Address(e.first).first());
             }
         }
 
         // connect move to things
-        std::cout << "yolo\n";
         m.connect<AdaptiveConnect<MoveToTarget<ValueType>>>(move, target);  // to target
 
         for (auto c : blanket) {
-            std::cout << "Connect " << move.address.to_string() << " to "
-                      << tc::Address(model, c).to_string() << "\n";
             m.connect<AdaptiveConnect<DirectedLogProb, LogProbSelector::Direction>>(
                 tc::PortAddress("logprob", move.address), tc::Address(model, c),
                 LogProbSelector::Full);

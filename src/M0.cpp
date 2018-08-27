@@ -85,8 +85,6 @@ void compute(int, char**) {
                 })
         .connect("move_alpha", "beta_suffstats");
 
-    model.print();
-
     Assembly assembly(model);
     auto& p0_driver = assembly.at<tc::_AbstractDriver>("p0_driver");
     auto move_beta = assembly.get_all<Move>("move_beta");
