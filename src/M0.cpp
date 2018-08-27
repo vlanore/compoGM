@@ -69,9 +69,10 @@ void compute(int, char**) {
         .connect<DirectedLogProb>("logprob", "beta_suffstats", LogProbSelector::Full);
 
     model.component<Array<SimpleMHMove<Scale>>>("move_beta", experiments)
-        .connect<ManyToMany<MoveToTarget<double>>>("target", Address("model", "beta"))
-        .connect<ManyToMany<OneToMany<DirectedLogProb>>>("logprob", Address("model", "lambda"),
-                                                         LogProbSelector::A);
+        .connect<ConnectMove<double>>("target", "model", Address("model", "beta"));
+        // .connect<ManyToMany<MoveToTarget<double>>>("target", Address("model", "beta"))
+        // .connect<ManyToMany<OneToMany<DirectedLogProb>>>("logprob", Address("model", "lambda"),
+        //                                                  LogProbSelector::A);
 
     model
         .driver("p0_driver",
