@@ -60,20 +60,18 @@ void compute(int, char**) {
     Model model;
     model.component<M0>("model", experiments, samples, data);
 
-    // model.component<GammaShapeScaleSuffstat>("lambda_suffstats")
-    //     .connect<DUse>("a", Address("model", "alpha"))
-    //     .connect<DUse>("b", Address("model", "mu"))
-    //     .connect<OneToMany<DUse>>("values", Address("model", "lambda"));
+    model.component<GammaShapeScaleSuffstat>("lambda_suffstats")
+        .connect<DUse>("a", Address("model", "alpha"))
+        .connect<DUse>("b", Address("model", "mu"))
+        .connect<OneToMany<DUse>>("values", Address("model", "lambda"));
 
     model.component<SimpleMHMove<Scale>>("move_alpha")
-        .connect<ConnectMove<double>>("target", "model", Address("model", "alpha"));
-    // .connect<MoveToTarget<double>>("target", Address("model", "alpha"))
-    // .connect<DirectedLogProb>("logprob", "lambda_suffstats", LogProbSelector::Full);
+        .connect<MoveToTarget<double>>("target", Address("model", "alpha"))
+        .connect<DirectedLogProb>("logprob", "lambda_suffstats", LogProbSelector::Full);
 
-    model.component<SimpleMHMove<Scale>>("move_mu").connect<ConnectMove<double>>(
-        "target", "model", Address("model", "mu"));
-    // .connect<MoveToTarget<double>>("target", Address("model", "mu"))
-    // .connect<DirectedLogProb>("logprob", "lambda_suffstats", LogProbSelector::Full);
+    model.component<SimpleMHMove<Scale>>("move_mu")
+        .connect<MoveToTarget<double>>("target", Address("model", "mu"))
+        .connect<DirectedLogProb>("logprob", "lambda_suffstats", LogProbSelector::Full);
 
     model.component<Array<SimpleMHMove<Scale>>>("move_lambda", experiments)
         .connect<ConnectMove<double>>("target", "model", Address("model", "lambda"));
@@ -84,13 +82,24 @@ void compute(int, char**) {
     model.dot_to_file();
     Assembly assembly(model);
 
-    auto moves = assembly.get_all<Move>();  // get pointers to all moves
+    auto lambda_moves = assembly.get_all<Move>("move_lambda");
+    auto other_moves = assembly.get_all<Move>(std::set<Address>{"move_mu", "move_alpha"});
+    auto& suffstats = assembly.at<Proxy>("lambda_suffstats");
 
     auto trace = make_trace(assembly.get_all<Value<double>>("model"), "tmp.dat");
     trace.header();
 
     for (int iteration = 0; iteration < 50000; iteration++) {
-        for (auto& move : moves.pointers()) {
+        suffstats.acquire();
+        for (auto rep = 0; rep < 10; rep++) {
+            for (auto& move : other_moves.pointers()) {
+                move->move(1.0);
+                move->move(0.1);
+                move->move(0.01);
+            }
+        }
+        suffstats.release();
+        for (auto& move : lambda_moves.pointers()) {
             move->move(1.0);
             move->move(0.1);
             move->move(0.01);
