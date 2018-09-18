@@ -39,13 +39,14 @@ struct M0 : public Composite {
     static void contents(Model& m, IndexSet& experiments, IndexSet& samples,
                          map<string, map<string, int>>& data) {
         m.component<OrphanNode<Exp>>("alpha", 1, 1);
+        m.component<OrphanNode<Exp>>("mu", 1, 1);
 
-        m.component<Array<BinaryNode<Gamma>>>("beta", experiments, 1)
+        m.component<Array<BinaryNode<Gamma>>>("lambda", experiments, 1)
             .connect<ManyToOne<DUse>>("a", "alpha")
-            .connect<ManyToOne<DUse>>("b", "alpha");
+            .connect<ManyToOne<DUse>>("b", "mu");
 
-        m.component<Matrix<UnaryNode<Poisson>>>("lambda", experiments, samples, 0)
-            .connect<ManyToMany<ManyToOne<DUse>>>("a", "beta")
+        m.component<Matrix<UnaryNode<Poisson>>>("K", experiments, samples, 0)
+            .connect<ManyToMany<ManyToOne<DUse>>>("a", "lambda")
             .connect<SetMatrix<int>>("x", data);
     }
 };
@@ -59,42 +60,37 @@ void compute(int, char**) {
     Model model;
     model.component<M0>("model", experiments, samples, data);
 
-    model.component<GammaShapeScaleSuffstat>("beta_suffstats")
-        .connect<DUse>("a", Address("model", "alpha"))
-        .connect<DUse>("b", Address("model", "alpha"))
-        .connect<OneToMany<DUse>>("values", Address("model", "beta"));
+    // model.component<GammaShapeScaleSuffstat>("lambda_suffstats")
+    //     .connect<DUse>("a", Address("model", "alpha"))
+    //     .connect<DUse>("b", Address("model", "mu"))
+    //     .connect<OneToMany<DUse>>("values", Address("model", "lambda"));
 
     model.component<SimpleMHMove<Scale>>("move_alpha")
-        .connect<MoveToTarget<double>>("target", Address("model", "alpha"))
-        .connect<DirectedLogProb>("logprob", "beta_suffstats", LogProbSelector::Full);
+        .connect<ConnectMove<double>>("target", "model", Address("model", "alpha"));
+    // .connect<MoveToTarget<double>>("target", Address("model", "alpha"))
+    // .connect<DirectedLogProb>("logprob", "lambda_suffstats", LogProbSelector::Full);
 
-    model.component<Array<SimpleMHMove<Scale>>>("move_beta", experiments)
-        .connect<ConnectMove<double>>("target", "model", Address("model", "beta"));
-    // .connect<ManyToMany<MoveToTarget<double>>>("target", Address("model", "beta"))
+    model.component<SimpleMHMove<Scale>>("move_mu").connect<ConnectMove<double>>(
+        "target", "model", Address("model", "mu"));
+    // .connect<MoveToTarget<double>>("target", Address("model", "mu"))
+    // .connect<DirectedLogProb>("logprob", "lambda_suffstats", LogProbSelector::Full);
+
+    model.component<Array<SimpleMHMove<Scale>>>("move_lambda", experiments)
+        .connect<ConnectMove<double>>("target", "model", Address("model", "lambda"));
+    // .connect<ManyToMany<MoveToTarget<double>>>("target", Address("model", "lambda"))
     // .connect<ManyToMany<OneToMany<DirectedLogProb>>>("logprob", Address("model", "lambda"),
     //                                                  LogProbSelector::A);
 
-    model
-        .driver("p0_driver",
-                [](Move* move, Proxy* suffstats) {
-                    suffstats->acquire();
-                    move->move(1.0);
-                    move->move(0.1);
-                    move->move(0.01);
-                    suffstats->release();
-                })
-        .connect("move_alpha", "beta_suffstats");
-
+    model.dot_to_file();
     Assembly assembly(model);
-    auto& p0_driver = assembly.at<tc::_AbstractDriver>("p0_driver");
-    auto move_beta = assembly.get_all<Move>("move_beta");
+
+    auto moves = assembly.get_all<Move>();  // get pointers to all moves
 
     auto trace = make_trace(assembly.get_all<Value<double>>("model"), "tmp.dat");
     trace.header();
 
-    for (int iteration = 0; iteration < 5000; iteration++) {
-        p0_driver.go();
-        for (auto& move : move_beta.pointers()) {
+    for (int iteration = 0; iteration < 50000; iteration++) {
+        for (auto& move : moves.pointers()) {
             move->move(1.0);
             move->move(0.1);
             move->move(0.01);
