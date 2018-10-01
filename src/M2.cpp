@@ -42,29 +42,29 @@ struct M2 : public Composite {
         m.component<Matrix<OrphanNormal>>("log10(q)", genes, conditions, 1, 3, 1.5);
         m.component<Matrix<DeterministicUnaryNode<double>>>("q", genes, conditions,
                                                             [](double a) { return pow(10, a); })
-            .connect<ManyToMany2D<DUse>>("a", "log10(q)");
+            .connect<MatrixToValueMatrix>("a", "log10(q)");
 
         m.component<Array<OrphanNormal>>("log10(alpha)", genes, 1, -2, 2);
         m.component<Array<DeterministicUnaryNode<double>>>(
              "1/alpha", genes, [](double a) { return 1. / double(pow(10, a)); })
-            .connect<ManyToMany<DUse>>("a", "log10(alpha)");
+            .connect<ArrayToValueArray>("a", "log10(alpha)");
 
         m.component<Matrix<GammaSR>>("tau", genes, samples, 1)
-            .connect<ManyToMany<ManyToOne<DUse>>>("a", "1/alpha")
-            .connect<ManyToMany<ManyToOne<DUse>>>("b", "1/alpha");
+            .connect<MatrixLinesToValueArray>("a", "1/alpha")
+            .connect<MatrixLinesToValueArray>("b", "1/alpha");
 
         m.component<Array<Constant<double>>>("sf", samples, 0)
             .connect<SetArray<double>>("x", size_factors);
 
         m.component<Matrix<DeterministicTernaryNode<double>>>(
              "lambda", genes, samples, [](double a, double b, double c) { return a * b * c; })
-            .connect<ManyToOne<ManyToMany<DUse>>>("a", "sf")
+            .connect<MatrixColumnsToValueArray>("a", "sf")
             .connect<ManyToMany<ArraysMap<DUse>>>("b", "q", condition_mapping)
-            .connect<ManyToMany2D<DUse>>("c", "tau");
+            .connect<MatrixToValueMatrix>("c", "tau");
 
         m.component<Matrix<Poisson>>("K", genes, samples, 0)
             .connect<SetMatrix<int>>("x", counts)
-            .connect<ManyToMany2D<DUse>>("a", "lambda");
+            .connect<MatrixToValueMatrix>("a", "lambda");
     }
 };
 
@@ -94,8 +94,8 @@ void compute(int argc, char** argv) {
         // suffstats and metropolis hastings moves
         model.component<Array<GammaShapeRateSuffstat>>("tau_suffstats", pgenes)
             .connect<ManyToMany<OneToMany<DUse>>>("values", Address("model", "tau"))
-            .connect<ManyToMany<DUse>>("a", Address("model", "1/alpha"))
-            .connect<ManyToMany<DUse>>("b", Address("model", "1/alpha"));
+            .connect<ArrayToValueArray>("a", Address("model", "1/alpha"))
+            .connect<ArrayToValueArray>("b", Address("model", "1/alpha"));
 
         model.component<Matrix<SimpleMHMove<Shift>>>("move_q", pgenes, samples.conditions)
             .connect<ManyToMany2D<MoveToTarget<double>>>("target", Address("model", "log10(q)"))

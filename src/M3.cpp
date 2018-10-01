@@ -41,7 +41,7 @@ struct M3 : public Composite {
         m.component<Matrix<OrphanNormal>>("log10(q)", genes, conditions, 1, 3, 1.5);
         m.component<Matrix<DeterministicUnaryNode<double>>>("q", genes, conditions,
                                                             [](double a) { return pow(10, a); })
-            .connect<ManyToMany2D<UseValue>>("a", "log10(q)");
+            .connect<MatrixToValueMatrix>("a", "log10(q)");
 
         m.component<OrphanNormal>("log10(a)", 1, -2, 2);
         m.component<OrphanNormal>("log10(b)", 1, 0, 2);
@@ -54,40 +54,40 @@ struct M3 : public Composite {
                      return acc + ptr->get_ref();
                  });
              })
-            .connect<ManyToMany<OneToMany<UseValue>>>("parent", "q");
+            .connect<ArrayToValueMatrixLines>("parent", "q");
 
         m.component<Array<DeterministicTernaryNode<double>>>(
              "log10(alpha_bar)", genes,
              [](double a, double b, double q_bar) {
                  return log10(pow(10, a) + pow(10, b) / q_bar);
              })
-            .connect<ManyToOne<UseValue>>("a", "log10(a)")
-            .connect<ManyToOne<UseValue>>("b", "log10(b)")
-            .connect<ManyToMany<UseValue>>("c", "q_bar");
+            .connect<ArrayToValue>("a", "log10(a)")
+            .connect<ArrayToValue>("b", "log10(b)")
+            .connect<ArrayToValueArray>("c", "q_bar");
 
         m.component<Array<Normal>>("log10(alpha)", genes, 1)
-            .connect<ManyToMany<UseValue>>("a", "log10(alpha_bar)")
-            .connect<ManyToOne<UseValue>>("b", "sigma");
+            .connect<ArrayToValueArray>("a", "log10(alpha_bar)")
+            .connect<ArrayToValue>("b", "sigma");
         m.component<Array<DeterministicUnaryNode<double>>>(
              "1/alpha", genes, [](double a) { return 1. / double(pow(10, a)); })
-            .connect<ManyToMany<UseValue>>("a", "log10(alpha)");
+            .connect<ArrayToValueArray>("a", "log10(alpha)");
 
         m.component<Matrix<GammaSR>>("tau", genes, samples, 1)
-            .connect<ManyToMany<ManyToOne<UseValue>>>("a", "1/alpha")
-            .connect<ManyToMany<ManyToOne<UseValue>>>("b", "1/alpha");
+            .connect<MatrixLinesToValueArray>("a", "1/alpha")
+            .connect<MatrixLinesToValueArray>("b", "1/alpha");
 
         m.component<Array<Constant<double>>>("sf", samples, 0)
             .connect<SetArray<double>>("x", size_factors);
 
         m.component<Matrix<DeterministicTernaryNode<double>>>(
              "lambda", genes, samples, [](double a, double b, double c) { return a * b * c; })
-            .connect<ManyToOne<ManyToMany<UseValue>>>("a", "sf")
+            .connect<MatrixColumnsToValueArray>("a", "sf")
             .connect<ManyToMany<ArraysMap<UseValue>>>("b", "q", condition_mapping)
-            .connect<ManyToMany2D<UseValue>>("c", "tau");
+            .connect<MatrixToValueMatrix>("c", "tau");
 
         m.component<Matrix<Poisson>>("K", genes, samples, 0)
             .connect<SetMatrix<int>>("x", counts)
-            .connect<ManyToMany2D<UseValue>>("a", "lambda");
+            .connect<MatrixToValueMatrix>("a", "lambda");
     }
 };
 
@@ -117,8 +117,8 @@ void compute(int argc, char** argv) {
         // suffstats and metropolis hastings moves
         model.component<Array<GammaShapeRateSuffstat>>("tau_suffstats", pgenes)
             .connect<ManyToMany<OneToMany<UseValue>>>("values", Address("model", "tau"))
-            .connect<ManyToMany<UseValue>>("a", Address("model", "1/alpha"))
-            .connect<ManyToMany<UseValue>>("b", Address("model", "1/alpha"));
+            .connect<ArrayToValueArray>("a", Address("model", "1/alpha"))
+            .connect<ArrayToValueArray>("b", Address("model", "1/alpha"));
 
         model.component<SimpleMHMove<Shift>>("move_a")
             .connect<MoveToTarget<double>>("target", Address("model", "log10(a)"))

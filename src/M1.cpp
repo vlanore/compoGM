@@ -42,11 +42,11 @@ struct M1 : public Composite {
 
         m.component<Matrix<DeterministicUnaryNode<double>>>("exp", genes, conditions,
                                                             [](double x) { return pow(10, x); })
-            .connect<ManyToMany2D<Use<Value<double>>>>("a", "lambda");
+            .connect<MatrixToValueMatrix>("a", "lambda");
 
         m.component<Matrix<Poisson>>("K", genes, samples, 0)
             .connect<SetMatrix<int>>("x", counts)
-            .connect<ManyToMany<ArraysMap<Use<Value<double>>>>>("a", "exp", condition_mapping);
+            .connect<ManyToMany<ArraysMap<UseValue>>>("a", "exp", condition_mapping);
     }
 };
 
@@ -76,7 +76,7 @@ void compute(int argc, char** argv) {
 
         // suffstats and metropolis hastings moves
         model.component<Matrix<PoissonSuffstat>>("poissonsuffstats", pgenes, samples.conditions)
-            .connect<ManyToMany2D<Use<Value<double>>>>("lambda", Address("model", "exp"))
+            .connect<ManyToMany2D<UseValue>>("lambda", Address("model", "exp"))
             .connect<ManyToMany<ArraysRevMap<Use<Value<int>>>>>("values", Address("model", "K"),
                                                                 samples.condition_mapping);
 
@@ -122,7 +122,6 @@ void compute(int argc, char** argv) {
 }
 
 int main(int argc, char** argv) {
-    // mpi_run(argc, argv, compute);
     auto threads = spawn(0, 2, compute, argc, argv);
     join(threads);
 }

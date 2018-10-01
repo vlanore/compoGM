@@ -25,11 +25,7 @@ more generally, to use and operate it in the same conditions as regards security
 The fact that you are presently reading this means that you have had knowledge of the CeCILL-C
 license and that you accept its terms.*/
 
-#include <iomanip>
-#include <thread>
 #include "compoGM.hpp"
-// #include "mpi_helpers.hpp"
-#include "partition.hpp"
 
 using namespace std;
 using namespace compoGM_thread;
@@ -41,11 +37,11 @@ struct M0 : public Composite {
         m.component<OrphanExp>("mu", 1, 1);
 
         m.component<Array<Gamma>>("lambda", experiments, 1)
-            .connect<ManyToOne<UseValue>>("a", "alpha")
-            .connect<ManyToOne<UseValue>>("b", "mu");
+            .connect<ArrayToValue>("a", "alpha")
+            .connect<ArrayToValue>("b", "mu");
 
         m.component<Matrix<Poisson>>("K", experiments, samples, 0)
-            .connect<ManyToMany<ManyToOne<UseValue>>>("a", "lambda")
+            .connect<MatrixLinesToValueArray>("a", "lambda")
             .connect<SetMatrix<int>>("x", data);
     }
 };
@@ -74,9 +70,6 @@ void compute(int, char**) {
 
     model.component<Array<SimpleMHMove<Scale>>>("move_lambda", experiments)
         .connect<ConnectMove<double>>("target", "model", Address("model", "lambda"));
-    // .connect<ManyToMany<MoveToTarget<double>>>("target", Address("model", "lambda"))
-    // .connect<ManyToMany<OneToMany<DirectedLogProb>>>("logprob", Address("model", "lambda"),
-    //                                                  LogProbSelector::A);
 
     model.dot_to_file();
     Assembly assembly(model);

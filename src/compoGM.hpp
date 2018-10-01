@@ -45,6 +45,13 @@ using tc::PortAddress;
 using tc::Use;
 
 using UseValue = Use<Value<double>>;
+using ArrayToValue = ManyToOne<UseValue>;
+using ArrayToValueArray = ManyToMany<UseValue>;
+using ArrayToValueMatrixLines = ManyToMany<OneToMany<UseValue>>;
+using ArrayToValueMatrixColumns = OneToMany<ManyToMany<UseValue>>;
+using MatrixColumnsToValueArray = ManyToOne<ManyToMany<UseValue>>;
+using MatrixLinesToValueArray = ManyToMany<ManyToOne<UseValue>>;
+using MatrixToValueMatrix = ManyToMany2D<UseValue>;
 
 using Exp = UnaryNode<ExponentialDistribution>;
 using Gamma = BinaryNode<GammaDistribution>;

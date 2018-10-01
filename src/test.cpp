@@ -57,18 +57,18 @@ int main() {
             "x", vector<double>{1.5, 1.5, 1.5, 1.5, 1.5, 1.0, 1.0, 0.5, 0.5, 1.2});
 
     m.component<GammaShapeScaleSuffstat>("gammasuffstat")
-        .connect<Use<Value<double>>>("a", "k")
-        .connect<Use<Value<double>>>("b", "theta")
+        .connect<UseValue>("a", "k")
+        .connect<UseValue>("b", "theta")
         .connect<tc::MultiUse<Value<double>>>("values", "array");
 
     m.component<SimpleMHMove<Scale>>("move1")
-        .connect<Use<Value<double>>>("target", "k")
+        .connect<UseValue>("target", "k")
         .connect<Use<Backup>>("targetbackup", "k")
         .connect<DirectedLogProb>("logprob", "k", LogProbSelector::A)
         .connect<DirectedLogProb>("logprob", "gammasuffstat", LogProbSelector::Full);
 
     m.component<SimpleMHMove<Scale>>("move2")
-        .connect<Use<Value<double>>>("target", "theta")
+        .connect<UseValue>("target", "theta")
         .connect<Use<Backup>>("targetbackup", "theta")
         .connect<DirectedLogProb>("logprob", "theta", LogProbSelector::B)
         .connect<DirectedLogProb>("logprob", "gammasuffstat", LogProbSelector::Full);
