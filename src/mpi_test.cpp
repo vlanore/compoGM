@@ -33,30 +33,24 @@ using namespace tc;
 using DUse = Use<Value<double>>;
 
 void compute(int, char**) {
-    p.message("Declaring model");
     Model m;
     if (!p.rank) {  // master
-        p.message("Master model");
         m.component<Constant<double>>("node", 17);
         m.component<ProbNodeProv>("proxy")
             .connect<DUse>("target", "node")
             .set("connection", MPIConnection{1, 19});
     } else if (p.rank == 1) {  // slave
-        p.message("Slave model");
         m.component<Constant<double>>("node", -1);
         m.component<ProbNodeUse>("proxy")
             .connect<DUse>("target", "node")
             .set("connection", MPIConnection{0, 19});
     }
-    p.message("Model declaration is done");
     Assembly a(m);
-    p.message("Assembly has been instantiated correctly");
     if (!p.rank) {  // master
         a.at<Proxy>("proxy").release();
-        p.message("Synchronization is done");
+
     } else if (p.rank == 1) {  // slave
         a.at<Proxy>("proxy").acquire();
-        p.message("Synchronization is done");
         double value = a.at<Value<double>>("node").get_ref();
         p.message("Node value is %f", value);
     }

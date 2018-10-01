@@ -48,9 +48,9 @@ class Mean : public Component {
 
 int main() {
     Model m;
-    m.component<OrphanNode<Exp>>("k", 0.5, 1.0);
-    m.component<OrphanNode<Exp>>("theta", 0.5, 1.0);
-    m.component<tc::Array<BinaryNode<Gamma>>>("array", 10, -1)
+    m.component<OrphanExp>("k", 0.5, 1.0);
+    m.component<OrphanExp>("theta", 0.5, 1.0);
+    m.component<tc::Array<Gamma>>("array", 10, -1)
         .connect<tc::MultiProvide<Value<double>>>("a", "k")
         .connect<tc::MultiProvide<Value<double>>>("b", "theta")
         .connect<tc::ArraySet<double>>(
