@@ -33,20 +33,19 @@ license and that you accept its terms.*/
 
 using namespace std;
 using namespace compoGM_thread;
-using DUse = Use<Value<double>>;
 
 struct M0 : public Composite {
     static void contents(Model& m, IndexSet& experiments, IndexSet& samples,
                          map<string, map<string, int>>& data) {
-        m.component<OrphanNode<Exp>>("alpha", 1, 1);
-        m.component<OrphanNode<Exp>>("mu", 1, 1);
+        m.component<OrphanExp>("alpha", 1, 1);
+        m.component<OrphanExp>("mu", 1, 1);
 
-        m.component<Array<BinaryNode<Gamma>>>("lambda", experiments, 1)
-            .connect<ManyToOne<DUse>>("a", "alpha")
-            .connect<ManyToOne<DUse>>("b", "mu");
+        m.component<Array<Gamma>>("lambda", experiments, 1)
+            .connect<ManyToOne<UseValue>>("a", "alpha")
+            .connect<ManyToOne<UseValue>>("b", "mu");
 
-        m.component<Matrix<UnaryNode<Poisson>>>("K", experiments, samples, 0)
-            .connect<ManyToMany<ManyToOne<DUse>>>("a", "lambda")
+        m.component<Matrix<Poisson>>("K", experiments, samples, 0)
+            .connect<ManyToMany<ManyToOne<UseValue>>>("a", "lambda")
             .connect<SetMatrix<int>>("x", data);
     }
 };
@@ -61,9 +60,9 @@ void compute(int, char**) {
     model.component<M0>("model", experiments, samples, data);
 
     model.component<GammaShapeScaleSuffstat>("lambda_suffstats")
-        .connect<DUse>("a", Address("model", "alpha"))
-        .connect<DUse>("b", Address("model", "mu"))
-        .connect<OneToMany<DUse>>("values", Address("model", "lambda"));
+        .connect<UseValue>("a", Address("model", "alpha"))
+        .connect<UseValue>("b", Address("model", "mu"))
+        .connect<OneToMany<UseValue>>("values", Address("model", "lambda"));
 
     model.component<SimpleMHMove<Scale>>("move_alpha")
         .connect<MoveToTarget<double>>("target", Address("model", "alpha"))

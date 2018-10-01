@@ -38,13 +38,13 @@ struct M1 : public Composite {
     static void contents(Model& m, IndexSet& genes, IndexSet& conditions, IndexSet& samples,
                          map<string, map<string, int>>& counts,
                          map<string, string>& condition_mapping) {
-        m.component<Matrix<OrphanNode<Normal>>>("lambda", genes, conditions, 1, 3, pow(1.5, 2));
+        m.component<Matrix<OrphanNormal>>("lambda", genes, conditions, 1, 3, pow(1.5, 2));
 
         m.component<Matrix<DeterministicUnaryNode<double>>>("exp", genes, conditions,
                                                             [](double x) { return pow(10, x); })
             .connect<ManyToMany2D<Use<Value<double>>>>("a", "lambda");
 
-        m.component<Matrix<UnaryNode<Poisson>>>("K", genes, samples, 0)
+        m.component<Matrix<Poisson>>("K", genes, samples, 0)
             .connect<SetMatrix<int>>("x", counts)
             .connect<ManyToMany<ArraysMap<Use<Value<double>>>>>("a", "exp", condition_mapping);
     }
@@ -91,7 +91,7 @@ void compute(int argc, char** argv) {
     }
 
     p.message("Preparations before running chain");
-    auto all_lambdas = assembly.get_all<OrphanNode<Normal>>("model");
+    auto all_lambdas = assembly.get_all<OrphanNormal>("model");
     auto all_moves = assembly.get_all<SimpleMHMove<Scale>>();
     auto all_suffstats = assembly.get_all<PoissonSuffstat>();
 

@@ -39,17 +39,17 @@ struct M2 : public Composite {
     static void contents(Model& m, IndexSet& genes, IndexSet& conditions, IndexSet& samples,
                          map<string, map<string, int>>& counts, IndexMapping& condition_mapping,
                          map<string, double>& size_factors) {
-        m.component<Matrix<OrphanNode<Normal>>>("log10(q)", genes, conditions, 1, 3, 1.5);
+        m.component<Matrix<OrphanNormal>>("log10(q)", genes, conditions, 1, 3, 1.5);
         m.component<Matrix<DeterministicUnaryNode<double>>>("q", genes, conditions,
                                                             [](double a) { return pow(10, a); })
             .connect<ManyToMany2D<DUse>>("a", "log10(q)");
 
-        m.component<Array<OrphanNode<Normal>>>("log10(alpha)", genes, 1, -2, 2);
+        m.component<Array<OrphanNormal>>("log10(alpha)", genes, 1, -2, 2);
         m.component<Array<DeterministicUnaryNode<double>>>(
              "1/alpha", genes, [](double a) { return 1. / double(pow(10, a)); })
             .connect<ManyToMany<DUse>>("a", "log10(alpha)");
 
-        m.component<Matrix<BinaryNode<GammaShapeRate>>>("tau", genes, samples, 1)
+        m.component<Matrix<GammaSR>>("tau", genes, samples, 1)
             .connect<ManyToMany<ManyToOne<DUse>>>("a", "1/alpha")
             .connect<ManyToMany<ManyToOne<DUse>>>("b", "1/alpha");
 
@@ -62,7 +62,7 @@ struct M2 : public Composite {
             .connect<ManyToMany<ArraysMap<DUse>>>("b", "q", condition_mapping)
             .connect<ManyToMany2D<DUse>>("c", "tau");
 
-        m.component<Matrix<UnaryNode<Poisson>>>("K", genes, samples, 0)
+        m.component<Matrix<Poisson>>("K", genes, samples, 0)
             .connect<SetMatrix<int>>("x", counts)
             .connect<ManyToMany2D<DUse>>("a", "lambda");
     }

@@ -43,3 +43,17 @@ using tc::Composite;
 using tc::Model;
 using tc::PortAddress;
 using tc::Use;
+
+using UseValue = Use<Value<double>>;
+
+using Exp = UnaryNode<ExponentialDistribution>;
+using Gamma = BinaryNode<GammaDistribution>;
+using GammaSR = BinaryNode<GammaShapeRateDistribution>;
+using Poisson = UnaryNode<PoissonDistribution>;
+using Normal = BinaryNode<NormalDistribution>;
+
+using OrphanExp = OrphanNode<ExponentialDistribution>;
+using OrphanGamma = OrphanNode<GammaDistribution>;
+using OrphanGammaSR = OrphanNode<GammaShapeRateDistribution>;
+using OrphanPoisson = OrphanNode<PoissonDistribution>;
+using OrphanNormal = OrphanNode<NormalDistribution>;

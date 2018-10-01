@@ -33,20 +33,19 @@ license and that you accept its terms.*/
 
 using namespace std;
 using namespace compoGM_thread;
-using DUse = Use<Value<double>>;
 
 struct M3 : public Composite {
     static void contents(Model& m, IndexSet& genes, IndexSet& conditions, IndexSet& samples,
                          map<string, map<string, int>>& counts, IndexMapping& condition_mapping,
                          map<string, double>& size_factors) {
-        m.component<Matrix<OrphanNode<Normal>>>("log10(q)", genes, conditions, 1, 3, 1.5);
+        m.component<Matrix<OrphanNormal>>("log10(q)", genes, conditions, 1, 3, 1.5);
         m.component<Matrix<DeterministicUnaryNode<double>>>("q", genes, conditions,
                                                             [](double a) { return pow(10, a); })
-            .connect<ManyToMany2D<DUse>>("a", "log10(q)");
+            .connect<ManyToMany2D<UseValue>>("a", "log10(q)");
 
-        m.component<OrphanNode<Normal>>("log10(a)", 1, -2, 2);
-        m.component<OrphanNode<Normal>>("log10(b)", 1, 0, 2);
-        m.component<OrphanNode<Exp>>("sigma", 1, 1);
+        m.component<OrphanNormal>("log10(a)", 1, -2, 2);
+        m.component<OrphanNormal>("log10(b)", 1, 0, 2);
+        m.component<OrphanExp>("sigma", 1, 1);
 
         m.component<Array<DeterministicMultiNode<double>>>(
              "q_bar", genes,
@@ -55,40 +54,40 @@ struct M3 : public Composite {
                      return acc + ptr->get_ref();
                  });
              })
-            .connect<ManyToMany<OneToMany<DUse>>>("parent", "q");
+            .connect<ManyToMany<OneToMany<UseValue>>>("parent", "q");
 
         m.component<Array<DeterministicTernaryNode<double>>>(
              "log10(alpha_bar)", genes,
              [](double a, double b, double q_bar) {
                  return log10(pow(10, a) + pow(10, b) / q_bar);
              })
-            .connect<ManyToOne<DUse>>("a", "log10(a)")
-            .connect<ManyToOne<DUse>>("b", "log10(b)")
-            .connect<ManyToMany<DUse>>("c", "q_bar");
+            .connect<ManyToOne<UseValue>>("a", "log10(a)")
+            .connect<ManyToOne<UseValue>>("b", "log10(b)")
+            .connect<ManyToMany<UseValue>>("c", "q_bar");
 
-        m.component<Array<BinaryNode<Normal>>>("log10(alpha)", genes, 1)
-            .connect<ManyToMany<DUse>>("a", "log10(alpha_bar)")
-            .connect<ManyToOne<DUse>>("b", "sigma");
+        m.component<Array<Normal>>("log10(alpha)", genes, 1)
+            .connect<ManyToMany<UseValue>>("a", "log10(alpha_bar)")
+            .connect<ManyToOne<UseValue>>("b", "sigma");
         m.component<Array<DeterministicUnaryNode<double>>>(
              "1/alpha", genes, [](double a) { return 1. / double(pow(10, a)); })
-            .connect<ManyToMany<DUse>>("a", "log10(alpha)");
+            .connect<ManyToMany<UseValue>>("a", "log10(alpha)");
 
-        m.component<Matrix<BinaryNode<GammaShapeRate>>>("tau", genes, samples, 1)
-            .connect<ManyToMany<ManyToOne<DUse>>>("a", "1/alpha")
-            .connect<ManyToMany<ManyToOne<DUse>>>("b", "1/alpha");
+        m.component<Matrix<GammaSR>>("tau", genes, samples, 1)
+            .connect<ManyToMany<ManyToOne<UseValue>>>("a", "1/alpha")
+            .connect<ManyToMany<ManyToOne<UseValue>>>("b", "1/alpha");
 
         m.component<Array<Constant<double>>>("sf", samples, 0)
             .connect<SetArray<double>>("x", size_factors);
 
         m.component<Matrix<DeterministicTernaryNode<double>>>(
              "lambda", genes, samples, [](double a, double b, double c) { return a * b * c; })
-            .connect<ManyToOne<ManyToMany<DUse>>>("a", "sf")
-            .connect<ManyToMany<ArraysMap<DUse>>>("b", "q", condition_mapping)
-            .connect<ManyToMany2D<DUse>>("c", "tau");
+            .connect<ManyToOne<ManyToMany<UseValue>>>("a", "sf")
+            .connect<ManyToMany<ArraysMap<UseValue>>>("b", "q", condition_mapping)
+            .connect<ManyToMany2D<UseValue>>("c", "tau");
 
-        m.component<Matrix<UnaryNode<Poisson>>>("K", genes, samples, 0)
+        m.component<Matrix<Poisson>>("K", genes, samples, 0)
             .connect<SetMatrix<int>>("x", counts)
-            .connect<ManyToMany2D<DUse>>("a", "lambda");
+            .connect<ManyToMany2D<UseValue>>("a", "lambda");
     }
 };
 
@@ -117,9 +116,9 @@ void compute(int argc, char** argv) {
 
         // suffstats and metropolis hastings moves
         model.component<Array<GammaShapeRateSuffstat>>("tau_suffstats", pgenes)
-            .connect<ManyToMany<OneToMany<DUse>>>("values", Address("model", "tau"))
-            .connect<ManyToMany<DUse>>("a", Address("model", "1/alpha"))
-            .connect<ManyToMany<DUse>>("b", Address("model", "1/alpha"));
+            .connect<ManyToMany<OneToMany<UseValue>>>("values", Address("model", "tau"))
+            .connect<ManyToMany<UseValue>>("a", Address("model", "1/alpha"))
+            .connect<ManyToMany<UseValue>>("b", Address("model", "1/alpha"));
 
         model.component<SimpleMHMove<Shift>>("move_a")
             .connect<MoveToTarget<double>>("target", Address("model", "log10(a)"))

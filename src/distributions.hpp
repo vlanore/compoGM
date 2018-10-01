@@ -34,7 +34,7 @@ license and that you accept its terms.*/
 ====================================================================================================
   ~*~ Exponential distribution ~*~
 ==================================================================================================*/
-struct Exp {
+struct ExponentialDistribution {
     using ValueType = double;
 
     static double full_log_prob(double x, double lambda) { return log(lambda) - lambda * x; }
@@ -49,7 +49,7 @@ struct Exp {
 ====================================================================================================
   ~*~ Gamma distribution (shape/scale) ~*~
 ==================================================================================================*/
-struct GammaShapeScale {
+struct GammaShapeScaleDistribution {
     using ValueType = double;
 
     static double full_log_prob(double x, double k, double theta) {
@@ -69,13 +69,13 @@ struct GammaShapeScale {
     }
 };
 
-using Gamma = GammaShapeScale;
+using GammaDistribution = GammaShapeScaleDistribution;
 
 /*
 ====================================================================================================
   ~*~ Gamma distribution (shape/rate) ~*~
 ==================================================================================================*/
-struct GammaShapeRate {
+struct GammaShapeRateDistribution {
     using ValueType = double;
 
     static double full_log_prob(double x, double alpha, double beta) {
@@ -99,7 +99,7 @@ struct GammaShapeRate {
 ====================================================================================================
   ~*~ Poisson distribution ~*~
 ==================================================================================================*/
-struct Poisson {
+struct PoissonDistribution {
     using ValueType = int;
 
     static double full_log_prob(int x, double lambda) {
@@ -117,7 +117,7 @@ struct Poisson {
 ====================================================================================================
   ~*~ Normal distribution ~*~
 ==================================================================================================*/
-struct Normal {
+struct NormalDistribution {
     using ValueType = double;
 
     static double full_log_prob(double x, double mu, double sigma) {
