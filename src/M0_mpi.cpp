@@ -130,7 +130,7 @@ void compute(int, char**) {
         for (auto proxy : proxies) {
             proxy->acquire();
         }
-        for (auto& move : moves) {
+        for (auto move : moves) {
             move->move(1.0);
             move->move(0.1);
             move->move(0.01);
