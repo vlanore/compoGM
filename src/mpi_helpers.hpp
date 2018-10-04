@@ -27,7 +27,7 @@ license and that you accept its terms.*/
 
 #pragma once
 
-#include <mpi.h>
+#include "mpi_proxies.hpp"
 #include "partition.hpp"
 
 template <class F, class... Args>
@@ -39,4 +39,17 @@ void mpi_run(int argc, char** argv, F f) {
     f(argc, argv);
     compoGM_thread::p.message("End of MPI process");
     MPI_Finalize();
+}
+
+int compoGM_mpi_tag = 0;
+
+void mpi_connect_master_slave(tc::Model& m, tc::PortAddress port_master, tc::PortAddress port_slave,
+                              int slave_number, Partition p = compoGM_thread::p) {
+    if (!p.rank) {  // master
+        m.connect<tc::Set<MPIConnection>>(port_master,
+                                          MPIConnection(slave_number, compoGM_mpi_tag));
+    } else if (p.rank == slave_number) {
+        m.connect<tc::Set<MPIConnection>>(port_slave, MPIConnection(0, compoGM_mpi_tag));
+    }
+    compoGM_mpi_tag++;
 }

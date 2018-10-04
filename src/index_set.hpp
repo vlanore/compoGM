@@ -32,7 +32,8 @@ license and that you accept its terms.*/
 #include <string>
 #include <vector>
 
-using IndexSet = std::set<std::string>;
-using IndexMapping = std::map<std::string, std::string>;
+using Index = std::string;
+using IndexSet = std::set<Index>;
+using IndexMapping = std::map<Index, Index>;
 
-IndexSet make_index_set(std::vector<std::string>& v) { return IndexSet(v.begin(), v.end()); }
+IndexSet make_index_set(std::vector<Index>& v) { return IndexSet(v.begin(), v.end()); }

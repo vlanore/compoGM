@@ -77,6 +77,23 @@ IndexSet partition(IndexSet s, Partition p) {
     return IndexSet(begin, end);
 }
 
+IndexSet partition_slave(IndexSet s, Partition p) {
+    if (p.rank) {
+        auto begin = s.begin();
+        std::advance(begin, (p.rank - 1) * s.size() / (p.size - 1));
+        auto end = s.begin();
+        std::advance(end, p.rank * s.size() / (p.size - 1));
+        return IndexSet(begin, end);
+    } else {       // called on master
+        return s;  // returns full set
+    }
+}
+
+int index_owner_slave(Index i, IndexSet s, Partition p) {
+    int int_index = std::distance(s.begin(), s.find(i));
+    return (int_index * (p.size - 1) / s.size()) + 1;
+}
+
 using Threads = std::vector<std::thread>;
 
 template <class F, class... Args>

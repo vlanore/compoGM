@@ -32,19 +32,7 @@ license and that you accept its terms.*/
 using namespace std;
 using namespace compoGM_thread;
 
-struct M0_master : public Composite {
-    static void contents(Model& m, IndexSet& experiments) {
-        m.component<OrphanExp>("alpha", 1, 1);
-
-        m.component<OrphanExp>("mu", 1, 1);
-
-        m.component<Array<Gamma>>("lambda", experiments, -1)
-            .connect<ArrayToValue>("a", "alpha")
-            .connect<ArrayToValue>("b", "mu");
-    }
-};
-
-struct M0_slave : public Composite {
+struct M0 : public Composite {
     static void contents(Model& m, IndexSet& experiments, IndexSet& samples,
                          map<string, map<string, int>>& data) {
         m.component<OrphanExp>("alpha", 1, 1);
@@ -54,38 +42,35 @@ struct M0_slave : public Composite {
             .connect<ArrayToValue>("a", "alpha")
             .connect<ArrayToValue>("b", "mu");
 
-        m.component<Matrix<Poisson>>("K", experiments, samples, 0)
-            .connect<MatrixLinesToValueArray>("a", "lambda")
-            .connect<SetMatrix<int>>("x", data);
+        if (p.rank != 0) {  // slave only
+            p.message("Got %d experiments", experiments.size());
+            m.component<Matrix<Poisson>>("K", experiments, samples, 0)
+                .connect<MatrixLinesToValueArray>("a", "lambda")
+                .connect<SetMatrix<int>>("x", data);
+        }
     }
 };
 
 void compute(int, char**) {
-    IndexSet experiments{"e0", "e1"};
+    IndexSet experiments_full{"e0", "e1"};
+    IndexSet experiments = partition_slave(experiments_full, p);
     IndexSet samples{"s0", "s1"};
     map<string, map<string, int>> data{{"e0", {{"s0", 12}, {"s1", 13}}},
                                        {"e1", {{"s0", 17}, {"s1", 19}}}};
 
     Model m;
+    m.component<M0>("model", experiments, samples, data);
     if (!p.rank) {
         // === master =============================================================================
-        m.component<M0_master>("model", experiments);
-
         // mpi proxies
-        m.component<ProbNodeProv>("alpha_proxy")
-            .connect<UseValue>("target", Address("model", "alpha"))
-            .set("connection", MPIConnection(1, 0));
-        m.component<ProbNodeProv>("mu_proxy")
-            .connect<UseValue>("target", Address("model", "mu"))
-            .set("connection", MPIConnection(1, 1));
+        for (int i = 1; i < p.size; i++) {
+            m.component<ProbNodeProv>("alpha_proxy_" + std::to_string(i))
+                .connect<UseValue>("target", Address("model", "alpha"));
+            m.component<ProbNodeProv>("mu_proxy_" + std::to_string(i))
+                .connect<UseValue>("target", Address("model", "mu"));
+        }
         m.component<Array<ProbNodeUse>>("lambda_proxies", experiments)
             .connect<ArrayToValueArray>("target", Address("model", "lambda"));
-        int i = 2;
-        for (auto experiment : experiments) {
-            m.connect<tc::Set<MPIConnection>>(
-                PortAddress("connection", "lambda_proxies", experiment), MPIConnection(1, i));
-            i++;
-        }
 
         // moves
         m.component<SimpleMHMove<Scale>>("move_alpha")
@@ -96,29 +81,36 @@ void compute(int, char**) {
 
     } else {
         // === slaves =============================================================================
-        m.component<M0_slave>("model", experiments, samples, data);
-
         // mpi proxies
         m.component<ProbNodeUse>("alpha_proxy")
-            .connect<UseValue>("target", Address("model", "alpha"))
-            .set("connection", MPIConnection(0, 0));
-        m.component<ProbNodeUse>("mu_proxy")
-            .connect<UseValue>("target", Address("model", "mu"))
-            .set("connection", MPIConnection(0, 1));
+            .connect<UseValue>("target", Address("model", "alpha"));
+        m.component<ProbNodeUse>("mu_proxy").connect<UseValue>("target", Address("model", "mu"));
+
         m.component<Array<ProbNodeProv>>("lambda_proxies", experiments)
             .connect<ArrayToValueArray>("target", Address("model", "lambda"));
-        int i = 2;
-        for (auto experiment : experiments) {
-            m.connect<tc::Set<MPIConnection>>(
-                PortAddress("connection", "lambda_proxies", experiment), MPIConnection(0, i));
-            i++;
-        }
 
         // moves
         m.component<Array<SimpleMHMove<Scale>>>("move_lambda", experiments)
             .connect<ConnectMove<double>>("target", "model", Address("model", "lambda"));
     }
 
+    // === mpi connections ========================================================================
+    for (int i = 1; i < p.size; i++) {
+        mpi_connect_master_slave(m, PortAddress("connection", "alpha_proxy_" + std::to_string(i)),
+                                 PortAddress("connection", "alpha_proxy"), i);
+        mpi_connect_master_slave(m, PortAddress("connection", "mu_proxy_" + std::to_string(i)),
+                                 PortAddress("connection", "mu_proxy"), i);
+    }
+    for (auto experiment : experiments_full) {
+        int dest_index = index_owner_slave(experiment, experiments_full, p);
+        mpi_connect_master_slave(m, PortAddress("connection", "lambda_proxies", experiment),
+                                 PortAddress("connection", "lambda_proxies", experiment),
+                                 dest_index);
+    }
+
+    // std::stringstream ss;
+    // m.print(ss);
+    // p.message(ss.str());
     Assembly a(m);
 
     auto moves = a.get_all<Move>().pointers();
