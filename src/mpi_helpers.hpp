@@ -43,13 +43,15 @@ void mpi_run(int argc, char** argv, F f) {
 
 int compoGM_mpi_tag = 0;
 
-void mpi_connect_master_slave(tc::Model& m, tc::PortAddress port_master, tc::PortAddress port_slave,
-                              int slave_number, Partition p = compoGM_thread::p) {
-    if (!p.rank) {  // master
-        m.connect<tc::Set<MPIConnection>>(port_master,
-                                          MPIConnection(slave_number, compoGM_mpi_tag));
-    } else if (p.rank == slave_number) {
-        m.connect<tc::Set<MPIConnection>>(port_slave, MPIConnection(0, compoGM_mpi_tag));
+struct MasterSlaveConnect : tc::Meta {
+    static void connect(tc::Model& m, tc::PortAddress port_master, tc::PortAddress port_slave,
+                        int slave_number, Partition p = compoGM_thread::p) {
+        if (!p.rank) {  // master
+            m.connect<tc::Set<MPIConnection>>(port_master,
+                                              MPIConnection(slave_number, compoGM_mpi_tag));
+        } else if (p.rank == slave_number) {
+            m.connect<tc::Set<MPIConnection>>(port_slave, MPIConnection(0, compoGM_mpi_tag));
+        }
+        compoGM_mpi_tag++;
     }
-    compoGM_mpi_tag++;
-}
+};

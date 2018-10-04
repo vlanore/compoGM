@@ -96,16 +96,16 @@ void compute(int, char**) {
 
     // === mpi connections ========================================================================
     for (int i = 1; i < p.size; i++) {
-        mpi_connect_master_slave(m, PortAddress("connection", "alpha_proxy_" + std::to_string(i)),
-                                 PortAddress("connection", "alpha_proxy"), i);
-        mpi_connect_master_slave(m, PortAddress("connection", "mu_proxy_" + std::to_string(i)),
-                                 PortAddress("connection", "mu_proxy"), i);
+        m.connect<MasterSlaveConnect>(PortAddress("connection", "alpha_proxy_" + std::to_string(i)),
+                                      PortAddress("connection", "alpha_proxy"), i);
+        m.connect<MasterSlaveConnect>(PortAddress("connection", "mu_proxy_" + std::to_string(i)),
+                                      PortAddress("connection", "mu_proxy"), i);
     }
     for (auto experiment : experiments_full) {
         int dest_index = index_owner_slave(experiment, experiments_full, p);
-        mpi_connect_master_slave(m, PortAddress("connection", "lambda_proxies", experiment),
-                                 PortAddress("connection", "lambda_proxies", experiment),
-                                 dest_index);
+        m.connect<MasterSlaveConnect>(PortAddress("connection", "lambda_proxies", experiment),
+                                      PortAddress("connection", "lambda_proxies", experiment),
+                                      dest_index);
     }
 
     // std::stringstream ss;
