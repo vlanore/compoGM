@@ -27,30 +27,29 @@ license and that you accept its terms.*/
 
 #pragma once
 
+#include <thread>
+#include <vector>
 #include "computing_entity.hpp"
-#include "index_set.hpp"
 
-IndexSet partition(IndexSet s, CE p) {
-    auto begin = s.begin();
-    std::advance(begin, p.rank * s.size() / p.size);
-    auto end = s.begin();
-    std::advance(end, (p.rank + 1) * s.size() / p.size);
-    return IndexSet(begin, end);
-}
+using Threads = std::vector<std::thread>;
 
-IndexSet partition_slave(IndexSet s, CE p) {
-    if (p.rank) {
-        auto begin = s.begin();
-        std::advance(begin, (p.rank - 1) * s.size() / (p.size - 1));
-        auto end = s.begin();
-        std::advance(end, p.rank * s.size() / (p.size - 1));
-        return IndexSet(begin, end);
-    } else {       // called on master
-        return s;  // returns full set
+template <class F, class... Args>
+Threads spawn(int rank_start, int rank_end, F f, Args... args) {
+    Threads result;
+    for (int i = rank_start; i < rank_end; i++) {
+        std::thread t([i, rank_end, f, args...]() {
+            set_ce(i, rank_end);
+            compoGM::p.message("Started new thread");
+            f(args...);
+            compoGM::p.message("End of thread");
+        });
+        result.push_back(std::move(t));
     }
+    return result;
 }
 
-int index_owner_slave(Index i, IndexSet s, CE p) {
-    int int_index = std::distance(s.begin(), s.find(i));
-    return (int_index * (p.size - 1) / s.size()) + 1;
+void join(Threads& threads) {
+    for (auto&& t : threads) {
+        t.join();
+    }
 }

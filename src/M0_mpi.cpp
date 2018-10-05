@@ -111,7 +111,7 @@ void compute(int, char**) {
     p.message("Got %d proxies", proxies.size());
 
     auto trace = make_trace(a.get_all<Value<double>>("model"), "tmp.dat");
-    trace.header();
+    if (!p.rank) trace.header();
 
     if (p.rank) {  // slaves broadcast their data
         for (auto proxy : proxies) {

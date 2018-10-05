@@ -26,13 +26,12 @@ The fact that you are presently reading this means that you have had knowledge o
 license and that you accept its terms.*/
 
 #include <iomanip>
-#include <thread>
 #include "compoGM.hpp"
-// #include "mpi_helpers.hpp"
 #include "partition.hpp"
+#include "thread_helpers.hpp"
 
 using namespace std;
-using namespace compoGM_thread;
+using namespace compoGM;
 
 struct M3 : public Composite {
     static void contents(Model& m, IndexSet& genes, IndexSet& conditions, IndexSet& samples,

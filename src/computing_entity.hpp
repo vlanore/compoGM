@@ -27,30 +27,46 @@ license and that you accept its terms.*/
 
 #pragma once
 
-#include "computing_entity.hpp"
-#include "index_set.hpp"
+#include <cstdio>
+#include <string>
+#include <vector>
 
-IndexSet partition(IndexSet s, CE p) {
-    auto begin = s.begin();
-    std::advance(begin, p.rank * s.size() / p.size);
-    auto end = s.begin();
-    std::advance(end, (p.rank + 1) * s.size() / p.size);
-    return IndexSet(begin, end);
-}
+// CE = Computing Entity
+// abstraction that groups mpi processes and threads
+struct CE {
+    static const std::vector<int> colors;
+    int rank{0}, size{0};
 
-IndexSet partition_slave(IndexSet s, CE p) {
-    if (p.rank) {
-        auto begin = s.begin();
-        std::advance(begin, (p.rank - 1) * s.size() / (p.size - 1));
-        auto end = s.begin();
-        std::advance(end, p.rank * s.size() / (p.size - 1));
-        return IndexSet(begin, end);
-    } else {       // called on master
-        return s;  // returns full set
+    template <class... Args>
+    void message(const std::string& format, Args&&... args) {
+        std::string color = "\e[0m\e[" + std::to_string(colors[rank % colors.size()]) + "m";
+        std::string bold = "\e[0m\e[1m";
+        std::string normal = "\e[0m";
+        std::string format2 = bold + "[" + color + "%d" + bold + "/" + color + "%d" + bold + "] " +
+                              normal + format + "\n";
+        printf(format2.c_str(), rank, size, std::forward<Args>(args)...);
     }
-}
 
-int index_owner_slave(Index i, IndexSet s, CE p) {
-    int int_index = std::distance(s.begin(), s.find(i));
-    return (int_index * (p.size - 1) / s.size()) + 1;
+    template <class... Args>
+    [[noreturn]] void fail(const std::string& format, Args&&... args) {
+        std::string color = "\e[0m\e[" + std::to_string(colors[rank % colors.size()]) + "m";
+        std::string bold = "\e[0m\e[1m";
+        std::string redbold = "\e[0m\e[1m\e[31m";
+        std::string normal = "\e[0m";
+        std::string format2 = bold + "[" + color + "%d" + bold + "/" + color + "%d" + bold + "] " +
+                              redbold + "Error: " + normal + format + "\n";
+        printf(format2.c_str(), rank, size, std::forward<Args>(args)...);
+        exit(1);
+    }
+};
+
+const std::vector<int> CE::colors{31, 32, 33, 34, 35, 36, 91, 92, 93, 94, 95, 96};
+
+namespace compoGM {
+thread_local CE p;
+}  // namespace compoGM
+
+void set_ce(int rank, int size) {
+    compoGM::p.rank = rank;
+    compoGM::p.size = size;
 }

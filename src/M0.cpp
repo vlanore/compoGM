@@ -28,7 +28,7 @@ license and that you accept its terms.*/
 #include "compoGM.hpp"
 
 using namespace std;
-using namespace compoGM_thread;
+using namespace compoGM;
 
 struct M0 : public Composite {
     static void contents(Model& m, IndexSet& experiments, IndexSet& samples,
