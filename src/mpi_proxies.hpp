@@ -141,24 +141,30 @@ class MasterGather : public Component, public Proxy {
     }
 
     void acquire() override {
-        if (partition.partition_size_sum() != targets.size()) {
+        size_t nb_partitions = partition.size();
+        size_t buffer_size = partition.partition_size_sum();
+
+        if (buffer_size != targets.size()) {
             std::cerr << "MasterGather error: number of targets (" << targets.size()
                       << ") doesn't match number of elements in partition ("
                       << partition.partition_size_sum() << ")\n";
             exit(1);
         }
-        size_t nb_partitions = partition.size();
-        size_t subbuffer_size = partition.max_partition_size();
-        size_t buffer_size = nb_partitions * subbuffer_size;
         data.assign(buffer_size, -1);
-        MPI_Gather(NULL, 0, MPI_DOUBLE, data.data(), buffer_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-        size_t target_index = 0;
-        for (size_t partition_index = 0; partition_index < nb_partitions; partition_index++) {
-            for (size_t element_index = 0;
-                 element_index < partition.partition_size(partition_index + 1); element_index++) {
-                targets.at(target_index)->get_ref() =
-                    data.at(subbuffer_size * partition_index + element_index);
-            }
+
+        std::vector<int> displs(1, 0), revcounts(1, 0);  // O elements for root
+        int displ = 0;
+        for (size_t i = 1; i <= nb_partitions; i++) {
+            revcounts.push_back(partition.partition_size(i));
+            displs.push_back(displ);
+            displ += partition.partition_size(i);
+        }
+
+        MPI_Gatherv(NULL, 0, MPI_DOUBLE, data.data(), revcounts.data(), displs.data(), MPI_DOUBLE,
+                    0, MPI_COMM_WORLD);
+
+        for (size_t i = 0; i < buffer_size; i++) {
+            targets.at(i)->get_ref() = data.at(i);
         }
     }
 
@@ -182,20 +188,21 @@ class WorkerGather : public Component, public Proxy {
         port("target", &WorkerGather::add_target);
     }
 
-    void acquire() override {
-        size_t buffer_size = partition.max_partition_size();
+    void acquire() override {}
+
+    void release() override {
         size_t my_size = partition.my_partition_size();
         if (my_size != targets.size()) {
             std::cerr << "WorkerGather error: number of targets (" << targets.size()
                       << ") doesn't match number of elements in my partition (" << my_size << ")\n";
             exit(1);
         }
-        data.assign(buffer_size, -1);  // filling buffer with -1s
+        data.assign(my_size, -1);  // filling buffer with -1s
         for (size_t i = 0; i < my_size; i++) {
             data[i] = targets[i]->get_ref();
         }
-        MPI_Gather(data.data(), buffer_size, MPI_DOUBLE, NULL, 0, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    }
 
-    void release() override {}
+        MPI_Gatherv(data.data(), my_size, MPI_DOUBLE, NULL, NULL, NULL, MPI_DOUBLE, 0,
+                    MPI_COMM_WORLD);
+    }
 };

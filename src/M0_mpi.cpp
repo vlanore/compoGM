@@ -86,8 +86,8 @@ void compute(int, char**) {
             .connect<UseValue>("target", Address("model", "alpha"))
             .connect<UseValue>("target", Address("model", "mu"));
 
-        m.component<Array<ProbNodeUse>>("lambda_proxies", my_experiments)
-            .connect<ArrayToValueArray>("target", Address("model", "lambda"));
+        m.component<MasterGather>("lambda_handler", experiment_partition)
+            .connect<OneToMany<UseValue>>("target", Address("model", "lambda"));
 
         // moves
         m.component<SimpleMHMove<Scale>>("move_alpha")
@@ -103,20 +103,12 @@ void compute(int, char**) {
             .connect<UseValue>("target", Address("model", "alpha"))
             .connect<UseValue>("target", Address("model", "mu"));
 
-        m.component<Array<ProbNodeProv>>("lambda_proxies", my_experiments)
-            .connect<ArrayToValueArray>("target", Address("model", "lambda"));
+        m.component<WorkerGather>("lambda_handler", experiment_partition)
+            .connect<OneToMany<UseValue>>("target", Address("model", "lambda"));
 
         // moves
         m.component<Array<SimpleMHMove<Scale>>>("move_lambda", my_experiments)
             .connect<ConnectMove<double>>("target", "model", Address("model", "lambda"));
-    }
-
-    // === mpi connections ========================================================================
-    for (auto experiment : experiments) {
-        int dest_index = experiment_partition.owner(experiment);
-        m.connect<MasterSlaveConnect>(PortAddress("connection", "lambda_proxies", experiment),
-                                      PortAddress("connection", "lambda_proxies", experiment),
-                                      dest_index);
     }
 
     // std::stringstream ss;

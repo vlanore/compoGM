@@ -71,7 +71,7 @@ class Partition {
     IndexSet my_partition() const { return get_partition(compoGM::p.rank); }
 
     size_t partition_size(int i) const {
-        int index = compoGM::p.rank - _offset;
+        int index = i - _offset;
         if (index >= 0 and index < int(_size)) {
             return partition.at(i - _offset).size();
         } else {
