@@ -52,7 +52,7 @@ struct M0 : public Composite {
 };
 
 void compute(int, char**) {
-    IndexSet experiments{"e0", "e1"};
+    IndexSet experiments{"e0", "e1", "e2"};
     Partition experiment_partition(experiments, p.size - 1, 1);
     auto my_experiments = experiment_partition.my_partition();
     p.message("Got %d experiments!!", my_experiments.size());
@@ -75,7 +75,16 @@ void compute(int, char**) {
                                          {"s4", 20},
                                          {"s5", 22},
                                          {"s6", 20},
-                                         {"s7", 18}}}};
+                                         {"s7", 18}}},
+                                       {"e2",
+                                        {{"s0", 23},
+                                         {"s1", 22},
+                                         {"s2", 22},
+                                         {"s3", 23},
+                                         {"s4", 24},
+                                         {"s5", 22},
+                                         {"s6", 22},
+                                         {"s7", 23}}}};
 
     Model m;
     m.component<M0>("model", my_experiments, samples, data);
