@@ -55,6 +55,7 @@ class ProbNodeProv : public Component, public Proxy {
     void release() override {
         double buffer = target->get_ref();
         MPI_Send(&buffer, 1, MPI_DOUBLE, connection.target_process, connection.tag, MPI_COMM_WORLD);
+        // compoGM::p.message("Sent value %f to %d", buffer, connection.target_process);
     }
 };
 
@@ -73,6 +74,7 @@ class ProbNodeUse : public Component, public Proxy {
         double buffer = -1;
         MPI_Recv(&buffer, 1, MPI_DOUBLE, connection.target_process, connection.tag, MPI_COMM_WORLD,
                  MPI_STATUS_IGNORE);
+        // compoGM::p.message("Received value %f from %d", buffer, connection.target_process);
         target->get_ref() = buffer;
     }
 
@@ -82,10 +84,11 @@ class ProbNodeUse : public Component, public Proxy {
 // assuming value type is double
 class MasterBcast : public Component, public Proxy {
     std::vector<Value<double>*> targets;
+    void add_target(Value<double>* ptr) { targets.push_back(ptr); }
     std::vector<double> data;
 
   public:
-    MasterBcast() { port("target", &MasterBcast::targets); }
+    MasterBcast() { port("target", &MasterBcast::add_target); }
 
     void acquire() override {}
 
@@ -102,10 +105,11 @@ class MasterBcast : public Component, public Proxy {
 // assuming value type is double
 class SlaveBcast : public Component, public Proxy {
     std::vector<Value<double>*> targets;
+    void add_target(Value<double>* ptr) { targets.push_back(ptr); }
     std::vector<double> data;
 
   public:
-    SlaveBcast() { port("target", &SlaveBcast::targets); }
+    SlaveBcast() { port("target", &SlaveBcast::add_target); }
 
     void acquire() override {
         int n = targets.size();

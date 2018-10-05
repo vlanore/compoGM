@@ -30,7 +30,7 @@ license and that you accept its terms.*/
 #include "mpi_proxies.hpp"
 
 using namespace std;
-using namespace compoGM_thread;
+using namespace compoGM;
 
 struct M0 : public Composite {
     static void contents(Model& m, IndexSet& experiments, IndexSet& samples,
@@ -52,14 +52,17 @@ struct M0 : public Composite {
 };
 
 void compute(int, char**) {
-    IndexSet experiments_full{"e0", "e1"};
-    IndexSet experiments = partition_slave(experiments_full, p);
+    IndexSet experiments{"e0", "e1"};
+    Partition experiment_partition(experiments, p.size - 1, 1);
+    auto my_experiments = experiment_partition.my_partition();
+    p.message("Got %d experiments!!", my_experiments.size());
+
     IndexSet samples{"s0", "s1"};
     map<string, map<string, int>> data{{"e0", {{"s0", 12}, {"s1", 13}}},
                                        {"e1", {{"s0", 17}, {"s1", 19}}}};
 
     Model m;
-    m.component<M0>("model", experiments, samples, data);
+    m.component<M0>("model", my_experiments, samples, data);
     if (!p.rank) {
         // === master =============================================================================
         // mpi proxies
@@ -67,7 +70,7 @@ void compute(int, char**) {
             .connect<UseValue>("target", Address("model", "alpha"))
             .connect<UseValue>("target", Address("model", "mu"));
 
-        m.component<Array<ProbNodeUse>>("lambda_proxies", experiments)
+        m.component<Array<ProbNodeUse>>("lambda_proxies", my_experiments)
             .connect<ArrayToValueArray>("target", Address("model", "lambda"));
 
         // moves
@@ -84,17 +87,17 @@ void compute(int, char**) {
             .connect<UseValue>("target", Address("model", "alpha"))
             .connect<UseValue>("target", Address("model", "mu"));
 
-        m.component<Array<ProbNodeProv>>("lambda_proxies", experiments)
+        m.component<Array<ProbNodeProv>>("lambda_proxies", my_experiments)
             .connect<ArrayToValueArray>("target", Address("model", "lambda"));
 
         // moves
-        m.component<Array<SimpleMHMove<Scale>>>("move_lambda", experiments)
+        m.component<Array<SimpleMHMove<Scale>>>("move_lambda", my_experiments)
             .connect<ConnectMove<double>>("target", "model", Address("model", "lambda"));
     }
 
     // === mpi connections ========================================================================
-    for (auto experiment : experiments_full) {
-        int dest_index = index_owner_slave(experiment, experiments_full, p);
+    for (auto experiment : experiments) {
+        int dest_index = experiment_partition.owner(experiment);
         m.connect<MasterSlaveConnect>(PortAddress("connection", "lambda_proxies", experiment),
                                       PortAddress("connection", "lambda_proxies", experiment),
                                       dest_index);
@@ -102,6 +105,7 @@ void compute(int, char**) {
 
     // std::stringstream ss;
     // m.print(ss);
+    // if (p.rank == 1)
     // p.message(ss.str());
     Assembly a(m);
 

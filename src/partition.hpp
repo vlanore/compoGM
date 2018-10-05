@@ -46,24 +46,46 @@ class Partition {
   public:
     Partition(IndexSet indexes, size_t size, size_t offset = 0) : offset(offset), size(size) {
         size_t nb_indexes = indexes.size();
-        size_t rank = compoGM::p.rank;
         for (size_t i = 0; i < size; i++) {
             auto begin = indexes.begin();
-            std::advance(begin, rank * nb_indexes / size);
+            std::advance(begin, i * nb_indexes / size);
             auto end = indexes.begin();
-            std::advance(end, (rank + 1) * nb_indexes / size);
+            std::advance(end, (i + 1) * nb_indexes / size);
             partition.emplace_back(begin, end);
+            compoGM::p.message("Partition %d contains %d elements", i, partition.back().size());
         }
     }
 
-    IndexSet get_partition(int i) const { return partition.at(i - offset); }
+    IndexSet get_partition(int i) const {
+        size_t index = i - offset;
+        if (index >= 0 and index < size) {
+            return partition.at(index);
+        } else {  // if not in partition, returning everything
+            IndexSet result;
+            for (auto subpartition : partition) {
+                result.insert(subpartition.begin(), subpartition.end());
+            }
+            return result;
+        }
+    }
     IndexSet my_partition() const { return get_partition(compoGM::p.rank); }
-    size_t get_size(int i) const { return partition.at(i - offset).size(); }
+
+    size_t get_size(int i) const {
+        size_t index = compoGM::p.rank - offset;
+        if (index >= 0 and index < size) {
+            return partition.at(i - offset).size();
+        } else {
+            return std::accumulate(partition.begin(), partition.end(), 0,
+                                   [](int acc, IndexSet r) { return acc + r.size(); });
+        }
+    }
     size_t my_size() const { return get_size(compoGM::p.rank); }
+
     int owner(Index index) const {
         for (size_t i = 0; i < size; i++) {
             auto subpartition = partition.at(i);
             if (subpartition.find(index) != subpartition.end()) {
+                // compoGM::p.message("Owner of %s is %d", index.c_str(), i+offset);
                 return i + offset;
             }
         }

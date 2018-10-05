@@ -33,11 +33,11 @@ license and that you accept its terms.*/
 template <class F, class... Args>
 void mpi_run(int argc, char** argv, F f) {
     MPI_Init(&argc, &argv);
-    MPI_Comm_rank(MPI_COMM_WORLD, &compoGM_thread::p.rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &compoGM_thread::p.size);
-    compoGM_thread::p.message("Started MPI process");
+    MPI_Comm_rank(MPI_COMM_WORLD, &compoGM::p.rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &compoGM::p.size);
+    compoGM::p.message("Started MPI process");
     f(argc, argv);
-    compoGM_thread::p.message("End of MPI process");
+    compoGM::p.message("End of MPI process");
     MPI_Finalize();
 }
 
@@ -45,7 +45,7 @@ int compoGM_mpi_tag = 0;
 
 struct MasterSlaveConnect : tc::Meta {
     static void connect(tc::Model& m, tc::PortAddress port_master, tc::PortAddress port_slave,
-                        int slave_number, Partition p = compoGM_thread::p) {
+                        int slave_number, CE p = compoGM::p) {
         if (!p.rank) {  // master
             m.connect<tc::Set<MPIConnection>>(port_master,
                                               MPIConnection(slave_number, compoGM_mpi_tag));
