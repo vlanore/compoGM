@@ -35,10 +35,10 @@ using namespace compoGM;
 struct M0 : public Composite {
     static void contents(Model& m, IndexSet& experiments, IndexSet& samples,
                          map<string, map<string, int>>& data) {
-        m.component<OrphanExp>("alpha", 1, 1);
+        m.component<OrphanExp>("alpha", 1, 10);
         m.component<OrphanExp>("mu", 1, 1);
 
-        m.component<Array<Gamma>>("lambda", experiments, 1)
+        m.component<Array<Gamma>>("lambda", experiments, 10)
             .connect<ArrayToValue>("a", "alpha")
             .connect<ArrayToValue>("b", "mu");
 
@@ -57,9 +57,25 @@ void compute(int, char**) {
     auto my_experiments = experiment_partition.my_partition();
     p.message("Got %d experiments!!", my_experiments.size());
 
-    IndexSet samples{"s0", "s1"};
-    map<string, map<string, int>> data{{"e0", {{"s0", 12}, {"s1", 13}}},
-                                       {"e1", {{"s0", 17}, {"s1", 19}}}};
+    IndexSet samples{"s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7"};
+    map<string, map<string, int>> data{{"e0",
+                                        {{"s0", 12},
+                                         {"s1", 13},
+                                         {"s2", 12},
+                                         {"s3", 11},
+                                         {"s4", 12},
+                                         {"s5", 12},
+                                         {"s6", 12},
+                                         {"s7", 13}}},
+                                       {"e1",
+                                        {{"s0", 20},
+                                         {"s1", 21},
+                                         {"s2", 22},
+                                         {"s3", 23},
+                                         {"s4", 20},
+                                         {"s5", 22},
+                                         {"s6", 20},
+                                         {"s7", 18}}}};
 
     Model m;
     m.component<M0>("model", my_experiments, samples, data);
@@ -105,8 +121,7 @@ void compute(int, char**) {
 
     // std::stringstream ss;
     // m.print(ss);
-    // if (p.rank == 1)
-    // p.message(ss.str());
+    // if (p.rank == 1) p.message(ss.str());
     Assembly a(m);
 
     auto moves = a.get_all<Move>().pointers();
@@ -114,7 +129,8 @@ void compute(int, char**) {
     auto proxies = a.get_all<Proxy>().pointers();
     p.message("Got %d proxies", proxies.size());
 
-    auto trace = make_trace(a.get_all<Value<double>>("model"), "tmp.dat");
+    auto trace =
+        make_trace(a.get_all<Value<double>>("model"), "tmp" + std::to_string(p.rank) + ".dat");
     if (!p.rank) trace.header();
 
     if (p.rank) {  // slaves broadcast their data
@@ -134,9 +150,7 @@ void compute(int, char**) {
         for (auto proxy : proxies) {
             proxy->release();
         }
-        if (!p.rank) {
-            trace.line();
-        }
+        if (!p.rank) trace.line();
     }
 }
 

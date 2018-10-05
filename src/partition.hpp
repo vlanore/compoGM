@@ -57,8 +57,8 @@ class Partition {
     }
 
     IndexSet get_partition(int i) const {
-        size_t index = i - offset;
-        if (index >= 0 and index < size) {
+        int index = i - offset;
+        if (index >= 0 and index < int(size)) {
             return partition.at(index);
         } else {  // if not in partition, returning everything
             IndexSet result;
@@ -71,8 +71,8 @@ class Partition {
     IndexSet my_partition() const { return get_partition(compoGM::p.rank); }
 
     size_t get_size(int i) const {
-        size_t index = compoGM::p.rank - offset;
-        if (index >= 0 and index < size) {
+        int index = compoGM::p.rank - offset;
+        if (index >= 0 and index < int(size)) {
             return partition.at(i - offset).size();
         } else {
             return std::accumulate(partition.begin(), partition.end(), 0,

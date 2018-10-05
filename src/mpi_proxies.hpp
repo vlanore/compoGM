@@ -112,7 +112,7 @@ class SlaveBcast : public Component, public Proxy {
     SlaveBcast() { port("target", &SlaveBcast::add_target); }
 
     void acquire() override {
-        int n = targets.size();
+        size_t n = targets.size();
         data.assign(n, -1);
         MPI_Bcast(data.data(), n, MPI_DOUBLE, 0, MPI_COMM_WORLD);
         for (size_t i = 0; i < n; i++) {
