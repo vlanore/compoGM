@@ -28,7 +28,7 @@ license and that you accept its terms.*/
 #pragma once
 
 #include <tinycompo.hpp>
-#include "index_set.hpp"
+#include "partition.hpp"
 
 /*
 ====================================================================================================

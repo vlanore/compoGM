@@ -29,7 +29,6 @@ license and that you accept its terms.*/
 #include <fstream>
 #include <map>
 #include <tinycompo.hpp>
-#include "index_set.hpp"
 #include "partition.hpp"
 
 using aria::csv::CsvParser;

@@ -65,7 +65,8 @@ void compute(int argc, char** argv) {
         auto samples = parse_samples(data_folder + "/samples.tsv");
         check_consistency(counts, samples);
 
-        IndexSet pgenes = partition(counts.genes, p);
+        Partition all_genes(counts.genes, p.size);
+        IndexSet pgenes = all_genes.my_partition();
         p.message("%d genes in partitioned gene list", pgenes.size());
 
         // graphical model

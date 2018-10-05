@@ -27,30 +27,50 @@ license and that you accept its terms.*/
 
 #pragma once
 
+#include <map>
+#include <set>
+#include <string>
+#include <vector>
 #include "computing_entity.hpp"
-#include "index_set.hpp"
 
-IndexSet partition(IndexSet s, CE p) {
-    auto begin = s.begin();
-    std::advance(begin, p.rank * s.size() / p.size);
-    auto end = s.begin();
-    std::advance(end, (p.rank + 1) * s.size() / p.size);
-    return IndexSet(begin, end);
-}
+// ================================================================================================
+// classes and data types
+using Index = std::string;
+using IndexSet = std::set<Index>;
+using IndexMapping = std::map<Index, Index>;
 
-IndexSet partition_slave(IndexSet s, CE p) {
-    if (p.rank) {
-        auto begin = s.begin();
-        std::advance(begin, (p.rank - 1) * s.size() / (p.size - 1));
-        auto end = s.begin();
-        std::advance(end, p.rank * s.size() / (p.size - 1));
-        return IndexSet(begin, end);
-    } else {       // called on master
-        return s;  // returns full set
+class Partition {
+    size_t offset, size;
+    std::vector<IndexSet> partition;
+
+  public:
+    Partition(IndexSet indexes, size_t size, size_t offset = 0) : offset(offset), size(size) {
+        size_t nb_indexes = indexes.size();
+        size_t rank = compoGM::p.rank;
+        for (size_t i = 0; i < size; i++) {
+            auto begin = indexes.begin();
+            std::advance(begin, rank * nb_indexes / size);
+            auto end = indexes.begin();
+            std::advance(end, (rank + 1) * nb_indexes / size);
+            partition.emplace_back(begin, end);
+        }
     }
-}
 
-int index_owner_slave(Index i, IndexSet s, CE p) {
-    int int_index = std::distance(s.begin(), s.find(i));
-    return (int_index * (p.size - 1) / s.size()) + 1;
-}
+    IndexSet get_partition(int i) const { return partition.at(i - offset); }
+    IndexSet my_partition() const { return get_partition(compoGM::p.rank); }
+    size_t get_size(int i) const { return partition.at(i - offset).size(); }
+    size_t my_size() const { return get_size(compoGM::p.rank); }
+    int owner(Index index) const {
+        for (size_t i = 0; i < size; i++) {
+            auto subpartition = partition.at(i);
+            if (subpartition.find(index) != subpartition.end()) {
+                return i + offset;
+            }
+        }
+        return -1;
+    }
+};
+
+// ================================================================================================
+// object creation and conversion
+IndexSet make_index_set(std::vector<Index>& v) { return IndexSet(v.begin(), v.end()); }
