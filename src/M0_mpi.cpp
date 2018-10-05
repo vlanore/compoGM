@@ -63,12 +63,10 @@ void compute(int, char**) {
     if (!p.rank) {
         // === master =============================================================================
         // mpi proxies
-        for (int i = 1; i < p.size; i++) {
-            m.component<ProbNodeProv>("alpha_proxy_" + std::to_string(i))
-                .connect<UseValue>("target", Address("model", "alpha"));
-            m.component<ProbNodeProv>("mu_proxy_" + std::to_string(i))
-                .connect<UseValue>("target", Address("model", "mu"));
-        }
+        m.component<MasterBcast>("alpha_mu_handler")
+            .connect<UseValue>("target", Address("model", "alpha"))
+            .connect<UseValue>("target", Address("model", "mu"));
+
         m.component<Array<ProbNodeUse>>("lambda_proxies", experiments)
             .connect<ArrayToValueArray>("target", Address("model", "lambda"));
 
@@ -82,9 +80,9 @@ void compute(int, char**) {
     } else {
         // === slaves =============================================================================
         // mpi proxies
-        m.component<ProbNodeUse>("alpha_proxy")
-            .connect<UseValue>("target", Address("model", "alpha"));
-        m.component<ProbNodeUse>("mu_proxy").connect<UseValue>("target", Address("model", "mu"));
+        m.component<SlaveBcast>("alpha_mu_handler")
+            .connect<UseValue>("target", Address("model", "alpha"))
+            .connect<UseValue>("target", Address("model", "mu"));
 
         m.component<Array<ProbNodeProv>>("lambda_proxies", experiments)
             .connect<ArrayToValueArray>("target", Address("model", "lambda"));
@@ -95,12 +93,6 @@ void compute(int, char**) {
     }
 
     // === mpi connections ========================================================================
-    for (int i = 1; i < p.size; i++) {
-        m.connect<MasterSlaveConnect>(PortAddress("connection", "alpha_proxy_" + std::to_string(i)),
-                                      PortAddress("connection", "alpha_proxy"), i);
-        m.connect<MasterSlaveConnect>(PortAddress("connection", "mu_proxy_" + std::to_string(i)),
-                                      PortAddress("connection", "mu_proxy"), i);
-    }
     for (auto experiment : experiments_full) {
         int dest_index = index_owner_slave(experiment, experiments_full, p);
         m.connect<MasterSlaveConnect>(PortAddress("connection", "lambda_proxies", experiment),

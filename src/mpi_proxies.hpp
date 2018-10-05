@@ -78,3 +78,43 @@ class ProbNodeUse : public Component, public Proxy {
 
     void release() override {}
 };
+
+// assuming value type is double
+class MasterBcast : public Component, public Proxy {
+    std::vector<Value<double>*> targets;
+    std::vector<double> data;
+
+  public:
+    MasterBcast() { port("target", &MasterBcast::targets); }
+
+    void acquire() override {}
+
+    void release() override {
+        int n = targets.size();
+        data.reserve(n);
+        for (auto target : targets) {
+            data.push_back(target->get_ref());
+        }
+        MPI_Bcast(data.data(), n, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    }
+};
+
+// assuming value type is double
+class SlaveBcast : public Component, public Proxy {
+    std::vector<Value<double>*> targets;
+    std::vector<double> data;
+
+  public:
+    SlaveBcast() { port("target", &SlaveBcast::targets); }
+
+    void acquire() override {
+        int n = targets.size();
+        data.assign(n, -1);
+        MPI_Bcast(data.data(), n, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+        for (size_t i = 0; i < n; i++) {
+            targets[i]->get_ref() = data[i];
+        }
+    }
+
+    void release() override {}
+};
