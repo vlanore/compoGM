@@ -81,6 +81,17 @@ class ProbNodeUse : public Component, public Proxy {
     void release() override {}
 };
 
+template <class C1, class C2, class... Args>
+struct MasterWorkerToggle : public tc::Meta {
+    static tc::ComponentReference connect(Model& m, Args&&... args) {
+        if (!compoGM::p.rank) {  // master
+            return m.component<C1>(std::forward<Args>(args)...);
+        } else {  // worker
+            return m.component<C2>(std::forward<Args>(args)...);
+        }
+    }
+};
+
 // assuming value type is double
 class MasterBcast : public Component, public Proxy {
     std::vector<Value<double>*> targets;
@@ -122,6 +133,8 @@ class SlaveBcast : public Component, public Proxy {
 
     void release() override {}
 };
+
+using Bcast = MasterWorkerToggle<MasterBcast, SlaveBcast, Address>;
 
 // assuming value type is double
 class MasterGather : public Component, public Proxy {
@@ -206,3 +219,5 @@ class WorkerGather : public Component, public Proxy {
                     MPI_COMM_WORLD);
     }
 };
+
+using Gather = MasterWorkerToggle<MasterGather, WorkerGather, Address, Partition&>;

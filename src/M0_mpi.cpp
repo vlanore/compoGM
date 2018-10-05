@@ -88,17 +88,16 @@ void compute(int, char**) {
 
     Model m;
     m.component<M0>("model", my_experiments, samples, data);
+
+    m.component<Bcast>("alpha_mu_handler")
+        .connect<UseValue>("target", Address("model", "alpha"))
+        .connect<UseValue>("target", Address("model", "mu"));
+
+    m.component<Gather>("lambda_handler", experiment_partition)
+        .connect<OneToMany<UseValue>>("target", Address("model", "lambda"));
+
     if (!p.rank) {
         // === master =============================================================================
-        // mpi proxies
-        m.component<MasterBcast>("alpha_mu_handler")
-            .connect<UseValue>("target", Address("model", "alpha"))
-            .connect<UseValue>("target", Address("model", "mu"));
-
-        m.component<MasterGather>("lambda_handler", experiment_partition)
-            .connect<OneToMany<UseValue>>("target", Address("model", "lambda"));
-
-        // moves
         m.component<SimpleMHMove<Scale>>("move_alpha")
             .connect<ConnectMove<double>>("target", "model", Address("model", "alpha"));
 
@@ -107,15 +106,6 @@ void compute(int, char**) {
 
     } else {
         // === slaves =============================================================================
-        // mpi proxies
-        m.component<SlaveBcast>("alpha_mu_handler")
-            .connect<UseValue>("target", Address("model", "alpha"))
-            .connect<UseValue>("target", Address("model", "mu"));
-
-        m.component<WorkerGather>("lambda_handler", experiment_partition)
-            .connect<OneToMany<UseValue>>("target", Address("model", "lambda"));
-
-        // moves
         m.component<Array<SimpleMHMove<Scale>>>("move_lambda", my_experiments)
             .connect<ConnectMove<double>>("target", "model", Address("model", "lambda"));
     }
