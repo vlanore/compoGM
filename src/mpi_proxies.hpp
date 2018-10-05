@@ -122,3 +122,80 @@ class SlaveBcast : public Component, public Proxy {
 
     void release() override {}
 };
+
+// assuming value type is double
+class MasterGather : public Component, public Proxy {
+    std::vector<Value<double>*> targets;
+    void add_target(Value<double>* ptr) { targets.push_back(ptr); }
+    std::vector<double> data;
+    Partition partition;
+
+  public:
+    MasterGather(Partition partition) : partition(partition) {
+        if (partition.size() != size_t(compoGM::p.size - 1)) {
+            std::cerr << "MasterGather error: number of partitions (" << partition.size()
+                      << ") doesn't match number of workerss (" << compoGM::p.size - 1 << ")\n";
+            exit(1);
+        }
+        port("target", &MasterGather::add_target);
+    }
+
+    void acquire() override {
+        if (partition.partition_size_sum() != targets.size()) {
+            std::cerr << "MasterGather error: number of targets (" << targets.size()
+                      << ") doesn't match number of elements in partition ("
+                      << partition.partition_size_sum() << ")\n";
+            exit(1);
+        }
+        size_t nb_partitions = partition.size();
+        size_t subbuffer_size = partition.max_partition_size();
+        size_t buffer_size = nb_partitions * subbuffer_size;
+        data.assign(buffer_size, -1);
+        MPI_Gather(NULL, 0, MPI_DOUBLE, data.data(), buffer_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+        size_t target_index = 0;
+        for (size_t partition_index = 0; partition_index < nb_partitions; partition_index++) {
+            for (size_t element_index = 0;
+                 element_index < partition.partition_size(partition_index + 1); element_index++) {
+                targets.at(target_index)->get_ref() =
+                    data.at(subbuffer_size * partition_index + element_index);
+            }
+        }
+    }
+
+    void release() override {}
+};
+
+// assuming value type is double
+class WorkerGather : public Component, public Proxy {
+    std::vector<Value<double>*> targets;
+    void add_target(Value<double>* ptr) { targets.push_back(ptr); }
+    std::vector<double> data;
+    Partition partition;
+
+  public:
+    WorkerGather(Partition partition) : partition(partition) {
+        if (partition.size() != size_t(compoGM::p.size - 1)) {
+            std::cerr << "WorkerGather error: number of partitions (" << partition.size()
+                      << ") doesn't match number of workers (" << compoGM::p.size - 1 << ")\n";
+            exit(1);
+        }
+        port("target", &WorkerGather::add_target);
+    }
+
+    void acquire() override {
+        size_t buffer_size = partition.max_partition_size();
+        size_t my_size = partition.my_partition_size();
+        if (my_size != targets.size()) {
+            std::cerr << "WorkerGather error: number of targets (" << targets.size()
+                      << ") doesn't match number of elements in my partition (" << my_size << ")\n";
+            exit(1);
+        }
+        data.assign(buffer_size, -1);  // filling buffer with -1s
+        for (size_t i = 0; i < my_size; i++) {
+            data[i] = targets[i]->get_ref();
+        }
+        MPI_Gather(data.data(), buffer_size, MPI_DOUBLE, NULL, 0, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    }
+
+    void release() override {}
+};

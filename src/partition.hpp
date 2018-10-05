@@ -40,13 +40,13 @@ using IndexSet = std::set<Index>;
 using IndexMapping = std::map<Index, Index>;
 
 class Partition {
-    size_t offset, size;
+    size_t _offset, _size;
     std::vector<IndexSet> partition;
 
   public:
-    Partition(IndexSet indexes, size_t size, size_t offset = 0) : offset(offset), size(size) {
+    Partition(IndexSet indexes, size_t size, size_t offset = 0) : _offset(offset), _size(size) {
         size_t nb_indexes = indexes.size();
-        for (size_t i = 0; i < size; i++) {
+        for (size_t i = 0; i < _size; i++) {
             auto begin = indexes.begin();
             std::advance(begin, i * nb_indexes / size);
             auto end = indexes.begin();
@@ -57,8 +57,8 @@ class Partition {
     }
 
     IndexSet get_partition(int i) const {
-        int index = i - offset;
-        if (index >= 0 and index < int(size)) {
+        int index = i - _offset;
+        if (index >= 0 and index < int(_size)) {
             return partition.at(index);
         } else {  // if not in partition, returning everything
             IndexSet result;
@@ -70,23 +70,34 @@ class Partition {
     }
     IndexSet my_partition() const { return get_partition(compoGM::p.rank); }
 
-    size_t get_size(int i) const {
-        int index = compoGM::p.rank - offset;
-        if (index >= 0 and index < int(size)) {
-            return partition.at(i - offset).size();
+    size_t partition_size(int i) const {
+        int index = compoGM::p.rank - _offset;
+        if (index >= 0 and index < int(_size)) {
+            return partition.at(i - _offset).size();
         } else {
-            return std::accumulate(partition.begin(), partition.end(), 0,
-                                   [](int acc, IndexSet r) { return acc + r.size(); });
+            return partition_size_sum();
         }
     }
-    size_t my_size() const { return get_size(compoGM::p.rank); }
+    size_t my_partition_size() const { return partition_size(compoGM::p.rank); }
+    size_t partition_size_sum() const {
+        return std::accumulate(partition.begin(), partition.end(), 0,
+                               [](int acc, IndexSet r) { return acc + r.size(); });
+    }
+
+    size_t size() const { return _size; }
+
+    size_t max_partition_size() const {
+        return std::accumulate(partition.begin(), partition.end(), 0, [](size_t max, IndexSet s) {
+            return s.size() > max ? s.size() : max;
+        });
+    }
 
     int owner(Index index) const {
-        for (size_t i = 0; i < size; i++) {
+        for (size_t i = 0; i < _size; i++) {
             auto subpartition = partition.at(i);
             if (subpartition.find(index) != subpartition.end()) {
                 // compoGM::p.message("Owner of %s is %d", index.c_str(), i+offset);
-                return i + offset;
+                return i + _offset;
             }
         }
         return -1;
