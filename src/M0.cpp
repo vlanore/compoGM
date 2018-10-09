@@ -57,14 +57,10 @@ void compute(int, char**) {
     Model m;
     m.component<M0>("model", experiments, samples, data);
 
-    m.component<SimpleMHMove<Scale>>("move_alpha")
-        .connect<ConnectMove<double>>("target", "model", Address("model", "alpha"));
-
-    m.component<SimpleMHMove<Scale>>("move_mu").connect<ConnectMove<double>>(
-        "target", "model", Address("model", "mu"));
-
-    m.component<Array<SimpleMHMove<Scale>>>("move_lambda", experiments)
-        .connect<ConnectMove<double>>("target", "model", Address("model", "lambda"));
+    MoveSet moveset(m, "model");
+    moveset.add("alpha", scale);
+    moveset.add("mu", scale);
+    moveset.add("lambda", scale);
 
     Assembly a(m);
 

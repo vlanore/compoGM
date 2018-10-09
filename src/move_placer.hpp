@@ -27,43 +27,56 @@ license and that you accept its terms.*/
 
 #pragma once
 
-#include "arrays.hpp"
-#include "distributions.hpp"
 #include "gm_connectors.hpp"
-#include "interfaces.hpp"
 #include "mcmc_moves.hpp"
-#include "move_placer.hpp"
 #include "moves.hpp"
-#include "node_skeletons.hpp"
-#include "parsing.hpp"
-#include "suffstats.hpp"
-#include "trace.hpp"
+#include "tinycompo.hpp"
 
-using tc::Address;
-using tc::Assembly;
-using tc::Component;
-using tc::Composite;
-using tc::Model;
-using tc::PortAddress;
-using tc::Use;
+namespace compoGM {
+    enum MoveType { scale, shift };
+    enum DataType { integer, fp };
+}  // namespace compoGM
 
-using UseValue = Use<Value<double>>;
-using ArrayToValue = ManyToOne<UseValue>;
-using ArrayToValueArray = ManyToMany<UseValue>;
-using ArrayToValueMatrixLines = ManyToMany<OneToMany<UseValue>>;
-using ArrayToValueMatrixColumns = OneToMany<ManyToMany<UseValue>>;
-using MatrixColumnsToValueArray = ManyToOne<ManyToMany<UseValue>>;
-using MatrixLinesToValueArray = ManyToMany<ManyToOne<UseValue>>;
-using MatrixToValueMatrix = ManyToMany2D<UseValue>;
+// class _MoveDecl {
+//     compoGM::MoveType move_type;
+//     compoGM::DataType data_type;
+// };
 
-using Exp = UnaryNode<ExponentialDistribution>;
-using Gamma = BinaryNode<GammaDistribution>;
-using GammaSR = BinaryNode<GammaShapeRateDistribution>;
-using Poisson = UnaryNode<PoissonDistribution>;
-using Normal = BinaryNode<NormalDistribution>;
+class MoveSet {
+    tc::Model& m;
+    tc::Address gm;
+    // std::vector<_MoveDecl> moves;
 
-using OrphanExp = OrphanNode<ExponentialDistribution>;
-using OrphanGamma = OrphanNode<GammaDistribution>;
-using OrphanGammaSR = OrphanNode<GammaShapeRateDistribution>;
-using OrphanPoisson = OrphanNode<PoissonDistribution>;
-using OrphanNormal = OrphanNode<NormalDistribution>;
+  public:
+    MoveSet(tc::Model& m, tc::Address gm) : m(m), gm(gm) {}
+
+    void add(std::string target_name, compoGM::MoveType move_type,
+        compoGM::DataType data_type = compoGM::fp) {
+        tc::Address target(gm, target_name);
+        std::string move_name = "move_" + target_name;
+        tc::PortAddress move_port("target", move_name);
+
+        // WARNING: assuming array or single for now
+        if (m.is_composite(target)) {
+            auto raw_indices = m.get_composite(target).all_component_names();
+            auto indices = make_index_set(raw_indices);
+            switch (move_type) {
+                case compoGM::scale:
+                    m.component<Array<SimpleMHMove<Scale>>>(move_name, indices);
+                    break;
+                case compoGM::shift:
+                    m.component<Array<SimpleMHMove<Shift>>>(move_name, indices);
+                    break;
+            }
+        } else {
+            switch (move_type) {
+                case compoGM::scale: m.component<SimpleMHMove<Scale>>(move_name); break;
+                case compoGM::shift: m.component<SimpleMHMove<Shift>>(move_name); break;
+            }
+        }
+        switch (data_type) {
+            case compoGM::integer: m.connect<ConnectMove<int>>(move_port, gm, target); break;
+            case compoGM::fp: m.connect<ConnectMove<double>>(move_port, gm, target); break;
+        }
+    }
+};
