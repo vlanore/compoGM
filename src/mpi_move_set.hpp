@@ -27,43 +27,20 @@ license and that you accept its terms.*/
 
 #pragma once
 
-#include "arrays.hpp"
-#include "distributions.hpp"
-#include "gm_connectors.hpp"
-#include "interfaces.hpp"
-#include "mcmc_moves.hpp"
 #include "move_set.hpp"
-#include "moves.hpp"
-#include "node_skeletons.hpp"
-#include "parsing.hpp"
-#include "suffstats.hpp"
-#include "trace.hpp"
+#include "mpi_helpers.hpp"
 
-using tc::Address;
-using tc::Assembly;
-using tc::Component;
-using tc::Composite;
-using tc::Model;
-using tc::PortAddress;
-using tc::Use;
+class MPIMoveSet : public MoveSet {
+  public:
+    MPIMoveSet(tc::Model& m, tc::Address gm) : MoveSet(m, gm) {}
 
-using UseValue = Use<Value<double>>;
-using ArrayToValue = ManyToOne<UseValue>;
-using ArrayToValueArray = ManyToMany<UseValue>;
-using ArrayToValueMatrixLines = ManyToMany<OneToMany<UseValue>>;
-using ArrayToValueMatrixColumns = OneToMany<ManyToMany<UseValue>>;
-using MatrixColumnsToValueArray = ManyToOne<ManyToMany<UseValue>>;
-using MatrixLinesToValueArray = ManyToMany<ManyToOne<UseValue>>;
-using MatrixToValueMatrix = ManyToMany2D<UseValue>;
+    template <class... Args>
+    void master_add(Args&&... args) {
+        if (compoGM::p.rank == 0) { add(std::forward<Args>(args)...); }
+    }
 
-using Exp = UnaryNode<ExponentialDistribution>;
-using Gamma = BinaryNode<GammaDistribution>;
-using GammaSR = BinaryNode<GammaShapeRateDistribution>;
-using Poisson = UnaryNode<PoissonDistribution>;
-using Normal = BinaryNode<NormalDistribution>;
-
-using OrphanExp = OrphanNode<ExponentialDistribution>;
-using OrphanGamma = OrphanNode<GammaDistribution>;
-using OrphanGammaSR = OrphanNode<GammaShapeRateDistribution>;
-using OrphanPoisson = OrphanNode<PoissonDistribution>;
-using OrphanNormal = OrphanNode<NormalDistribution>;
+    template <class... Args>
+    void slave_add(Args&&... args) {
+        if (compoGM::p.rank != 0) { add(std::forward<Args>(args)...); }
+    }
+};

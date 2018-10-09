@@ -27,6 +27,7 @@ license and that you accept its terms.*/
 
 #include "compoGM.hpp"
 #include "mpi_helpers.hpp"
+#include "mpi_move_set.hpp"
 #include "mpi_proxies.hpp"
 
 using namespace std;
@@ -43,7 +44,6 @@ struct M0 : public Composite {
             .connect<ArrayToValue>("b", "mu");
 
         if (p.rank != 0) {  // slave only
-            // p.message("Got %d experiments", experiments.size());
             m.component<Matrix<Poisson>>("K", experiments, samples, 0)
                 .connect<MatrixLinesToValueArray>("a", "lambda")
                 .connect<SetMatrix<int>>("x", data);
@@ -73,29 +73,15 @@ void compute(int, char**) {
     m.component<Gather>("lambda_handler", experiment_partition)
         .connect<OneToMany<UseValue>>("target", Address("model", "lambda"));
 
-    if (!p.rank) {
-        // === master =============================================================================
-        m.component<SimpleMHMove<Scale>>("move_alpha")
-            .connect<ConnectMove<double>>("target", "model", Address("model", "alpha"));
+    MPIMoveSet ms(m, "model");
+    ms.master_add("alpha", scale);
+    ms.master_add("mu", scale);
+    ms.slave_add("lambda", scale);
 
-        m.component<SimpleMHMove<Scale>>("move_mu").connect<ConnectMove<double>>(
-            "target", "model", Address("model", "mu"));
-
-    } else {
-        // === slaves =============================================================================
-        m.component<Array<SimpleMHMove<Scale>>>("move_lambda", my_experiments)
-            .connect<ConnectMove<double>>("target", "model", Address("model", "lambda"));
-    }
-
-    // std::stringstream ss;
-    // m.print(ss);
-    // if (p.rank == 1) p.message(ss.str());
     Assembly a(m);
 
     auto moves = a.get_all<Move>().pointers();
-    // p.message("Got %d moves", moves.size());
     auto proxies = a.get_all<Proxy>().pointers();
-    // p.message("Got %d proxies", proxies.size());
 
     auto trace =
         make_trace(a.get_all<Value<double>>("model"), "tmp" + std::to_string(p.rank) + ".dat");

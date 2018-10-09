@@ -57,10 +57,10 @@ void compute(int, char**) {
     Model m;
     m.component<M0>("model", experiments, samples, data);
 
-    MoveSet moveset(m, "model");
-    moveset.add("alpha", scale);
-    moveset.add("mu", scale);
-    moveset.add("lambda", scale);
+    MoveSet ms(m, "model");
+    ms.add("alpha", scale);
+    ms.add("mu", scale);
+    ms.add("lambda", scale);
 
     Assembly a(m);
 

@@ -30,7 +30,6 @@ license and that you accept its terms.*/
 #include <mpi.h>
 #include "interfaces.hpp"
 #include "tinycompo.hpp"
-using tc::Component;
 
 struct MPIConnection {
     int target_process{-1};
@@ -40,7 +39,7 @@ struct MPIConnection {
 };
 
 // assuming value type is double
-class ProbNodeProv : public Component, public Proxy {
+class ProbNodeProv : public tc::Component, public Proxy {
     Value<double>* target;
     MPIConnection connection;
 
@@ -60,7 +59,7 @@ class ProbNodeProv : public Component, public Proxy {
 };
 
 // assuming value type is double
-class ProbNodeUse : public Component, public Proxy {
+class ProbNodeUse : public tc::Component, public Proxy {
     Value<double>* target;
     MPIConnection connection;
 
@@ -83,7 +82,7 @@ class ProbNodeUse : public Component, public Proxy {
 
 template <class C1, class C2, class... Args>
 struct MasterWorkerToggle : public tc::Meta {
-    static tc::ComponentReference connect(Model& m, Args&&... args) {
+    static tc::ComponentReference connect(tc::Model& m, Args&&... args) {
         if (!compoGM::p.rank) {  // master
             return m.component<C1>(std::forward<Args>(args)...);
         } else {  // worker
@@ -93,7 +92,7 @@ struct MasterWorkerToggle : public tc::Meta {
 };
 
 // assuming value type is double
-class MasterBcast : public Component, public Proxy {
+class MasterBcast : public tc::Component, public Proxy {
     std::vector<Value<double>*> targets;
     void add_target(Value<double>* ptr) { targets.push_back(ptr); }
     std::vector<double> data;
@@ -112,7 +111,7 @@ class MasterBcast : public Component, public Proxy {
 };
 
 // assuming value type is double
-class SlaveBcast : public Component, public Proxy {
+class SlaveBcast : public tc::Component, public Proxy {
     std::vector<Value<double>*> targets;
     void add_target(Value<double>* ptr) { targets.push_back(ptr); }
     std::vector<double> data;
@@ -130,10 +129,10 @@ class SlaveBcast : public Component, public Proxy {
     void release() override {}
 };
 
-using Bcast = MasterWorkerToggle<MasterBcast, SlaveBcast, Address>;
+using Bcast = MasterWorkerToggle<MasterBcast, SlaveBcast, tc::Address>;
 
 // assuming value type is double
-class MasterGather : public Component, public Proxy {
+class MasterGather : public tc::Component, public Proxy {
     std::vector<Value<double>*> targets;
     void add_target(Value<double>* ptr) { targets.push_back(ptr); }
     std::vector<double> data;
@@ -179,7 +178,7 @@ class MasterGather : public Component, public Proxy {
 };
 
 // assuming value type is double
-class WorkerGather : public Component, public Proxy {
+class WorkerGather : public tc::Component, public Proxy {
     std::vector<Value<double>*> targets;
     void add_target(Value<double>* ptr) { targets.push_back(ptr); }
     std::vector<double> data;
@@ -212,4 +211,4 @@ class WorkerGather : public Component, public Proxy {
     }
 };
 
-using Gather = MasterWorkerToggle<MasterGather, WorkerGather, Address, Partition&>;
+using Gather = MasterWorkerToggle<MasterGather, WorkerGather, tc::Address, Partition&>;
