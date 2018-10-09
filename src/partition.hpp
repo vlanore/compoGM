@@ -52,7 +52,7 @@ class Partition {
             auto end = indexes.begin();
             std::advance(end, (i + 1) * nb_indexes / size);
             partition.emplace_back(begin, end);
-            compoGM::p.message("Partition %d contains %d elements", i, partition.back().size());
+            // compoGM::p.message("Partition %d contains %d elements", i, partition.back().size());
         }
     }
 

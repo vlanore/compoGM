@@ -43,7 +43,7 @@ struct M0 : public Composite {
             .connect<ArrayToValue>("b", "mu");
 
         if (p.rank != 0) {  // slave only
-            p.message("Got %d experiments", experiments.size());
+            // p.message("Got %d experiments", experiments.size());
             m.component<Matrix<Poisson>>("K", experiments, samples, 0)
                 .connect<MatrixLinesToValueArray>("a", "lambda")
                 .connect<SetMatrix<int>>("x", data);
@@ -55,15 +55,13 @@ void compute(int, char**) {
     IndexSet experiments{"e0", "e1", "e2"};
     Partition experiment_partition(experiments, p.size - 1, 1);
     auto my_experiments = experiment_partition.my_partition();
-    p.message("Got %d experiments!!", my_experiments.size());
+    // p.message("Got %d experiments!!", my_experiments.size());
 
-    IndexSet samples{"s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7"};
-    map<string, map<string, int>> data{{"e0", {{"s0", 12}, {"s1", 13}, {"s2", 12}, {"s3", 11},
-                                                  {"s4", 12}, {"s5", 12}, {"s6", 12}, {"s7", 13}}},
-        {"e1", {{"s0", 20}, {"s1", 21}, {"s2", 22}, {"s3", 23}, {"s4", 20}, {"s5", 22}, {"s6", 20},
-                   {"s7", 18}}},
-        {"e2", {{"s0", 23}, {"s1", 22}, {"s2", 22}, {"s3", 23}, {"s4", 24}, {"s5", 22}, {"s6", 22},
-                   {"s7", 23}}}};
+    IndexSet samples{"s0", "s1", "s2", "s3", "s4", "s5"};
+    map<string, map<string, int>> data{
+        {"e0", {{"s0", 12}, {"s1", 13}, {"s2", 12}, {"s3", 11}, {"s4", 12}, {"s5", 12}}},
+        {"e1", {{"s0", 20}, {"s1", 21}, {"s2", 22}, {"s3", 23}, {"s4", 20}, {"s5", 22}}},
+        {"e2", {{"s0", 23}, {"s1", 22}, {"s2", 22}, {"s3", 23}, {"s4", 24}, {"s5", 22}}}};
 
     Model m;
     m.component<M0>("model", my_experiments, samples, data);
@@ -95,13 +93,13 @@ void compute(int, char**) {
     Assembly a(m);
 
     auto moves = a.get_all<Move>().pointers();
-    p.message("Got %d moves", moves.size());
+    // p.message("Got %d moves", moves.size());
     auto proxies = a.get_all<Proxy>().pointers();
-    p.message("Got %d proxies", proxies.size());
+    // p.message("Got %d proxies", proxies.size());
 
     auto trace =
         make_trace(a.get_all<Value<double>>("model"), "tmp" + std::to_string(p.rank) + ".dat");
-    if (!p.rank) trace.header();
+    if (!p.rank) { trace.header(); }
 
     if (p.rank) {  // slaves broadcast their data
         for (auto proxy : proxies) { proxy->release(); }
@@ -114,7 +112,7 @@ void compute(int, char**) {
             move->move(0.01);
         }
         for (auto proxy : proxies) { proxy->release(); }
-        if (!p.rank) trace.line();
+        if (!p.rank) { trace.line(); }
     }
 }
 
