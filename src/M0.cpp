@@ -47,51 +47,33 @@ struct M0 : public Composite {
 };
 
 void compute(int, char**) {
-    IndexSet experiments{"e0", "e1"};
-    IndexSet samples{"s0", "s1"};
+    IndexSet experiments{"e0", "e1", "e2"};
+    IndexSet samples{"s0", "s1", "s2", "s3", "s4", "s5"};
     map<string, map<string, int>> data{
-        {"e0", {{"s0", 12}, {"s1", 13}}}, {"e1", {{"s0", 17}, {"s1", 19}}}};
+        {"e0", {{"s0", 12}, {"s1", 13}, {"s2", 12}, {"s3", 11}, {"s4", 12}, {"s5", 12}}},
+        {"e1", {{"s0", 20}, {"s1", 21}, {"s2", 22}, {"s3", 23}, {"s4", 20}, {"s5", 22}}},
+        {"e2", {{"s0", 23}, {"s1", 22}, {"s2", 22}, {"s3", 23}, {"s4", 24}, {"s5", 22}}}};
 
-    Model model;
-    model.component<M0>("model", experiments, samples, data);
+    Model m;
+    m.component<M0>("model", experiments, samples, data);
 
-    model.component<GammaShapeScaleSuffstat>("lambda_suffstats")
-        .connect<UseValue>("a", Address("model", "alpha"))
-        .connect<UseValue>("b", Address("model", "mu"))
-        .connect<OneToMany<UseValue>>("values", Address("model", "lambda"));
+    m.component<SimpleMHMove<Scale>>("move_alpha")
+        .connect<ConnectMove<double>>("target", "model", Address("model", "alpha"));
 
-    model.component<SimpleMHMove<Scale>>("move_alpha")
-        .connect<MoveToTarget<double>>("target", Address("model", "alpha"))
-        .connect<DirectedLogProb>("logprob", "lambda_suffstats", LogProbSelector::Full);
+    m.component<SimpleMHMove<Scale>>("move_mu").connect<ConnectMove<double>>(
+        "target", "model", Address("model", "mu"));
 
-    model.component<SimpleMHMove<Scale>>("move_mu")
-        .connect<MoveToTarget<double>>("target", Address("model", "mu"))
-        .connect<DirectedLogProb>("logprob", "lambda_suffstats", LogProbSelector::Full);
-
-    model.component<Array<SimpleMHMove<Scale>>>("move_lambda", experiments)
+    m.component<Array<SimpleMHMove<Scale>>>("move_lambda", experiments)
         .connect<ConnectMove<double>>("target", "model", Address("model", "lambda"));
 
-    model.dot_to_file();
-    Assembly assembly(model);
+    Assembly a(m);
 
-    auto lambda_moves = assembly.get_all<Move>("move_lambda");
-    auto other_moves = assembly.get_all<Move>(std::set<Address>{"move_mu", "move_alpha"});
-    auto& suffstats = assembly.at<Proxy>("lambda_suffstats");
-
-    auto trace = make_trace(assembly.get_all<Value<double>>("model"), "tmp.dat");
+    auto moves = a.get_all<Move>().pointers();
+    auto trace = make_trace(a.get_all<Value<double>>("model"), "tmp.dat");
     trace.header();
 
     for (int iteration = 0; iteration < 50000; iteration++) {
-        suffstats.acquire();
-        for (auto rep = 0; rep < 10; rep++) {
-            for (auto& move : other_moves.pointers()) {
-                move->move(1.0);
-                move->move(0.1);
-                move->move(0.01);
-            }
-        }
-        suffstats.release();
-        for (auto& move : lambda_moves.pointers()) {
+        for (auto& move : moves) {
             move->move(1.0);
             move->move(0.1);
             move->move(0.01);
