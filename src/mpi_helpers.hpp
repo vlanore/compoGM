@@ -45,10 +45,10 @@ int compoGM_mpi_tag = 0;
 
 struct MasterSlaveConnect : tc::Meta {
     static void connect(tc::Model& m, tc::PortAddress port_master, tc::PortAddress port_slave,
-                        int slave_number, CE p = compoGM::p) {
+        int slave_number, CE p = compoGM::p) {
         if (!p.rank) {  // master
-            m.connect<tc::Set<MPIConnection>>(port_master,
-                                              MPIConnection(slave_number, compoGM_mpi_tag));
+            m.connect<tc::Set<MPIConnection>>(
+                port_master, MPIConnection(slave_number, compoGM_mpi_tag));
         } else if (p.rank == slave_number) {
             m.connect<tc::Set<MPIConnection>>(port_slave, MPIConnection(0, compoGM_mpi_tag));
         }

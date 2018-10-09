@@ -35,12 +35,11 @@ using namespace compoGM;
 
 struct M1 : public Composite {
     static void contents(Model& m, IndexSet& genes, IndexSet& conditions, IndexSet& samples,
-                         map<string, map<string, int>>& counts,
-                         map<string, string>& condition_mapping) {
+        map<string, map<string, int>>& counts, map<string, string>& condition_mapping) {
         m.component<Matrix<OrphanNormal>>("lambda", genes, conditions, 1, 3, pow(1.5, 2));
 
-        m.component<Matrix<DeterministicUnaryNode<double>>>("exp", genes, conditions,
-                                                            [](double x) { return pow(10, x); })
+        m.component<Matrix<DeterministicUnaryNode<double>>>(
+             "exp", genes, conditions, [](double x) { return pow(10, x); })
             .connect<MatrixToValueMatrix>("a", "lambda");
 
         m.component<Matrix<Poisson>>("K", genes, samples, 0)
@@ -72,18 +71,18 @@ void compute(int argc, char** argv) {
         // graphical model
         p.message("Creating component model...");
         model.component<M1>("model", pgenes, samples.conditions, make_index_set(counts.samples),
-                            counts.counts, samples.condition_mapping);
+            counts.counts, samples.condition_mapping);
 
         // suffstats and metropolis hastings moves
         model.component<Matrix<PoissonSuffstat>>("poissonsuffstats", pgenes, samples.conditions)
             .connect<ManyToMany2D<UseValue>>("lambda", Address("model", "exp"))
-            .connect<ManyToMany<ArraysRevMap<Use<Value<int>>>>>("values", Address("model", "K"),
-                                                                samples.condition_mapping);
+            .connect<ManyToMany<ArraysRevMap<Use<Value<int>>>>>(
+                "values", Address("model", "K"), samples.condition_mapping);
 
         model.component<Matrix<SimpleMHMove<Scale>>>("moves", pgenes, samples.conditions)
             .connect<ManyToMany2D<MoveToTarget<double>>>("target", Address("model", "lambda"))
-            .connect<ManyToMany2D<DirectedLogProb>>("logprob", "poissonsuffstats",
-                                                    LogProbSelector::Full);
+            .connect<ManyToMany2D<DirectedLogProb>>(
+                "logprob", "poissonsuffstats", LogProbSelector::Full);
 
         // assembly
         p.message("Instantiating assembly...");
@@ -96,9 +95,7 @@ void compute(int argc, char** argv) {
     auto all_suffstats = assembly.get_all<PoissonSuffstat>();
 
     // gathering suff stats
-    for (auto&& suffstat : all_suffstats.pointers()) {
-        suffstat->acquire();
-    }
+    for (auto&& suffstat : all_suffstats.pointers()) { suffstat->acquire(); }
 
     // trace header
     auto trace = make_trace(all_lambdas, "tmp" + to_string(p.rank) + ".dat");

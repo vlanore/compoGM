@@ -38,9 +38,7 @@ template <class Element>
 struct Array : public tc::Composite {
     template <class... Args>
     static void contents(tc::Model& m, IndexSet indices, Args... args) {
-        for (auto&& index : indices) {
-            m.component<Element>(index, args...);
-        }
+        for (auto&& index : indices) { m.component<Element>(index, args...); }
     }
 };
 
@@ -69,7 +67,7 @@ struct ManyToMany : tc::Meta {
         }
         for (int i = 0; i < static_cast<int>(user_elements.size()); ++i) {
             m.connect<P2PConnector>(tc::PortAddress(user.prop, user.address, user_elements.at(i)),
-                                    tc::Address(provider, provider_elements.at(i)), args...);
+                tc::Address(provider, provider_elements.at(i)), args...);
         }
     }
 };
@@ -83,13 +81,11 @@ using ManyToMany2D = ManyToMany<ManyToMany<P2PConnector>>;
 ==================================================================================================*/
 template <class ValueType, class Setter = tc::Set<ValueType>>
 struct SetArray : tc::Meta {
-    static void connect(tc::Model& m, tc::PortAddress array,
-                        std::map<std::string, ValueType> data) {
+    static void connect(
+        tc::Model& m, tc::PortAddress array, std::map<std::string, ValueType> data) {
         auto array_elements = m.get_composite(array.address).all_component_names(0, true);
         IndexSet data_keys;
-        for (auto&& entry : data) {
-            data_keys.insert(entry.first);
-        }
+        for (auto&& entry : data) { data_keys.insert(entry.first); }
         // bool element_names_match =
         //     IndexSet(array_elements.begin(), array_elements.end()) == data_keys;
         // if (!element_names_match) {
@@ -97,8 +93,8 @@ struct SetArray : tc::Meta {
         //         "SetArray: list of keys of data and elements don't match.");
         // }
         for (auto&& element : array_elements) {
-            m.connect<Setter>(tc::PortAddress(array.prop, array.address, element),
-                              data.at(element));
+            m.connect<Setter>(
+                tc::PortAddress(array.prop, array.address, element), data.at(element));
         }
     }
 };
@@ -114,12 +110,12 @@ template <class P2PConnector>
 struct ArraysMap : tc::Meta {
     template <class... Args>
     static void connect(tc::Model& m, tc::PortAddress user, tc::Address provider,
-                        IndexMapping mapping,
-                        Args... args) {  // mapping user index -> provider index
+        IndexMapping mapping,
+        Args... args) {  // mapping user index -> provider index
         auto user_elements = m.get_composite(user.address).all_component_names(0, true);
         for (auto&& element : user_elements) {
             m.connect<P2PConnector>(tc::PortAddress(user.prop, user.address, element),
-                                    tc::Address(provider, mapping.at(element)), args...);
+                tc::Address(provider, mapping.at(element)), args...);
         }
     }
 };
@@ -128,12 +124,12 @@ template <class P2PConnector>
 struct ArraysRevMap : tc::Meta {
     template <class... Args>
     static void connect(tc::Model& m, tc::PortAddress user, tc::Address provider,
-                        IndexMapping mapping,
-                        Args... args) {  // mapping provider index -> user index
+        IndexMapping mapping,
+        Args... args) {  // mapping provider index -> user index
         auto provider_elements = m.get_composite(provider).all_component_names(0, true);
         for (auto&& element : provider_elements) {
             m.connect<P2PConnector>(tc::PortAddress(user.prop, user.address, mapping.at(element)),
-                                    tc::Address(provider, element), args...);
+                tc::Address(provider, element), args...);
         }
     }
 };
@@ -148,8 +144,8 @@ struct ManyToOne : tc::Meta {  // single provider, multiple users
     static void connect(tc::Model& m, tc::PortAddress user, tc::Address provider, Args... args) {
         auto user_elements = m.get_composite(user.address).all_component_names(0, true);
         for (auto&& element : user_elements) {
-            m.connect<P2PConnector>(tc::PortAddress(user.prop, user.address, element), provider,
-                                    args...);
+            m.connect<P2PConnector>(
+                tc::PortAddress(user.prop, user.address, element), provider, args...);
         }
     }
 };

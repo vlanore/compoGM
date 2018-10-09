@@ -49,7 +49,5 @@ Threads spawn(int rank_start, int rank_end, F f, Args... args) {
 }
 
 void join(Threads& threads) {
-    for (auto&& t : threads) {
-        t.join();
-    }
+    for (auto&& t : threads) { t.join(); }
 }

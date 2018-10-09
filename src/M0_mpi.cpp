@@ -33,8 +33,8 @@ using namespace std;
 using namespace compoGM;
 
 struct M0 : public Composite {
-    static void contents(Model& m, IndexSet& experiments, IndexSet& samples,
-                         map<string, map<string, int>>& data) {
+    static void contents(
+        Model& m, IndexSet& experiments, IndexSet& samples, map<string, map<string, int>>& data) {
         m.component<OrphanExp>("alpha", 1, 10);
         m.component<OrphanExp>("mu", 1, 1);
 
@@ -58,33 +58,12 @@ void compute(int, char**) {
     p.message("Got %d experiments!!", my_experiments.size());
 
     IndexSet samples{"s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7"};
-    map<string, map<string, int>> data{{"e0",
-                                        {{"s0", 12},
-                                         {"s1", 13},
-                                         {"s2", 12},
-                                         {"s3", 11},
-                                         {"s4", 12},
-                                         {"s5", 12},
-                                         {"s6", 12},
-                                         {"s7", 13}}},
-                                       {"e1",
-                                        {{"s0", 20},
-                                         {"s1", 21},
-                                         {"s2", 22},
-                                         {"s3", 23},
-                                         {"s4", 20},
-                                         {"s5", 22},
-                                         {"s6", 20},
-                                         {"s7", 18}}},
-                                       {"e2",
-                                        {{"s0", 23},
-                                         {"s1", 22},
-                                         {"s2", 22},
-                                         {"s3", 23},
-                                         {"s4", 24},
-                                         {"s5", 22},
-                                         {"s6", 22},
-                                         {"s7", 23}}}};
+    map<string, map<string, int>> data{{"e0", {{"s0", 12}, {"s1", 13}, {"s2", 12}, {"s3", 11},
+                                                  {"s4", 12}, {"s5", 12}, {"s6", 12}, {"s7", 13}}},
+        {"e1", {{"s0", 20}, {"s1", 21}, {"s2", 22}, {"s3", 23}, {"s4", 20}, {"s5", 22}, {"s6", 20},
+                   {"s7", 18}}},
+        {"e2", {{"s0", 23}, {"s1", 22}, {"s2", 22}, {"s3", 23}, {"s4", 24}, {"s5", 22}, {"s6", 22},
+                   {"s7", 23}}}};
 
     Model m;
     m.component<M0>("model", my_experiments, samples, data);
@@ -125,22 +104,16 @@ void compute(int, char**) {
     if (!p.rank) trace.header();
 
     if (p.rank) {  // slaves broadcast their data
-        for (auto proxy : proxies) {
-            proxy->release();
-        }
+        for (auto proxy : proxies) { proxy->release(); }
     }
     for (int iteration = 0; iteration < 50000; iteration++) {
-        for (auto proxy : proxies) {
-            proxy->acquire();
-        }
+        for (auto proxy : proxies) { proxy->acquire(); }
         for (auto move : moves) {
             move->move(1.0);
             move->move(0.1);
             move->move(0.01);
         }
-        for (auto proxy : proxies) {
-            proxy->release();
-        }
+        for (auto proxy : proxies) { proxy->release(); }
         if (!p.rank) trace.line();
     }
 }

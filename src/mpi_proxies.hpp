@@ -73,7 +73,7 @@ class ProbNodeUse : public Component, public Proxy {
     void acquire() override {
         double buffer = -1;
         MPI_Recv(&buffer, 1, MPI_DOUBLE, connection.target_process, connection.tag, MPI_COMM_WORLD,
-                 MPI_STATUS_IGNORE);
+            MPI_STATUS_IGNORE);
         // compoGM::p.message("Received value %f from %d", buffer, connection.target_process);
         target->get_ref() = buffer;
     }
@@ -106,9 +106,7 @@ class MasterBcast : public Component, public Proxy {
     void release() override {
         int n = targets.size();
         data.reserve(n);
-        for (auto target : targets) {
-            data.push_back(target->get_ref());
-        }
+        for (auto target : targets) { data.push_back(target->get_ref()); }
         MPI_Bcast(data.data(), n, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     }
 };
@@ -126,9 +124,7 @@ class SlaveBcast : public Component, public Proxy {
         size_t n = targets.size();
         data.assign(n, -1);
         MPI_Bcast(data.data(), n, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-        for (size_t i = 0; i < n; i++) {
-            targets[i]->get_ref() = data[i];
-        }
+        for (size_t i = 0; i < n; i++) { targets[i]->get_ref() = data[i]; }
     }
 
     void release() override {}
@@ -174,11 +170,9 @@ class MasterGather : public Component, public Proxy {
         }
 
         MPI_Gatherv(NULL, 0, MPI_DOUBLE, data.data(), revcounts.data(), displs.data(), MPI_DOUBLE,
-                    0, MPI_COMM_WORLD);
+            0, MPI_COMM_WORLD);
 
-        for (size_t i = 0; i < buffer_size; i++) {
-            targets.at(i)->get_ref() = data.at(i);
-        }
+        for (size_t i = 0; i < buffer_size; i++) { targets.at(i)->get_ref() = data.at(i); }
     }
 
     void release() override {}
@@ -211,12 +205,10 @@ class WorkerGather : public Component, public Proxy {
             exit(1);
         }
         data.assign(my_size, -1);  // filling buffer with -1s
-        for (size_t i = 0; i < my_size; i++) {
-            data[i] = targets[i]->get_ref();
-        }
+        for (size_t i = 0; i < my_size; i++) { data[i] = targets[i]->get_ref(); }
 
-        MPI_Gatherv(data.data(), my_size, MPI_DOUBLE, NULL, NULL, NULL, MPI_DOUBLE, 0,
-                    MPI_COMM_WORLD);
+        MPI_Gatherv(
+            data.data(), my_size, MPI_DOUBLE, NULL, NULL, NULL, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     }
 };
 

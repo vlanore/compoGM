@@ -52,9 +52,7 @@ class Trace {
             const auto& c = names[i];
             os << c.to_string() << '\t';
         }
-        if (names.size() != 0) {
-            os << names.at(names.size() - 1).to_string() << std::endl;
-        }
+        if (names.size() != 0) { os << names.at(names.size() - 1).to_string() << std::endl; }
     }
 
     void line() const {

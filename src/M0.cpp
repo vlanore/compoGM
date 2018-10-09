@@ -31,8 +31,8 @@ using namespace std;
 using namespace compoGM;
 
 struct M0 : public Composite {
-    static void contents(Model& m, IndexSet& experiments, IndexSet& samples,
-                         map<string, map<string, int>>& data) {
+    static void contents(
+        Model& m, IndexSet& experiments, IndexSet& samples, map<string, map<string, int>>& data) {
         m.component<OrphanExp>("alpha", 1, 1);
         m.component<OrphanExp>("mu", 1, 1);
 
@@ -49,8 +49,8 @@ struct M0 : public Composite {
 void compute(int, char**) {
     IndexSet experiments{"e0", "e1"};
     IndexSet samples{"s0", "s1"};
-    map<string, map<string, int>> data{{"e0", {{"s0", 12}, {"s1", 13}}},
-                                       {"e1", {{"s0", 17}, {"s1", 19}}}};
+    map<string, map<string, int>> data{
+        {"e0", {{"s0", 12}, {"s1", 13}}}, {"e1", {{"s0", 17}, {"s1", 19}}}};
 
     Model model;
     model.component<M0>("model", experiments, samples, data);

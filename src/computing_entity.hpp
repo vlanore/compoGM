@@ -63,7 +63,7 @@ struct CE {
 const std::vector<int> CE::colors{31, 32, 33, 34, 35, 36, 91, 92, 93, 94, 95, 96};
 
 namespace compoGM {
-thread_local CE p;
+    thread_local CE p;
 }  // namespace compoGM
 
 void set_ce(int rank, int size) {

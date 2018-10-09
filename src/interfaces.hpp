@@ -108,17 +108,11 @@ class LogProbSelector : public LogProb {
 
     double get_log_prob() final {
         switch (d) {
-            case X:
-                return ptr->get_log_prob_x();
-            case A:
-                return ptr->get_log_prob_a();
-            case B:
-                return ptr->get_log_prob_b();
-            case Full:
-                return ptr->get_log_prob();
-            default:
-                printf("Error: trying to use uninitialized LogProbSelector!\n");
-                exit(1);
+            case X: return ptr->get_log_prob_x();
+            case A: return ptr->get_log_prob_a();
+            case B: return ptr->get_log_prob_b();
+            case Full: return ptr->get_log_prob();
+            default: printf("Error: trying to use uninitialized LogProbSelector!\n"); exit(1);
         }
     }
 };

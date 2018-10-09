@@ -35,28 +35,25 @@ using namespace compoGM;
 
 struct M3 : public Composite {
     static void contents(Model& m, IndexSet& genes, IndexSet& conditions, IndexSet& samples,
-                         map<string, map<string, int>>& counts, IndexMapping& condition_mapping,
-                         map<string, double>& size_factors) {
+        map<string, map<string, int>>& counts, IndexMapping& condition_mapping,
+        map<string, double>& size_factors) {
         m.component<Matrix<OrphanNormal>>("log10(q)", genes, conditions, 1, 3, 1.5);
-        m.component<Matrix<DeterministicUnaryNode<double>>>("q", genes, conditions,
-                                                            [](double a) { return pow(10, a); })
+        m.component<Matrix<DeterministicUnaryNode<double>>>(
+             "q", genes, conditions, [](double a) { return pow(10, a); })
             .connect<MatrixToValueMatrix>("a", "log10(q)");
 
         m.component<OrphanNormal>("log10(a)", 1, -2, 2);
         m.component<OrphanNormal>("log10(b)", 1, 0, 2);
         m.component<OrphanExp>("sigma", 1, 1);
 
-        m.component<Array<DeterministicMultiNode<double>>>(
-             "q_bar", genes,
+        m.component<Array<DeterministicMultiNode<double>>>("q_bar", genes,
              [](const vector<Value<double>*>& v) {
-                 return accumulate(v.begin(), v.end(), 0., [](double acc, Value<double>* ptr) {
-                     return acc + ptr->get_ref();
-                 });
+                 return accumulate(v.begin(), v.end(), 0.,
+                     [](double acc, Value<double>* ptr) { return acc + ptr->get_ref(); });
              })
             .connect<ArrayToValueMatrixLines>("parent", "q");
 
-        m.component<Array<DeterministicTernaryNode<double>>>(
-             "log10(alpha_bar)", genes,
+        m.component<Array<DeterministicTernaryNode<double>>>("log10(alpha_bar)", genes,
              [](double a, double b, double q_bar) {
                  return log10(pow(10, a) + pow(10, b) / q_bar);
              })
@@ -112,7 +109,7 @@ void compute(int argc, char** argv) {
         // graphical model
         p.message("Creating component model...");
         model.component<M3>("model", pgenes, samples.conditions, make_index_set(counts.samples),
-                            counts.counts, samples.condition_mapping, size_factors.size_factors);
+            counts.counts, samples.condition_mapping, size_factors.size_factors);
 
         // suffstats and metropolis hastings moves
         model.component<Array<GammaShapeRateSuffstat>>("tau_suffstats", pgenes)
@@ -122,18 +119,18 @@ void compute(int argc, char** argv) {
 
         model.component<SimpleMHMove<Shift>>("move_a")
             .connect<MoveToTarget<double>>("target", Address("model", "log10(a)"))
-            .connect<OneToMany<DirectedLogProb>>("logprob", Address("model", "log10(alpha)"),
-                                                 LogProbSelector::A);
+            .connect<OneToMany<DirectedLogProb>>(
+                "logprob", Address("model", "log10(alpha)"), LogProbSelector::A);
 
         model.component<SimpleMHMove<Shift>>("move_b")
             .connect<MoveToTarget<double>>("target", Address("model", "log10(b)"))
-            .connect<OneToMany<DirectedLogProb>>("logprob", Address("model", "log10(alpha)"),
-                                                 LogProbSelector::A);
+            .connect<OneToMany<DirectedLogProb>>(
+                "logprob", Address("model", "log10(alpha)"), LogProbSelector::A);
 
         model.component<SimpleMHMove<Scale>>("move_sigma")
             .connect<MoveToTarget<double>>("target", Address("model", "sigma"))
-            .connect<OneToMany<DirectedLogProb>>("logprob", Address("model", "log10(alpha)"),
-                                                 LogProbSelector::B);
+            .connect<OneToMany<DirectedLogProb>>(
+                "logprob", Address("model", "log10(alpha)"), LogProbSelector::B);
 
         model.component<Matrix<SimpleMHMove<Shift>>>("move_q", pgenes, samples.conditions)
             .connect<ManyToMany2D<MoveToTarget<double>>>("target", Address("model", "log10(q)"))
@@ -142,13 +139,13 @@ void compute(int argc, char** argv) {
 
         model.component<Matrix<SimpleMHMove<Scale>>>("move_tau", pgenes, samples.samples)
             .connect<ManyToMany2D<MoveToTarget<double>>>("target", Address("model", "tau"))
-            .connect<ManyToMany2D<DirectedLogProb>>("logprob", Address("model", "K"),
-                                                    LogProbSelector::A);
+            .connect<ManyToMany2D<DirectedLogProb>>(
+                "logprob", Address("model", "K"), LogProbSelector::A);
 
         model.component<Array<SimpleMHMove<Shift>>>("move_alpha", pgenes)
             .connect<ManyToMany<MoveToTarget<double>>>("target", Address("model", "log10(alpha)"))
-            .connect<ManyToMany<DirectedLogProb>>("logprob", "tau_suffstats",
-                                                  LogProbSelector::Full);
+            .connect<ManyToMany<DirectedLogProb>>(
+                "logprob", "tau_suffstats", LogProbSelector::Full);
         // .connect<ManyToMany<OneToMany<DirectedLogProb>>>(
         //     "logprob", Address("model", "tau"), LogProbSelector::Full);
 
@@ -164,8 +161,7 @@ void compute(int argc, char** argv) {
     auto suffstats_tau = assembly.get_all<Proxy>("tau_suffstats");
     auto all_watched = assembly.get_all<Value<double>>(
         std::set<Address>{Address("model", "log10(q)"), Address("model", "log10(alpha)"),
-                          Address("model", "log10(a)"), Address("model", "log10(b)"),
-                          Address("model", "sigma")},
+            Address("model", "log10(a)"), Address("model", "log10(b)"), Address("model", "sigma")},
         "model");
     assembly.get_model() = Model();  // deallocate model
 
@@ -181,9 +177,7 @@ void compute(int argc, char** argv) {
                 move->move(0.1);
                 move->move(0.01);
             }
-            for (auto&& ss : suffstats_tau.pointers()) {
-                ss->acquire();
-            }
+            for (auto&& ss : suffstats_tau.pointers()) { ss->acquire(); }
             for (auto&& move : moves_alpha.pointers()) {
                 for (int rep = 0; rep < 10; rep++) {
                     move->move(1.0);
@@ -191,9 +185,7 @@ void compute(int argc, char** argv) {
                     move->move(0.01);
                 }
             }
-            for (auto&& ss : suffstats_tau.pointers()) {
-                ss->release();
-            }
+            for (auto&& ss : suffstats_tau.pointers()) { ss->release(); }
         }
         trace.line();
     }

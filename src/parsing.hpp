@@ -149,8 +149,8 @@ void check_consistency(CountParsingResult counts, SamplesParsingResult samples) 
     }
 }
 
-void check_consistency(CountParsingResult counts, SamplesParsingResult samples,
-                       SizeFactorResult size_factors) {
+void check_consistency(
+    CountParsingResult counts, SamplesParsingResult samples, SizeFactorResult size_factors) {
     check_consistency(counts, samples);
     if (size_factors.samples == samples.samples) {
         compoGM::p.message("List of samples in samples and size factors match!");

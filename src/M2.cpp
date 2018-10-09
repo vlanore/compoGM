@@ -36,11 +36,11 @@ using DUse = Use<Value<double>>;
 
 struct M2 : public Composite {
     static void contents(Model& m, IndexSet& genes, IndexSet& conditions, IndexSet& samples,
-                         map<string, map<string, int>>& counts, IndexMapping& condition_mapping,
-                         map<string, double>& size_factors) {
+        map<string, map<string, int>>& counts, IndexMapping& condition_mapping,
+        map<string, double>& size_factors) {
         m.component<Matrix<OrphanNormal>>("log10(q)", genes, conditions, 1, 3, 1.5);
-        m.component<Matrix<DeterministicUnaryNode<double>>>("q", genes, conditions,
-                                                            [](double a) { return pow(10, a); })
+        m.component<Matrix<DeterministicUnaryNode<double>>>(
+             "q", genes, conditions, [](double a) { return pow(10, a); })
             .connect<MatrixToValueMatrix>("a", "log10(q)");
 
         m.component<Array<OrphanNormal>>("log10(alpha)", genes, 1, -2, 2);
@@ -89,7 +89,7 @@ void compute(int argc, char** argv) {
         // graphical model
         p.message("Creating component model...");
         model.component<M2>("model", pgenes, samples.conditions, make_index_set(counts.samples),
-                            counts.counts, samples.condition_mapping, size_factors.size_factors);
+            counts.counts, samples.condition_mapping, size_factors.size_factors);
 
         // suffstats and metropolis hastings moves
         model.component<Array<GammaShapeRateSuffstat>>("tau_suffstats", pgenes)
@@ -104,13 +104,13 @@ void compute(int argc, char** argv) {
 
         model.component<Matrix<SimpleMHMove<Scale>>>("move_tau", pgenes, samples.samples)
             .connect<ManyToMany2D<MoveToTarget<double>>>("target", Address("model", "tau"))
-            .connect<ManyToMany2D<DirectedLogProb>>("logprob", Address("model", "K"),
-                                                    LogProbSelector::A);
+            .connect<ManyToMany2D<DirectedLogProb>>(
+                "logprob", Address("model", "K"), LogProbSelector::A);
 
         model.component<Array<SimpleMHMove<Shift>>>("move_alpha", pgenes)
             .connect<ManyToMany<MoveToTarget<double>>>("target", Address("model", "log10(alpha)"))
-            .connect<ManyToMany<DirectedLogProb>>("logprob", "tau_suffstats",
-                                                  LogProbSelector::Full);
+            .connect<ManyToMany<DirectedLogProb>>(
+                "logprob", "tau_suffstats", LogProbSelector::Full);
         // .connect<ManyToMany<OneToMany<DirectedLogProb>>>(
         //     "logprob", Address("model", "tau"), LogProbSelector::Full);
 
@@ -139,9 +139,7 @@ void compute(int argc, char** argv) {
                 move->move(0.1);
                 move->move(0.01);
             }
-            for (auto&& ss : suffstats_tau.pointers()) {
-                ss->acquire();
-            }
+            for (auto&& ss : suffstats_tau.pointers()) { ss->acquire(); }
             for (auto&& move : moves_alpha.pointers()) {
                 for (int rep = 0; rep < 10; rep++) {
                     move->move(1.0);
@@ -149,9 +147,7 @@ void compute(int argc, char** argv) {
                     move->move(0.01);
                 }
             }
-            for (auto&& ss : suffstats_tau.pointers()) {
-                ss->release();
-            }
+            for (auto&& ss : suffstats_tau.pointers()) { ss->release(); }
         }
         trace.line();
     }

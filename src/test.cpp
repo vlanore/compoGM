@@ -77,16 +77,16 @@ int main() {
     m.component<Mean>("meantheta");
 
     m.driver("movescheduler",
-             [](Move* move, Move* move2, Value<double>* k, Value<double>* theta, Mean* mean,
-                Mean* mean2) {
-                 for (int i = 0; i < 100000; i++) {
-                     move->move(0.5);
-                     move2->move(0.5);
-                     mean->add(k->get_ref());
-                     mean2->add(theta->get_ref());
-                 }
-                 cout << "Mean: " << mean->mean() * mean2->mean() << endl;
-             })
+         [](Move* move, Move* move2, Value<double>* k, Value<double>* theta, Mean* mean,
+             Mean* mean2) {
+             for (int i = 0; i < 100000; i++) {
+                 move->move(0.5);
+                 move2->move(0.5);
+                 mean->add(k->get_ref());
+                 mean2->add(theta->get_ref());
+             }
+             cout << "Mean: " << mean->mean() * mean2->mean() << endl;
+         })
         .connect("move1", "move2", "k", "theta", "meank", "meantheta");
 
     Assembly a(m);

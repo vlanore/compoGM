@@ -81,15 +81,14 @@ class Partition {
     size_t my_partition_size() const { return partition_size(compoGM::p.rank); }
     size_t partition_size_sum() const {
         return std::accumulate(partition.begin(), partition.end(), 0,
-                               [](int acc, IndexSet r) { return acc + r.size(); });
+            [](int acc, IndexSet r) { return acc + r.size(); });
     }
 
     size_t size() const { return _size; }
 
     size_t max_partition_size() const {
-        return std::accumulate(partition.begin(), partition.end(), 0, [](size_t max, IndexSet s) {
-            return s.size() > max ? s.size() : max;
-        });
+        return std::accumulate(partition.begin(), partition.end(), 0,
+            [](size_t max, IndexSet s) { return s.size() > max ? s.size() : max; });
     }
 
     int owner(Index index) const {

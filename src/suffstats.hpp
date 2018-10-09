@@ -45,7 +45,7 @@ struct GammaShapeScaleSSFormula {
     }
 
     static double partial_log_prob_b(double k, double theta, int N, double sum,
-                                     double) {  // b = theta
+        double) {  // b = theta
         return -N * k * log(theta) - (1 / theta) * sum;
     }
 };
@@ -56,12 +56,12 @@ struct GammaShapeRateSSFormula {
     }
 
     static double partial_log_prob_a(double alpha, double beta, int N, double,
-                                     double sum_log) {  // a = alpha
+        double sum_log) {  // a = alpha
         return N * alpha * log(beta) - N * std::lgamma(alpha) + (alpha - 1) * sum_log;
     }
 
     static double partial_log_prob_b(double alpha, double beta, int N, double sum,
-                                     double) {  // b = beta
+        double) {  // b = beta
         return N * alpha * log(beta) - beta * sum;
     }
 };
@@ -101,13 +101,13 @@ class GammaSSTemplate : public tc::Component, public LogProb, public Proxy {
     }
 
     double get_log_prob_a() final {  // a = k
-        return Formula::partial_log_prob_a(a_->get_ref(), b_->get_ref(), values.size(), sum,
-                                           sum_log);
+        return Formula::partial_log_prob_a(
+            a_->get_ref(), b_->get_ref(), values.size(), sum, sum_log);
     }
 
     double get_log_prob_b() final {  // b = theta
-        return Formula::partial_log_prob_b(a_->get_ref(), b_->get_ref(), values.size(), sum,
-                                           sum_log);
+        return Formula::partial_log_prob_b(
+            a_->get_ref(), b_->get_ref(), values.size(), sum, sum_log);
     }
 };
 

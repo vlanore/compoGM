@@ -32,7 +32,7 @@ license and that you accept its terms.*/
 
 struct DirectedLogProb {
     static void _connect(tc::Assembly& a, tc::PortAddress user, tc::Address provider,
-                         LogProbSelector::Direction direction) {
+        LogProbSelector::Direction direction) {
         auto& user_ref = a.at(user.address);
         auto& provider_ref = a.at<LogProb>(provider);
         user_ref.set(user.prop, LogProbSelector(direction, &provider_ref));
@@ -44,8 +44,8 @@ struct MoveToTarget : tc::Meta {
     static void connect(tc::Model& m, tc::PortAddress move, tc::Address target) {
         m.connect<tc::Use<Value<ValueType>>>(move, target);
         m.connect<tc::Use<Backup>>(tc::PortAddress("targetbackup", move.address), target);
-        m.connect<DirectedLogProb>(tc::PortAddress("logprob", move.address), target,
-                                   LogProbSelector::X);
+        m.connect<DirectedLogProb>(
+            tc::PortAddress("logprob", move.address), target, LogProbSelector::X);
     }
 };
 
@@ -114,9 +114,7 @@ struct ConnectMove : tc::Meta {
                 exit(1);
             }
         };
-        while (model.is_composite()) {
-            f();
-        }
+        while (model.is_composite()) { f(); }
         f();
         std::string target_name_str = target_name_in_model.to_string();
 
