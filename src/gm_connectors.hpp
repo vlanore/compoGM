@@ -29,6 +29,7 @@ license and that you accept its terms.*/
 
 #include "arrays.hpp"
 #include "interfaces.hpp"
+#include "introspection.hpp"
 
 struct DirectedLogProb {
     static void _connect(tc::Assembly& a, tc::PortAddress user, tc::Address provider,
@@ -49,7 +50,7 @@ struct MoveToTarget : tc::Meta {
     }
 };
 
-// move that connects two components of possibly varying dimensions (component, array or matric for
+// move that connects two components of possibly varying dimensions (component, array or matrix for
 // each) by using the correct connector
 template <class Connector, class... Args>
 struct AdaptiveConnect : tc::Meta {
@@ -116,11 +117,23 @@ struct ConnectMove : tc::Meta {
         };
         while (model.is_composite()) { f(); }
         f();
-        std::string target_name_str = target_name_in_model.to_string();
+        NodeName target_name_str = target_name_in_model.to_string();
 
         // FIXME considering a simple case where there are no deterministic nodes
         // in this case the markov blanket is simply nodes pointing to the target
-        std::set<std::string> blanket;
+        NameSet blanket;
+
+        // Algorithm: blanket(targets, graph) =
+        //   [prob nodes pointing to targets] U blanket([det nodes pointing to targets])
+        std::function<NameSet(NameSet)> compute_blanket = [edges](NameSet targets) {
+            NameSet partial_blanket, next_targets;
+            for (auto e: edges) {
+                if (targets.count(edge_dest(e)) > 1) { // points to a target
+                    if ()
+                }
+            }
+        }
+
         for (auto e : edges) {
             if (tc::Address(e.second).first() == target_name_str) {
                 blanket.insert(tc::Address(e.first).first());
