@@ -161,17 +161,11 @@ struct ConnectMove : tc::Meta {
     static void connect(tc::Model& m, tc::PortAddress move, tc::Address model, tc::Address target) {
         if (is_matrix(move.address, m)) {
             auto& tc = m.get_composite(target);
-            auto raw_indices_x = tc.all_component_names(0, true);
-            auto indices_x = make_index_set(raw_indices_x);
-            auto raw_indices_y = tc.get_composite(raw_indices_x.front()).all_component_names();
-            auto indices_y = make_index_set(raw_indices_y);
-            for (auto x : indices_x) {
-                for (auto y : indices_y) {
-                    tc::Address element_address(x, y);
-                    m.connect<ConnectIndividualMove<ValueType>>(
-                        tc::PortAddress(move.prop, tc::Address(move.address, element_address)),
-                        model, tc::Address(target, element_address));
-                }
+            auto element_addresses = tc.all_addresses();
+            for (auto element_address : element_addresses) {
+                m.connect<ConnectIndividualMove<ValueType>>(
+                    tc::PortAddress(move.prop, tc::Address(move.address, element_address)), model,
+                    tc::Address(target, element_address));
             }
 
         } else if (is_array(move.address, m)) {
