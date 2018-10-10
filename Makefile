@@ -52,7 +52,7 @@ ready:
 	@echo "\033[1m\033[95mFormatting with clang-format...\033[0m"
 	@make format --no-print-directory
 	@echo "\033[1m\033[95m\nCompiling if necessary...\033[0m"
-	@make -j4 --no-print-directory
+	@make -j5 --no-print-directory
 	@echo "\033[1m\033[95m\nLaunching test...\033[0m"
 	@make test --no-print-directory
 	@echo "\033[1m\033[95m\nAll done, git status is:\033[0m"

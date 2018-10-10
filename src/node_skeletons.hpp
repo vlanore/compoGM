@@ -74,6 +74,28 @@ class DeterministicMultiNode : public Value<ValueType>, public tc::Component {
         return x;
     }
 };
+
+class Sum : public Value<double>, public tc::Component {
+    std::vector<Value<double>*> parents;
+    mutable double x;  // just a buffer for computation of f(parents)
+    void add_parent(Value<double>* ptr) { parents.push_back(ptr); }
+
+  public:
+    Sum() { port("parent", &Sum::add_parent); }
+
+    double& get_ref() final {
+        x = accumulate(parents.begin(), parents.end(), 0.,
+            [](double acc, Value<double>* ptr) { return acc + ptr->get_ref(); });
+        return x;
+    }
+
+    const double& get_ref() const final {
+        x = accumulate(parents.begin(), parents.end(), 0.,
+            [](double acc, Value<double>* ptr) { return acc + ptr->get_ref(); });
+        return x;
+    }
+};
+
 /*
 ====================================================================================================
   ~*~ DeterministicTernaryNode ~*~
@@ -134,6 +156,26 @@ class DeterministicUnaryNode : public Value<ValueType>, public tc::Component {
     std::string debug() const final {
         return "DeterministicUnaryNode [" + std::to_string(get_ref()) + "]";
     }
+};
+
+class Power10 : public Value<double>, public tc::Component {
+    Value<double>* parent;
+    mutable double x;  // just a buffer for computation of f(a, b, c)
+
+  public:
+    Power10() { port("a", &Power10::parent); }
+
+    double& get_ref() final {
+        x = pow(10, parent->get_ref());
+        return x;
+    }
+
+    const double& get_ref() const final {
+        x = pow(10, parent->get_ref());
+        return x;
+    }
+
+    std::string debug() const final { return "Power10 [" + std::to_string(get_ref()) + "]"; }
 };
 
 /*

@@ -3,7 +3,7 @@ Contributors:
 * Vincent LANORE - vincent.lanore@univ-lyon1.fr
 
 This software is a component-based library to write bayesian inference programs based on the
-graphical model.
+graphical m.
 
 This software is governed by the CeCILL-C license under French law and abiding by the rules of
 distribution of free software. You can use, modify and/ or redistribute the software under the terms
@@ -38,20 +38,14 @@ struct M3 : public Composite {
         map<string, map<string, int>>& counts, IndexMapping& condition_mapping,
         map<string, double>& size_factors) {
         m.component<Matrix<OrphanNormal>>("log10(q)", genes, conditions, 1, 3, 1.5);
-        m.component<Matrix<DeterministicUnaryNode<double>>>(
-             "q", genes, conditions, [](double a) { return pow(10, a); })
+        m.component<Matrix<Power10>>("q", genes, conditions)
             .connect<MatrixToValueMatrix>("a", "log10(q)");
 
         m.component<OrphanNormal>("log10(a)", 1, -2, 2);
         m.component<OrphanNormal>("log10(b)", 1, 0, 2);
         m.component<OrphanExp>("sigma", 1, 1);
 
-        m.component<Array<DeterministicMultiNode<double>>>("q_bar", genes,
-             [](const vector<Value<double>*>& v) {
-                 return accumulate(v.begin(), v.end(), 0.,
-                     [](double acc, Value<double>* ptr) { return acc + ptr->get_ref(); });
-             })
-            .connect<ArrayToValueMatrixLines>("parent", "q");
+        m.component<Array<Sum>>("q_bar", genes).connect<ArrayToValueMatrixLines>("parent", "q");
 
         m.component<Array<DeterministicTernaryNode<double>>>("log10(alpha_bar)", genes,
              [](double a, double b, double q_bar) {
@@ -92,78 +86,75 @@ void compute(int argc, char** argv) {
         cerr << "usage:\n\tM3_bin <data_location>\n";
         exit(1);
     }
-    Assembly assembly;
-    {
-        Model& model = assembly.get_model();
 
-        // Parsing data files
-        string data_location = argv[1];
-        auto counts = parse_counts(data_location + "/counts.tsv");
-        auto samples = parse_samples(data_location + "/samples.tsv");
-        auto size_factors = parse_size_factors(data_location + "/size_factors.tsv");
-        check_consistency(counts, samples, size_factors);
-        Partition all_genes(counts.genes, p.size);
-        IndexSet pgenes = all_genes.my_partition();
-        p.message("%d genes in partitioned gene list.", pgenes.size());
+    Model m;
 
-        // graphical model
-        p.message("Creating component model...");
-        model.component<M3>("model", pgenes, samples.conditions, make_index_set(counts.samples),
-            counts.counts, samples.condition_mapping, size_factors.size_factors);
+    // Parsing data files
+    string data_location = argv[1];
+    auto counts = parse_counts(data_location + "/counts.tsv");
+    auto samples = parse_samples(data_location + "/samples.tsv");
+    auto size_factors = parse_size_factors(data_location + "/size_factors.tsv");
+    check_consistency(counts, samples, size_factors);
+    Partition all_genes(counts.genes, p.size);
+    IndexSet pgenes = all_genes.my_partition();
+    p.message("%d genes in partitioned gene list.", pgenes.size());
 
-        // suffstats and metropolis hastings moves
-        model.component<Array<GammaShapeRateSuffstat>>("tau_suffstats", pgenes)
-            .connect<ManyToMany<OneToMany<UseValue>>>("values", Address("model", "tau"))
-            .connect<ArrayToValueArray>("a", Address("model", "1/alpha"))
-            .connect<ArrayToValueArray>("b", Address("model", "1/alpha"));
+    // graphical model
+    p.message("Creating component model...");
+    m.component<M3>("model", pgenes, samples.conditions, make_index_set(counts.samples),
+        counts.counts, samples.condition_mapping, size_factors.size_factors);
 
-        model.component<SimpleMHMove<Shift>>("move_a")
-            .connect<MoveToTarget<double>>("target", Address("model", "log10(a)"))
-            .connect<OneToMany<DirectedLogProb>>(
-                "logprob", Address("model", "log10(alpha)"), LogProbSelector::A);
+    // suffstats and metropolis hastings moves
+    m.component<Array<GammaShapeRateSuffstat>>("tau_suffstats", pgenes)
+        .connect<ManyToMany<OneToMany<UseValue>>>("values", Address("model", "tau"))
+        .connect<ArrayToValueArray>("a", Address("model", "1/alpha"))
+        .connect<ArrayToValueArray>("b", Address("model", "1/alpha"));
 
-        model.component<SimpleMHMove<Shift>>("move_b")
-            .connect<MoveToTarget<double>>("target", Address("model", "log10(b)"))
-            .connect<OneToMany<DirectedLogProb>>(
-                "logprob", Address("model", "log10(alpha)"), LogProbSelector::A);
+    m.component<SimpleMHMove<Shift>>("move_a")
+        .connect<MoveToTarget<double>>("target", Address("model", "log10(a)"))
+        .connect<OneToMany<DirectedLogProb>>(
+            "logprob", Address("model", "log10(alpha)"), LogProbSelector::A);
 
-        model.component<SimpleMHMove<Scale>>("move_sigma")
-            .connect<MoveToTarget<double>>("target", Address("model", "sigma"))
-            .connect<OneToMany<DirectedLogProb>>(
-                "logprob", Address("model", "log10(alpha)"), LogProbSelector::B);
+    m.component<SimpleMHMove<Shift>>("move_b")
+        .connect<MoveToTarget<double>>("target", Address("model", "log10(b)"))
+        .connect<OneToMany<DirectedLogProb>>(
+            "logprob", Address("model", "log10(alpha)"), LogProbSelector::A);
 
-        model.component<Matrix<SimpleMHMove<Shift>>>("move_q", pgenes, samples.conditions)
-            .connect<ManyToMany2D<MoveToTarget<double>>>("target", Address("model", "log10(q)"))
-            .connect<ManyToMany<ArraysRevMap<DirectedLogProb>>>(
-                "logprob", Address("model", "K"), samples.condition_mapping, LogProbSelector::A);
+    m.component<SimpleMHMove<Scale>>("move_sigma")
+        .connect<MoveToTarget<double>>("target", Address("model", "sigma"))
+        .connect<OneToMany<DirectedLogProb>>(
+            "logprob", Address("model", "log10(alpha)"), LogProbSelector::B);
 
-        model.component<Matrix<SimpleMHMove<Scale>>>("move_tau", pgenes, samples.samples)
-            .connect<ManyToMany2D<MoveToTarget<double>>>("target", Address("model", "tau"))
-            .connect<ManyToMany2D<DirectedLogProb>>(
-                "logprob", Address("model", "K"), LogProbSelector::A);
+    m.component<Matrix<SimpleMHMove<Shift>>>("move_q", pgenes, samples.conditions)
+        .connect<ManyToMany2D<MoveToTarget<double>>>("target", Address("model", "log10(q)"))
+        .connect<ManyToMany<ArraysRevMap<DirectedLogProb>>>(
+            "logprob", Address("model", "K"), samples.condition_mapping, LogProbSelector::A);
 
-        model.component<Array<SimpleMHMove<Shift>>>("move_alpha", pgenes)
-            .connect<ManyToMany<MoveToTarget<double>>>("target", Address("model", "log10(alpha)"))
-            .connect<ManyToMany<DirectedLogProb>>(
-                "logprob", "tau_suffstats", LogProbSelector::Full);
-        // .connect<ManyToMany<OneToMany<DirectedLogProb>>>(
-        //     "logprob", Address("model", "tau"), LogProbSelector::Full);
+    m.component<Matrix<SimpleMHMove<Scale>>>("move_tau", pgenes, samples.samples)
+        .connect<ManyToMany2D<MoveToTarget<double>>>("target", Address("model", "tau"))
+        .connect<ManyToMany2D<DirectedLogProb>>(
+            "logprob", Address("model", "K"), LogProbSelector::A);
 
-        // assembly
-        p.message("Instantiating assembly...");
-        assembly.instantiate();
-    }
+    m.component<Array<SimpleMHMove<Shift>>>("move_alpha", pgenes)
+        .connect<ManyToMany<MoveToTarget<double>>>("target", Address("model", "log10(alpha)"))
+        .connect<ManyToMany<DirectedLogProb>>("logprob", "tau_suffstats", LogProbSelector::Full);
+    // .connect<ManyToMany<OneToMany<DirectedLogProb>>>(
+    //     "logprob", Address("model", "tau"), LogProbSelector::Full);
+
+    // assembly
+    p.message("Instantiating assembly...");
+    Assembly a(m);
 
     p.message("Preparations before running chain");
-    auto moves_all_but_alpha = assembly.get_all<Move>(
-        std::set<Address>{"move_q", "move_tau", "move_a", "move_b", "move_sigma"});
-    auto moves_alpha = assembly.get_all<Move>("move_alpha");
-    auto suffstats_tau = assembly.get_all<Proxy>("tau_suffstats");
-    auto all_watched = assembly.get_all<Value<double>>(
+    auto moves_all_but_alpha =
+        a.get_all<Move>(std::set<Address>{"move_q", "move_tau", "move_a", "move_b", "move_sigma"});
+    auto moves_alpha = a.get_all<Move>("move_alpha");
+    auto suffstats_tau = a.get_all<Proxy>("tau_suffstats");
+    auto all_watched = a.get_all<Value<double>>(
         std::set<Address>{Address("model", "log10(q)"), Address("model", "log10(alpha)"),
             Address("model", "log10(a)"), Address("model", "log10(b)"), Address("model", "sigma")},
         "model");
-    assembly.get_model() = Model();  // deallocate model
+    a.get_model() = Model();  // deallocate model
 
     p.message("Preparing trace");
     auto trace = make_trace(all_watched, "tmp" + to_string(p.rank) + ".dat");
