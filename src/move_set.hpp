@@ -28,6 +28,7 @@ license and that you accept its terms.*/
 #pragma once
 
 #include "gm_connectors.hpp"
+#include "introspection.hpp"
 #include "mcmc_moves.hpp"
 #include "moves.hpp"
 #include "tinycompo.hpp"
@@ -47,6 +48,24 @@ class MoveSet {
     tc::Address gm;
     // std::vector<_MoveDecl> moves;
 
+    template <class MoveType>
+    void adaptive_create(std::string move_name, tc::Address target) {
+        if (is_matrix(target, m)) {
+            auto& tc = m.get_composite(target);
+            auto raw_indices_x = tc.all_component_names(0, true);
+            auto indices_x = make_index_set(raw_indices_x);
+            auto raw_indices_y = tc.get_composite(raw_indices_x.front()).all_component_names();
+            auto indices_y = make_index_set(raw_indices_y);
+            m.component<Matrix<SimpleMHMove<MoveType>>>(move_name, indices_x, indices_y);
+        } else if (is_array(target, m)) {
+            auto raw_indices = m.get_composite(target).all_component_names();
+            auto indices = make_index_set(raw_indices);
+            m.component<Array<SimpleMHMove<MoveType>>>(move_name, indices);
+        } else {
+            m.component<SimpleMHMove<MoveType>>(move_name);
+        }
+    }
+
   public:
     MoveSet(tc::Model& m, tc::Address gm) : m(m), gm(gm) {}
 
@@ -55,24 +74,9 @@ class MoveSet {
         tc::Address target(gm, target_name);
         std::string move_name = "move_" + target_name;
         tc::PortAddress move_port("target", move_name);
-
-        // WARNING: assuming array or single for now
-        if (m.is_composite(target)) {
-            auto raw_indices = m.get_composite(target).all_component_names();
-            auto indices = make_index_set(raw_indices);
-            switch (move_type) {
-                case compoGM::scale:
-                    m.component<Array<SimpleMHMove<Scale>>>(move_name, indices);
-                    break;
-                case compoGM::shift:
-                    m.component<Array<SimpleMHMove<Shift>>>(move_name, indices);
-                    break;
-            }
-        } else {
-            switch (move_type) {
-                case compoGM::scale: m.component<SimpleMHMove<Scale>>(move_name); break;
-                case compoGM::shift: m.component<SimpleMHMove<Shift>>(move_name); break;
-            }
+        switch (move_type) {
+            case compoGM::scale: adaptive_create<Scale>(move_name, target); break;
+            case compoGM::shift: adaptive_create<Shift>(move_name, target); break;
         }
         switch (data_type) {
             case compoGM::integer: m.connect<ConnectMove<int>>(move_port, gm, target); break;

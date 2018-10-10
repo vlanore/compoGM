@@ -33,9 +33,9 @@ using NodeName = std::string;
 using NameSet = std::set<NodeName>;
 using Edge = std::pair<const NodeName, NodeName>;
 
-NodeName edge_origin(Edge& edge) { return tc::Address(edge.first).first(); }
+NodeName edge_origin(Edge& edge) { return tc::Address(edge.first).to_string(); }
 
-NodeName edge_dest(Edge& edge) { return tc::Address(edge.second).first(); }
+NodeName edge_dest(Edge& edge) { return tc::Address(edge.second).to_string(); }
 
 NodeName first_part(NodeName name) { return tc::Address(name).first(); }
 
@@ -56,6 +56,11 @@ bool is_matrix(tc::Address a, const tc::Model& m) {
 }
 
 bool is_array(tc::Address a, const tc::Model& m) { return !is_matrix(a, m) and m.is_composite(a); }
+
+IndexSet get_array_indices(tc::Address a, const tc::Model& m) {
+    auto names = m.get_composite(a).all_component_names();
+    return make_index_set(names);
+}
 
 template <class T>
 bool has_type(tc::Address a, const tc::Model& m) {

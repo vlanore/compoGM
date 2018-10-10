@@ -84,7 +84,7 @@ struct AdaptiveConnect : tc::Meta {
 };
 
 template <typename ValueType>
-struct ConnectMove : tc::Meta {
+struct ConnectIndividualMove : tc::Meta {
     static void connect(tc::Model& m, tc::PortAddress move, tc::Address model, tc::Address target) {
         // getting digraph representation of graphical model
         auto& gmref = m.get_composite(model);
@@ -121,18 +121,20 @@ struct ConnectMove : tc::Meta {
                 for (auto e : edges) {
                     auto origin = edge_origin(e);
                     auto dest = edge_dest(e);
+                    // compoGM::p.message("Edge %s->%s has count %d", origin.c_str(), dest.c_str(),
+                    // targets.count(dest));
                     if (targets.count(dest) > 0) {  // points to a target
                         if (is_prob(origin, gmref)) {
-                            partial_blanket.insert(first_part(origin));
+                            partial_blanket.insert(origin);
                         } else if (is_det(origin, gmref)) {
-                            next_targets.insert(first_part(origin));
+                            next_targets.insert(origin);
                         }
                     }
                 }
-                compoGM::p.message("Targets are %s", nameset_to_string(targets).c_str());
-                compoGM::p.message(
-                    "Partial blanket is %s", nameset_to_string(partial_blanket).c_str());
-                compoGM::p.message("Det nodes are %s", nameset_to_string(next_targets).c_str());
+                // compoGM::p.message("Targets are %s", nameset_to_string(targets).c_str());
+                // compoGM::p.message(
+                //     "Partial blanket is %s", nameset_to_string(partial_blanket).c_str());
+                // compoGM::p.message("Det nodes are %s", nameset_to_string(next_targets).c_str());
 
                 auto recursive_call = compute_blanket(next_targets);
                 partial_blanket.insert(recursive_call.begin(), recursive_call.end());
@@ -141,16 +143,46 @@ struct ConnectMove : tc::Meta {
         };
 
         NameSet blanket = compute_blanket(NameSet{target_name_str});
-        compoGM::p.message("Blanket of %s is %s\n", target.to_string().c_str(),
-            nameset_to_string(blanket).c_str());
+        compoGM::p.message(
+            "Blanket of %s is %s", target.to_string().c_str(), nameset_to_string(blanket).c_str());
 
         // connect move to things
         m.connect<AdaptiveConnect<MoveToTarget<ValueType>>>(move, target);  // to target
 
         for (auto c : blanket) {
-            m.connect<AdaptiveConnect<DirectedLogProb, LogProbSelector::Direction>>(
-                tc::PortAddress("logprob", move.address), tc::Address(model, c),
-                LogProbSelector::Full);
+            m.connect<DirectedLogProb>(tc::PortAddress("logprob", move.address),
+                tc::Address(model, tc::Address(c)), LogProbSelector::Full);
+        }
+    }
+};
+
+template <typename ValueType>
+struct ConnectMove : tc::Meta {
+    static void connect(tc::Model& m, tc::PortAddress move, tc::Address model, tc::Address target) {
+        if (is_matrix(move.address, m)) {
+            auto& tc = m.get_composite(target);
+            auto raw_indices_x = tc.all_component_names(0, true);
+            auto indices_x = make_index_set(raw_indices_x);
+            auto raw_indices_y = tc.get_composite(raw_indices_x.front()).all_component_names();
+            auto indices_y = make_index_set(raw_indices_y);
+            for (auto x : indices_x) {
+                for (auto y : indices_y) {
+                    tc::Address element_address(x, y);
+                    m.connect<ConnectIndividualMove<ValueType>>(
+                        tc::PortAddress(move.prop, tc::Address(move.address, element_address)),
+                        model, tc::Address(target, element_address));
+                }
+            }
+
+        } else if (is_array(move.address, m)) {
+            auto target_adresses = m.get_composite(move.address).all_addresses();
+            for (auto address : target_adresses) {
+                m.connect<ConnectIndividualMove<ValueType>>(
+                    tc::PortAddress(move.prop, tc::Address(move.address, address)), model,
+                    tc::Address(target, address));
+            }
+        } else {
+            m.connect<ConnectIndividualMove<ValueType>>(move, model, target);
         }
     }
 };

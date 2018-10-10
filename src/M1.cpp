@@ -62,10 +62,8 @@ void compute(int argc, char** argv) {
     m.component<M1>("model", counts.genes, samples.conditions, make_index_set(counts.samples),
         counts.counts, samples.condition_mapping);
 
-    m.component<Matrix<SimpleMHMove<Scale>>>("moves", counts.genes, samples.conditions)
-        .connect<ManyToMany2D<MoveToTarget<double>>>("target", Address("model", "lambda"))
-        .connect<ManyToMany2D<DirectedLogProb>>(
-            "logprob", "poissonsuffstats", LogProbSelector::Full);
+    MoveSet ms(m, "model");
+    ms.add("log10(lambda)", scale);
 
     // assembly
     Assembly a(m);
