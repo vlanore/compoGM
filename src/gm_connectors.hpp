@@ -55,35 +55,26 @@ struct MoveToTarget : tc::Meta {
 template <class Connector, class... Args>
 struct AdaptiveConnect : tc::Meta {
     static void connect(tc::Model& m, tc::PortAddress user, tc::Address provider, Args... args) {
-        auto is_matrix = [&m](tc::Address a) {
-            if (m.is_composite(a)) {
-                auto& contents = m.get_composite(a);
-                if (contents.is_composite(contents.all_addresses().front().first())) {
-                    return true;
-                }
-            }
-            return false;
-        };
-        if (is_matrix(user.address)) {
-            if (is_matrix(provider)) {  // matrix to matrix
+        if (is_matrix(user.address, m)) {
+            if (is_matrix(provider, m)) {  // matrix to matrix
                 m.connect<ManyToMany2D<Connector>>(user, provider, args...);
-            } else if (m.is_composite(provider)) {  // matrix to vector
+            } else if (is_array(provider, m)) {  // matrix to vector
                 m.connect<ManyToMany<ManyToOne<Connector>>>(user, provider, args...);
             } else {  // matrix to component
                 m.connect<ManyToOne<ManyToOne<Connector>>>(user, provider, args...);
             }
-        } else if (m.is_composite(user.address)) {
-            if (is_matrix(provider)) {  // vector to matrix
+        } else if (is_array(user.address, m)) {
+            if (is_matrix(provider, m)) {  // vector to matrix
                 m.connect<ManyToMany<OneToMany<Connector>>>(user, provider, args...);
-            } else if (m.is_composite(provider)) {  // vector to vector
+            } else if (is_array(provider, m)) {  // vector to vector
                 m.connect<ManyToMany<Connector>>(user, provider, args...);
             } else {  // vector to component
                 m.connect<ManyToOne<Connector>>(user, provider, args...);
             }
         } else {
-            if (is_matrix(provider)) {  // component to matrix
+            if (is_matrix(provider, m)) {  // component to matrix
                 m.connect<OneToMany<OneToMany<Connector>>>(user, provider, args...);
-            } else if (m.is_composite(provider)) {  // component to vector
+            } else if (is_array(provider, m)) {  // component to vector
                 m.connect<OneToMany<Connector>>(user, provider, args...);
             } else {  // component to component
                 m.connect<Connector>(user, provider, args...);
@@ -119,26 +110,39 @@ struct ConnectMove : tc::Meta {
         f();
         NodeName target_name_str = target_name_in_model.to_string();
 
-        // FIXME considering a simple case where there are no deterministic nodes
-        // in this case the markov blanket is simply nodes pointing to the target
-        NameSet blanket;
-
         // Algorithm: blanket(targets, graph) =
         //   [prob nodes pointing to targets] U blanket([det nodes pointing to targets])
-        std::function<NameSet(NameSet)> compute_blanket = [edges](NameSet targets) {
-            NameSet partial_blanket, next_targets;
-            for (auto e: edges) {
-                if (targets.count(edge_dest(e)) > 1) { // points to a target
-                    if ()
+        std::function<NameSet(NameSet)> compute_blanket;
+        compute_blanket = [&compute_blanket, edges, gmref](NameSet targets) {
+            if (targets.size() == 0) {
+                return NameSet{};
+            } else {
+                NameSet partial_blanket, next_targets;
+                for (auto e : edges) {
+                    auto origin = edge_origin(e);
+                    auto dest = edge_dest(e);
+                    if (targets.count(dest) > 0) {  // points to a target
+                        if (is_prob(origin, gmref)) {
+                            partial_blanket.insert(first_part(origin));
+                        } else if (is_det(origin, gmref)) {
+                            next_targets.insert(first_part(origin));
+                        }
+                    }
                 }
-            }
-        }
+                compoGM::p.message("Targets are %s", nameset_to_string(targets).c_str());
+                compoGM::p.message(
+                    "Partial blanket is %s", nameset_to_string(partial_blanket).c_str());
+                compoGM::p.message("Det nodes are %s", nameset_to_string(next_targets).c_str());
 
-        for (auto e : edges) {
-            if (tc::Address(e.second).first() == target_name_str) {
-                blanket.insert(tc::Address(e.first).first());
+                auto recursive_call = compute_blanket(next_targets);
+                partial_blanket.insert(recursive_call.begin(), recursive_call.end());
+                return partial_blanket;
             }
-        }
+        };
+
+        NameSet blanket = compute_blanket(NameSet{target_name_str});
+        compoGM::p.message("Blanket of %s is %s\n", target.to_string().c_str(),
+            nameset_to_string(blanket).c_str());
 
         // connect move to things
         m.connect<AdaptiveConnect<MoveToTarget<ValueType>>>(move, target);  // to target
