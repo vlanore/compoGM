@@ -121,8 +121,6 @@ struct ConnectIndividualMove : tc::Meta {
                 for (auto e : edges) {
                     auto origin = edge_origin(e);
                     auto dest = edge_dest(e);
-                    // compoGM::p.message("Edge %s->%s has count %d", origin.c_str(), dest.c_str(),
-                    // targets.count(dest));
                     if (targets.count(dest) > 0) {  // points to a target
                         if (is_prob(origin, gmref)) {
                             partial_blanket.insert(origin);
@@ -131,11 +129,6 @@ struct ConnectIndividualMove : tc::Meta {
                         }
                     }
                 }
-                // compoGM::p.message("Targets are %s", nameset_to_string(targets).c_str());
-                // compoGM::p.message(
-                //     "Partial blanket is %s", nameset_to_string(partial_blanket).c_str());
-                // compoGM::p.message("Det nodes are %s", nameset_to_string(next_targets).c_str());
-
                 auto recursive_call = compute_blanket(next_targets);
                 partial_blanket.insert(recursive_call.begin(), recursive_call.end());
                 return partial_blanket;
