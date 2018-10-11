@@ -95,95 +95,40 @@ void compute(int argc, char** argv) {
     auto samples = parse_samples(data_location + "/samples.tsv");
     auto size_factors = parse_size_factors(data_location + "/size_factors.tsv");
     check_consistency(counts, samples, size_factors);
-    Partition all_genes(counts.genes, p.size);
-    IndexSet pgenes = all_genes.my_partition();
-    p.message("%d genes in partitioned gene list.", pgenes.size());
 
     // graphical model
-    p.message("Creating component model...");
-    m.component<M3>("model", pgenes, samples.conditions, make_index_set(counts.samples),
+    m.component<M3>("model", counts.genes, samples.conditions, make_index_set(counts.samples),
         counts.counts, samples.condition_mapping, size_factors.size_factors);
 
     // suffstats and metropolis hastings moves
-    m.component<Array<GammaShapeRateSuffstat>>("tau_suffstats", pgenes)
-        .connect<ManyToMany<OneToMany<UseValue>>>("values", Address("model", "tau"))
-        .connect<ArrayToValueArray>("a", Address("model", "1/alpha"))
-        .connect<ArrayToValueArray>("b", Address("model", "1/alpha"));
-
-    m.component<SimpleMHMove<Shift>>("move_a")
-        .connect<MoveToTarget<double>>("target", Address("model", "log10(a)"))
-        .connect<OneToMany<DirectedLogProb>>(
-            "logprob", Address("model", "log10(alpha)"), LogProbSelector::A);
-
-    m.component<SimpleMHMove<Shift>>("move_b")
-        .connect<MoveToTarget<double>>("target", Address("model", "log10(b)"))
-        .connect<OneToMany<DirectedLogProb>>(
-            "logprob", Address("model", "log10(alpha)"), LogProbSelector::A);
-
-    m.component<SimpleMHMove<Scale>>("move_sigma")
-        .connect<MoveToTarget<double>>("target", Address("model", "sigma"))
-        .connect<OneToMany<DirectedLogProb>>(
-            "logprob", Address("model", "log10(alpha)"), LogProbSelector::B);
-
-    m.component<Matrix<SimpleMHMove<Shift>>>("move_q", pgenes, samples.conditions)
-        .connect<ManyToMany2D<MoveToTarget<double>>>("target", Address("model", "log10(q)"))
-        .connect<ManyToMany<ArraysRevMap<DirectedLogProb>>>(
-            "logprob", Address("model", "K"), samples.condition_mapping, LogProbSelector::A);
-
-    m.component<Matrix<SimpleMHMove<Scale>>>("move_tau", pgenes, samples.samples)
-        .connect<ManyToMany2D<MoveToTarget<double>>>("target", Address("model", "tau"))
-        .connect<ManyToMany2D<DirectedLogProb>>(
-            "logprob", Address("model", "K"), LogProbSelector::A);
-
-    m.component<Array<SimpleMHMove<Shift>>>("move_alpha", pgenes)
-        .connect<ManyToMany<MoveToTarget<double>>>("target", Address("model", "log10(alpha)"))
-        .connect<ManyToMany<DirectedLogProb>>("logprob", "tau_suffstats", LogProbSelector::Full);
-    // .connect<ManyToMany<OneToMany<DirectedLogProb>>>(
-    //     "logprob", Address("model", "tau"), LogProbSelector::Full);
+    MoveSet ms(m, "model");
+    ms.add("log10(a)", shift);
+    ms.add("log10(b)", shift);
+    ms.add("sigma", scale);
+    ms.add("log10(q)", shift);
+    ms.add("tau", scale);
+    ms.add("log10(alpha)", shift);
 
     // assembly
-    p.message("Instantiating assembly...");
     Assembly a(m);
 
-    p.message("Preparations before running chain");
-    auto moves_all_but_alpha =
-        a.get_all<Move>(std::set<Address>{"move_q", "move_tau", "move_a", "move_b", "move_sigma"});
-    auto moves_alpha = a.get_all<Move>("move_alpha");
-    auto suffstats_tau = a.get_all<Proxy>("tau_suffstats");
+    auto moves = a.get_all<Move>().pointers();
     auto all_watched = a.get_all<Value<double>>(
         std::set<Address>{Address("model", "log10(q)"), Address("model", "log10(alpha)"),
             Address("model", "log10(a)"), Address("model", "log10(b)"), Address("model", "sigma")},
         "model");
-    a.get_model() = Model();  // deallocate model
 
-    p.message("Preparing trace");
     auto trace = make_trace(all_watched, "tmp" + to_string(p.rank) + ".dat");
     trace.header();
 
-    p.message("Running the chain");
     for (int iteration = 0; iteration < 5000; iteration++) {
-        for (int big_rep = 0; big_rep < 10; big_rep++) {
-            for (auto&& move : moves_all_but_alpha.pointers()) {
-                move->move(1.0);
-                move->move(0.1);
-                move->move(0.01);
-            }
-            for (auto&& ss : suffstats_tau.pointers()) { ss->acquire(); }
-            for (auto&& move : moves_alpha.pointers()) {
-                for (int rep = 0; rep < 10; rep++) {
-                    move->move(1.0);
-                    move->move(0.1);
-                    move->move(0.01);
-                }
-            }
-            for (auto&& ss : suffstats_tau.pointers()) { ss->release(); }
+        for (auto&& move : moves) {
+            move->move(1.0);
+            move->move(0.1);
+            move->move(0.01);
         }
         trace.line();
     }
 }
 
-int main(int argc, char** argv) {
-    auto threads = spawn(0, 1, compute, argc, argv);
-    join(threads);
-    // mpi_run(argc, argv, compute);
-}
+int main(int argc, char** argv) { compute(argc, argv); }
