@@ -85,10 +85,6 @@ void compute(int argc, char** argv) {
         }
         trace.line();
     }
-    // for (auto&& move : all_moves.pointers()) {
-    //     cerr << setprecision(3) << "Accept rate" << setw(40) << move->get_name() << "  -->  "
-    //          << move->accept_rate() * 100 << "%" << endl;
-    // }
 }
 
 int main(int argc, char** argv) { compute(argc, argv); }

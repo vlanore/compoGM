@@ -71,6 +71,8 @@ class MoveSet {
 
     void add(std::string target_name, compoGM::MoveType move_type,
         compoGM::DataType data_type = compoGM::fp) {
+        compoGM::p.message(
+            "Adding move on %s in model %s", target_name.c_str(), gm.to_string().c_str());
         tc::Address target(gm, target_name);
         std::string move_name = "move_" + target_name;
         tc::PortAddress move_port("target", move_name);

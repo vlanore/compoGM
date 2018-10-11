@@ -50,7 +50,12 @@ std::string nameset_to_string(NameSet s) {
 bool is_matrix(tc::Address a, const tc::Model& m) {
     if (m.is_composite(a)) {
         auto& contents = m.get_composite(a);
-        if (contents.is_composite(contents.all_addresses().front().first())) { return true; }
+        if (contents.size() == 0) {
+            compoGM::p.message("WARNING: %s is an empty composite!", a.to_string().c_str());
+            return false;
+        }
+        auto element = contents.all_addresses().front().first();
+        if (contents.is_composite(element)) { return true; }
     }
     return false;
 }

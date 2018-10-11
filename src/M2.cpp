@@ -3,7 +3,7 @@ Contributors:
 * Vincent LANORE - vincent.lanore@univ-lyon1.fr
 
 This software is a component-based library to write bayesian inference programs based on the
-graphical model.
+graphical m.
 
 This software is governed by the CeCILL-C license under French law and abiding by the rules of
 distribution of free software. You can use, modify and/ or redistribute the software under the terms
@@ -25,22 +25,17 @@ more generally, to use and operate it in the same conditions as regards security
 The fact that you are presently reading this means that you have had knowledge of the CeCILL-C
 license and that you accept its terms.*/
 
-#include <iomanip>
 #include "compoGM.hpp"
-#include "partition.hpp"
-#include "thread_helpers.hpp"
 
 using namespace std;
 using namespace compoGM;
-using DUse = Use<Value<double>>;
 
 struct M2 : public Composite {
     static void contents(Model& m, IndexSet& genes, IndexSet& conditions, IndexSet& samples,
         map<string, map<string, int>>& counts, IndexMapping& condition_mapping,
         map<string, double>& size_factors) {
         m.component<Matrix<OrphanNormal>>("log10(q)", genes, conditions, 1, 3, 1.5);
-        m.component<Matrix<DeterministicUnaryNode<double>>>(
-             "q", genes, conditions, [](double a) { return pow(10, a); })
+        m.component<Matrix<Power10>>("q", genes, conditions)
             .connect<MatrixToValueMatrix>("a", "log10(q)");
 
         m.component<Array<OrphanNormal>>("log10(alpha)", genes, 1, -2, 2);
@@ -58,7 +53,7 @@ struct M2 : public Composite {
         m.component<Matrix<DeterministicTernaryNode<double>>>(
              "lambda", genes, samples, [](double a, double b, double c) { return a * b * c; })
             .connect<MatrixColumnsToValueArray>("a", "sf")
-            .connect<ManyToMany<ArraysMap<DUse>>>("b", "q", condition_mapping)
+            .connect<ManyToMany<ArraysMap<UseValue>>>("b", "q", condition_mapping)
             .connect<MatrixToValueMatrix>("c", "tau");
 
         m.component<Matrix<Poisson>>("K", genes, samples, 0)
@@ -72,89 +67,43 @@ void compute(int argc, char** argv) {
         cerr << "usage:\n\tM2_bin <data_location>\n";
         exit(1);
     }
-    Assembly assembly;
-    {
-        Model& model = assembly.get_model();
+    Model m;
 
-        // Parsing data files
-        string data_location = argv[1];
-        auto counts = parse_counts(data_location + "/counts.tsv");
-        auto samples = parse_samples(data_location + "/samples.tsv");
-        auto size_factors = parse_size_factors(data_location + "/size_factors.tsv");
-        check_consistency(counts, samples, size_factors);
-        Partition all_genes(counts.genes, p.size);
-        IndexSet pgenes = all_genes.my_partition();
-        p.message("%d genes in partitioned gene list.", pgenes.size());
+    // Parsing data files
+    string data_location = argv[1];
+    auto counts = parse_counts(data_location + "/counts.tsv");
+    auto samples = parse_samples(data_location + "/samples.tsv");
+    auto size_factors = parse_size_factors(data_location + "/size_factors.tsv");
+    check_consistency(counts, samples, size_factors);
 
-        // graphical model
-        p.message("Creating component model...");
-        model.component<M2>("model", pgenes, samples.conditions, make_index_set(counts.samples),
-            counts.counts, samples.condition_mapping, size_factors.size_factors);
+    // graphical model
+    m.component<M2>("model", counts.genes, samples.conditions, make_index_set(counts.samples),
+        counts.counts, samples.condition_mapping, size_factors.size_factors);
 
-        // suffstats and metropolis hastings moves
-        model.component<Array<GammaShapeRateSuffstat>>("tau_suffstats", pgenes)
-            .connect<ManyToMany<OneToMany<DUse>>>("values", Address("model", "tau"))
-            .connect<ArrayToValueArray>("a", Address("model", "1/alpha"))
-            .connect<ArrayToValueArray>("b", Address("model", "1/alpha"));
+    // suffstats and metropolis hastings moves
+    MoveSet ms(m, "model");
+    ms.add("tau", scale);
+    ms.add("log10(alpha)", shift);
+    ms.add("log10(q)", shift);
 
-        model.component<Matrix<SimpleMHMove<Shift>>>("move_q", pgenes, samples.conditions)
-            .connect<ManyToMany2D<MoveToTarget<double>>>("target", Address("model", "log10(q)"))
-            .connect<ManyToMany<ArraysRevMap<DirectedLogProb>>>(
-                "logprob", Address("model", "K"), samples.condition_mapping, LogProbSelector::A);
+    Assembly a(m);
 
-        model.component<Matrix<SimpleMHMove<Scale>>>("move_tau", pgenes, samples.samples)
-            .connect<ManyToMany2D<MoveToTarget<double>>>("target", Address("model", "tau"))
-            .connect<ManyToMany2D<DirectedLogProb>>(
-                "logprob", Address("model", "K"), LogProbSelector::A);
-
-        model.component<Array<SimpleMHMove<Shift>>>("move_alpha", pgenes)
-            .connect<ManyToMany<MoveToTarget<double>>>("target", Address("model", "log10(alpha)"))
-            .connect<ManyToMany<DirectedLogProb>>(
-                "logprob", "tau_suffstats", LogProbSelector::Full);
-        // .connect<ManyToMany<OneToMany<DirectedLogProb>>>(
-        //     "logprob", Address("model", "tau"), LogProbSelector::Full);
-
-        // assembly
-        p.message("Instantiating assembly...");
-        assembly.instantiate();
-    }
-
-    p.message("Preparations before running chain");
-    auto moves_q_tau = assembly.get_all<Move>(std::set<Address>{"move_q", "move_tau"});
-    auto moves_alpha = assembly.get_all<Move>("move_alpha");
-    auto suffstats_tau = assembly.get_all<Proxy>("tau_suffstats");
-    auto all_watched = assembly.get_all<Value<double>>(
+    auto moves = a.get_all<Move>().pointers();
+    auto all_watched = a.get_all<Value<double>>(
         std::set<Address>{Address("model", "log10(q)"), Address("model", "log10(alpha)")}, "model");
-    assembly.get_model() = Model();
 
     // trace header
     auto trace = make_trace(all_watched, "tmp" + to_string(p.rank) + ".dat");
     trace.header();
 
-    p.message("Running the chain");
     for (int iteration = 0; iteration < 5000; iteration++) {
-        for (int big_rep = 0; big_rep < 10; big_rep++) {
-            for (auto&& move : moves_q_tau.pointers()) {
-                move->move(1.0);
-                move->move(0.1);
-                move->move(0.01);
-            }
-            for (auto&& ss : suffstats_tau.pointers()) { ss->acquire(); }
-            for (auto&& move : moves_alpha.pointers()) {
-                for (int rep = 0; rep < 10; rep++) {
-                    move->move(1.0);
-                    move->move(0.1);
-                    move->move(0.01);
-                }
-            }
-            for (auto&& ss : suffstats_tau.pointers()) { ss->release(); }
+        for (auto&& move : moves) {
+            move->move(1.0);
+            move->move(0.1);
+            move->move(0.01);
         }
         trace.line();
     }
 }
 
-int main(int argc, char** argv) {
-    auto threads = spawn(0, 1, compute, argc, argv);
-    join(threads);
-    // mpi_run(argc, argv, compute);
-}
+int main(int argc, char** argv) { compute(argc, argv); }
