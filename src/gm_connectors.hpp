@@ -50,39 +50,6 @@ struct MoveToTarget : tc::Meta {
     }
 };
 
-// move that connects two components of possibly varying dimensions (component, array or matrix for
-// each) by using the correct connector
-template <class Connector, class... Args>
-struct AdaptiveConnect : tc::Meta {
-    static void connect(tc::Model& m, tc::PortAddress user, tc::Address provider, Args... args) {
-        if (is_matrix(user.address, m)) {
-            if (is_matrix(provider, m)) {  // matrix to matrix
-                m.connect<ManyToMany2D<Connector>>(user, provider, args...);
-            } else if (is_array(provider, m)) {  // matrix to vector
-                m.connect<ManyToMany<ManyToOne<Connector>>>(user, provider, args...);
-            } else {  // matrix to component
-                m.connect<ManyToOne<ManyToOne<Connector>>>(user, provider, args...);
-            }
-        } else if (is_array(user.address, m)) {
-            if (is_matrix(provider, m)) {  // vector to matrix
-                m.connect<ManyToMany<OneToMany<Connector>>>(user, provider, args...);
-            } else if (is_array(provider, m)) {  // vector to vector
-                m.connect<ManyToMany<Connector>>(user, provider, args...);
-            } else {  // vector to component
-                m.connect<ManyToOne<Connector>>(user, provider, args...);
-            }
-        } else {
-            if (is_matrix(provider, m)) {  // component to matrix
-                m.connect<OneToMany<OneToMany<Connector>>>(user, provider, args...);
-            } else if (is_array(provider, m)) {  // component to vector
-                m.connect<OneToMany<Connector>>(user, provider, args...);
-            } else {  // component to component
-                m.connect<Connector>(user, provider, args...);
-            }
-        }
-    }
-};
-
 template <typename ValueType>
 struct ConnectIndividualMove : tc::Meta {
     static void connect(tc::Model& m, tc::PortAddress move, tc::Address model, tc::Address target) {
@@ -140,7 +107,7 @@ struct ConnectIndividualMove : tc::Meta {
             "Blanket of %s is %s", target.to_string().c_str(), nameset_to_string(blanket).c_str());
 
         // connect move to things
-        m.connect<AdaptiveConnect<MoveToTarget<ValueType>>>(move, target);  // to target
+        m.connect<MoveToTarget<ValueType>>(move, target);  // to target
 
         for (auto c : blanket) {
             m.connect<DirectedLogProb>(tc::PortAddress("logprob", move.address),
