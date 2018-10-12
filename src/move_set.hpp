@@ -33,56 +33,68 @@ license and that you accept its terms.*/
 #include "moves.hpp"
 #include "tinycompo.hpp"
 
+class MoveSet;
+
 namespace compoGM {
     enum MoveType { scale, shift };
     enum DataType { integer, fp };
+
+
+    struct _MoveDecl {
+        std::string target_name;
+        compoGM::MoveType move_type;
+        compoGM::DataType data_type;
+    };
 }  // namespace compoGM
 
-// class _MoveDecl {
-//     compoGM::MoveType move_type;
-//     compoGM::DataType data_type;
-// };
-
 class MoveSet {
-    tc::Model& m;
+    tc::Model& model;
     tc::Address gm;
-    // std::vector<_MoveDecl> moves;
+    std::vector<compoGM::_MoveDecl> moves;
 
     template <class MoveType>
-    void adaptive_create(std::string move_name, tc::Address target) {
-        if (is_matrix(target, m)) {
-            auto& tc = m.get_composite(target);
+    void adaptive_create(std::string move_name, tc::Address target) const {
+        if (is_matrix(target, model)) {
+            auto& tc = model.get_composite(target);
             auto raw_indices_x = tc.all_component_names(0, true);
             auto indices_x = make_index_set(raw_indices_x);
             auto raw_indices_y = tc.get_composite(raw_indices_x.front()).all_component_names();
             auto indices_y = make_index_set(raw_indices_y);
-            m.component<Matrix<SimpleMHMove<MoveType>>>(move_name, indices_x, indices_y);
-        } else if (is_array(target, m)) {
-            auto raw_indices = m.get_composite(target).all_component_names();
+            model.component<Matrix<SimpleMHMove<MoveType>>>(move_name, indices_x, indices_y);
+        } else if (is_array(target, model)) {
+            auto raw_indices = model.get_composite(target).all_component_names();
             auto indices = make_index_set(raw_indices);
-            m.component<Array<SimpleMHMove<MoveType>>>(move_name, indices);
+            model.component<Array<SimpleMHMove<MoveType>>>(move_name, indices);
         } else {
-            m.component<SimpleMHMove<MoveType>>(move_name);
+            model.component<SimpleMHMove<MoveType>>(move_name);
         }
     }
 
   public:
-    MoveSet(tc::Model& m, tc::Address gm) : m(m), gm(gm) {}
+    MoveSet(tc::Model& model, tc::Address gm) : model(model), gm(gm) {}
 
     void add(std::string target_name, compoGM::MoveType move_type,
         compoGM::DataType data_type = compoGM::fp) {
-        compoGM::p.message(
-            "Adding move on %s in model %s", target_name.c_str(), gm.to_string().c_str());
-        tc::Address target(gm, target_name);
-        std::string move_name = "move_" + target_name;
-        tc::PortAddress move_port("target", move_name);
-        switch (move_type) {
-            case compoGM::scale: adaptive_create<Scale>(move_name, target); break;
-            case compoGM::shift: adaptive_create<Shift>(move_name, target); break;
-        }
-        switch (data_type) {
-            case compoGM::integer: m.connect<ConnectMove<int>>(move_port, gm, target); break;
-            case compoGM::fp: m.connect<ConnectMove<double>>(move_port, gm, target); break;
+        moves.push_back({target_name, move_type, data_type});
+    }
+
+    void declare_moves() const {
+        for (auto m : moves) {
+            compoGM::p.message(
+                "Adding move on %s in model %s", m.target_name.c_str(), gm.to_string().c_str());
+            tc::Address target(gm, m.target_name);
+            std::string move_name = "move_" + m.target_name;
+            tc::PortAddress move_port("target", move_name);
+            switch (m.move_type) {
+                case compoGM::scale: adaptive_create<Scale>(move_name, target); break;
+                case compoGM::shift: adaptive_create<Shift>(move_name, target); break;
+            }
+            switch (m.data_type) {
+                case compoGM::integer:
+                    model.connect<ConnectMove<int>>(move_port, gm, target);
+                    break;
+                case compoGM::fp: model.connect<ConnectMove<double>>(move_port, gm, target); break;
+            }
         }
     }
 };

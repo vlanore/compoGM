@@ -1,6 +1,6 @@
 CPPFLAGS= -Wall -Wextra -O3 --std=c++11 -pthread -g
 
-all: test_bin M0_bin M1_bin M2_bin M3_bin
+all: test_bin M0_bin M0_mpi_bin M1_bin M2_bin M3_bin
 
 tinycompo.hpp:
 	@echo "Downloading tinycompo.hpp from github..."
@@ -13,7 +13,7 @@ csv-parser.hpp:
 	@echo "Done."
 
 %_bin: src/%.cpp tinycompo.hpp csv-parser.hpp src/*.hpp
-	$(CXX) -I. $(CPPFLAGS) $< -o $@
+	mpic++ -I. $(CPPFLAGS) $< -o $@
 
 .PHONY: clean
 clean:
@@ -26,6 +26,10 @@ test: test_bin
 .PHONY: m0
 m0: M0_bin
 	./$<
+
+.PHONY: m0_mpi
+m0_mpi: M0_mpi_bin
+	mpirun -np 3 ./$<
 
 .PHONY: m1
 m1: M1_bin
@@ -52,7 +56,7 @@ ready:
 	@echo "\033[1m\033[95mFormatting with clang-format...\033[0m"
 	@make format --no-print-directory
 	@echo "\033[1m\033[95m\nCompiling if necessary...\033[0m"
-	@make -j5 --no-print-directory
+	@make -j6 --no-print-directory
 	@echo "\033[1m\033[95m\nLaunching test...\033[0m"
 	@make test --no-print-directory
 	@echo "\033[1m\033[95m\nAll done, git status is:\033[0m"

@@ -25,7 +25,7 @@ more generally, to use and operate it in the same conditions as regards security
 The fact that you are presently reading this means that you have had knowledge of the CeCILL-C
 license and that you accept its terms.*/
 
-#include "compoGM.hpp"
+#include "compoGM_mpi.hpp"
 
 using namespace std;
 using namespace compoGM;
@@ -64,6 +64,7 @@ void compute(int argc, char** argv) {
 
     MoveSet ms(m, "model");
     ms.add("log10(lambda)", scale);
+    ms.declare_moves();
 
     // assembly
     Assembly a(m);

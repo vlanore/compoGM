@@ -108,6 +108,7 @@ void compute(int argc, char** argv) {
     ms.add("log10(q)", shift);
     ms.add("tau", scale);
     ms.add("log10(alpha)", shift);
+    ms.declare_moves();
 
     // assembly
     Assembly a(m);

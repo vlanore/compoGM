@@ -74,6 +74,7 @@ void compute(int, char**) {
     ms.master_add("alpha", scale);
     ms.master_add("mu", scale);
     ms.slave_add("lambda", scale);
+    ms.declare_moves();
 
     Assembly a(m);
 
