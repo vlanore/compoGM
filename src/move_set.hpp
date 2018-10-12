@@ -31,18 +31,27 @@ license and that you accept its terms.*/
 #include "introspection.hpp"
 #include "mcmc_moves.hpp"
 #include "moves.hpp"
+#include "suffstats.hpp"
 #include "tinycompo.hpp"
+using tc::Use;
 
 class MoveSet;
 
 namespace compoGM {
     enum MoveType { scale, shift };
     enum DataType { integer, fp };
+    enum SuffstatType { gamma_ss, gamma_sr, poisson };
 
     struct _MoveDecl {
         std::string target_name;
         compoGM::MoveType move_type;
         compoGM::DataType data_type;
+    };
+
+    struct _SuffstatDecl {
+        std::string target_name;
+        std::set<std::string> affected_moves;
+        SuffstatType type;
     };
 }  // namespace compoGM
 
@@ -50,6 +59,7 @@ class MoveSet {
     tc::Model& model;
     tc::Address gm;
     std::vector<compoGM::_MoveDecl> moves;
+    std::vector<compoGM::_SuffstatDecl> suffstats;
 
     template <class MoveType>
     void adaptive_create(std::string move_name, tc::Address target) const {
@@ -72,28 +82,58 @@ class MoveSet {
   public:
     MoveSet(tc::Model& model, tc::Address gm) : model(model), gm(gm) {}
 
-    void add(std::string target_name, compoGM::MoveType move_type,
+    void move(std::string target_name, compoGM::MoveType move_type,
         compoGM::DataType data_type = compoGM::fp) {
         moves.push_back({target_name, move_type, data_type});
     }
 
-    void declare_moves() const {
-        for (auto m : moves) {
-            compoGM::p.message(
-                "Adding move on %s in model %s", m.target_name.c_str(), gm.to_string().c_str());
-            tc::Address target(gm, m.target_name);
-            std::string move_name = "move_" + m.target_name;
-            tc::PortAddress move_port("target", move_name);
-            switch (m.move_type) {
-                case compoGM::scale: adaptive_create<Scale>(move_name, target); break;
-                case compoGM::shift: adaptive_create<Shift>(move_name, target); break;
-            }
-            switch (m.data_type) {
-                case compoGM::integer:
-                    model.connect<ConnectMove<int>>(move_port, gm, target);
-                    break;
-                case compoGM::fp: model.connect<ConnectMove<double>>(move_port, gm, target); break;
-            }
+    void suffstat(
+        std::string target_name, std::set<std::string> affected_moves, compoGM::SuffstatType type) {
+        suffstats.push_back({target_name, affected_moves, type});
+    }
+
+    void declare_suffstat(std::string target_name, std::set<std::string> affected_moves,
+        compoGM::SuffstatType type) const {
+        auto ssname = target_name + "_suffstats";
+        tc::Address target(gm, target_name);
+        switch (type) {  // declaring suffstat component
+            case compoGM::gamma_sr: model.component<GammaShapeRateSuffstat>(ssname); break;
+            case compoGM::gamma_ss: model.component<GammaShapeScaleSuffstat>(ssname); break;
+            case compoGM::poisson: model.component<PoissonSuffstat>(ssname); break;
         }
+        switch (type) {
+            case compoGM::gamma_sr:
+            case compoGM::gamma_ss:
+                model.connect<AdaptiveOneToMany<Use<Value<double>>>>(
+                    tc::PortAddress("values"), target);
+                break;
+            case compoGM::poisson:
+                model.connect<AdaptiveOneToMany<Use<Value<int>>>>(
+                    tc::PortAddress("values", ssname), target);
+                model.connect<Use<Value<int>>>(
+                    tc::PortAddress("lambda", ssname))  // TODO get address of parent!
+                    break;
+        }
+    }
+
+    void declare_move(std::string target_name, compoGM::MoveType move_type,
+        compoGM::DataType data_type = compoGM::fp) const {
+        compoGM::p.message(
+            "Adding move on %s in model %s", target_name.c_str(), gm.to_string().c_str());
+        tc::Address target(gm, target_name);
+        std::string move_name = "move_" + target_name;
+        tc::PortAddress move_port("target", move_name);
+        switch (move_type) {
+            case compoGM::scale: adaptive_create<Scale>(move_name, target); break;
+            case compoGM::shift: adaptive_create<Shift>(move_name, target); break;
+        }
+        switch (data_type) {
+            case compoGM::integer: model.connect<ConnectMove<int>>(move_port, gm, target); break;
+            case compoGM::fp: model.connect<ConnectMove<double>>(move_port, gm, target); break;
+        }
+    }
+
+    void declare_moves() const {
+        for (auto m : moves) { declare_move(m.target_name, m.move_type, m.data_type); }
     }
 };

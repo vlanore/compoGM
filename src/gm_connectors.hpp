@@ -40,6 +40,18 @@ struct DirectedLogProb {
     }
 };
 
+template <class C>
+struct AdaptiveOneToMany : tc::Meta {
+    static void connect(tc::Model& m, tc::PortAddress user, tc::Address provider) {
+        if (!m.is_composite(provider)) {
+            m.connect<C>(user, provider);
+        } else {
+            auto addresses = m.get_composite(provider).all_addresses();
+            for (auto address : addresses) { m.connect<C>(user, tc::Address(provider, address)); }
+        }
+    }
+};
+
 template <typename ValueType>
 struct MoveToTarget : tc::Meta {
     static void connect(tc::Model& m, tc::PortAddress move, tc::Address target) {

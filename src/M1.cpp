@@ -63,7 +63,7 @@ void compute(int argc, char** argv) {
         counts.counts, samples.condition_mapping);
 
     MoveSet ms(m, "model");
-    ms.add("log10(lambda)", scale);
+    ms.move("log10(lambda)", scale);
     ms.declare_moves();
 
     // assembly

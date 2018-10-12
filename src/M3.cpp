@@ -102,12 +102,12 @@ void compute(int argc, char** argv) {
 
     // suffstats and metropolis hastings moves
     MoveSet ms(m, "model");
-    ms.add("log10(a)", shift);
-    ms.add("log10(b)", shift);
-    ms.add("sigma", scale);
-    ms.add("log10(q)", shift);
-    ms.add("tau", scale);
-    ms.add("log10(alpha)", shift);
+    ms.move("log10(a)", shift);
+    ms.move("log10(b)", shift);
+    ms.move("sigma", scale);
+    ms.move("log10(q)", shift);
+    ms.move("tau", scale);
+    ms.move("log10(alpha)", shift);
     ms.declare_moves();
 
     // assembly
