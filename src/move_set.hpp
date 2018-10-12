@@ -39,7 +39,6 @@ namespace compoGM {
     enum MoveType { scale, shift };
     enum DataType { integer, fp };
 
-
     struct _MoveDecl {
         std::string target_name;
         compoGM::MoveType move_type;
