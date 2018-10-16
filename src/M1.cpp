@@ -64,28 +64,13 @@ void compute(int argc, char** argv) {
 
     MoveSet ms(m, "model");
     ms.move("log10(lambda)", scale);
+    // TODO support array of suffstats and/or addresses for targets (instead of just strings)!
+    // for (auto gene : counts.genes) {
+    //     ms.suffstat("K__" + gene, {"log10(lambda)__" + gene}, poisson);
+    // }
     ms.declare_moves();
 
-    // assembly
-    Assembly a(m);
-
-    auto all_lambdas = a.get_all<OrphanNormal>("model");
-    auto all_moves = a.get_all<SimpleMHMove<Scale>>();
-
-    // trace header
-    auto trace = make_trace(all_lambdas, "tmp" + to_string(p.rank) + ".dat");
-    trace.header();
-
-    for (int iteration = 0; iteration < 5000; iteration++) {
-        for (int rep = 0; rep < 10; rep++) {
-            for (auto&& move : all_moves.pointers()) {
-                move->move(1.0);
-                move->move(0.1);
-                move->move(0.01);
-            }
-        }
-        trace.line();
-    }
+    ms.go(5000, 10);
 }
 
 int main(int argc, char** argv) { compute(argc, argv); }

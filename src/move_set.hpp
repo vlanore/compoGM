@@ -177,7 +177,9 @@ class MoveSet {
         tc::Assembly a(model);
 
         // trace
-        auto trace = make_trace(a.get_all<Value<double>>("model"), "tmp.dat");
+        std::set<tc::Address> all_moved;
+        for (auto m : moves) { all_moved.insert(tc::Address(gm, m.target_name)); }
+        auto trace = make_trace(a.get_all<Value<double>>(all_moved), "tmp.dat");
         trace.header();
 
         // gathering pointers to everything

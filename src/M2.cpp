@@ -87,24 +87,7 @@ void compute(int argc, char** argv) {
     ms.move("log10(q)", shift);
     ms.declare_moves();
 
-    Assembly a(m);
-
-    auto moves = a.get_all<Move>().pointers();
-    auto all_watched = a.get_all<Value<double>>(
-        std::set<Address>{Address("model", "log10(q)"), Address("model", "log10(alpha)")}, "model");
-
-    // trace header
-    auto trace = make_trace(all_watched, "tmp" + to_string(p.rank) + ".dat");
-    trace.header();
-
-    for (int iteration = 0; iteration < 5000; iteration++) {
-        for (auto&& move : moves) {
-            move->move(1.0);
-            move->move(0.1);
-            move->move(0.01);
-        }
-        trace.line();
-    }
+    ms.go(5000, 10);
 }
 
 int main(int argc, char** argv) { compute(argc, argv); }
