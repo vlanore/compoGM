@@ -33,6 +33,7 @@ license and that you accept its terms.*/
 #include "moves.hpp"
 #include "suffstats.hpp"
 #include "tinycompo.hpp"
+#include "trace.hpp"
 using tc::Use;
 
 class MoveSet;
@@ -170,5 +171,49 @@ class MoveSet {
     void declare_moves() const {
         for (auto m : moves) { declare_move(m.target_name, m.move_type, m.data_type); }
         for (auto s : suffstats) { declare_suffstat(s.target_name, s.affected_moves, s.type); }
+    }
+
+    void go(int nb_iterations, int nb_rep) const {
+        tc::Assembly a(model);
+
+        // trace
+        auto trace = make_trace(a.get_all<Value<double>>("model"), "tmp.dat");
+        trace.header();
+
+        // gathering pointers to everything
+        std::set<tc::Address> all_moves;
+        for (auto m : moves) { all_moves.insert(tc::Address("move_" + m.target_name)); }
+        std::map<std::string, std::pair<Proxy*, std::vector<Move*>>> pointersets;
+        for (auto ss : suffstats) {
+            pointersets[ss.target_name].first = &a.at<Proxy>(ss.target_name + "_suffstats");
+            for (auto m : ss.affected_moves) {
+                all_moves.erase(tc::Address("move_" + m));
+                auto ptrs = a.get_all<Move>(std::set<tc::Address>{"move_" + m}).pointers();
+                auto& entry = pointersets.at(ss.target_name).second;
+                entry.insert(entry.end(), ptrs.begin(), ptrs.end());
+            }
+        }
+        auto other_moves = a.get_all<Move>(all_moves).pointers();
+
+        // go!
+        for (int iteration = 0; iteration < nb_iterations; iteration++) {
+            for (auto ps : pointersets) {
+                ps.second.first->acquire();
+                for (int rep = 0; rep < nb_rep; rep++) {
+                    for (auto m : ps.second.second) {
+                        m->move(1.0);
+                        m->move(0.1);
+                        m->move(0.01);
+                    }
+                }
+                ps.second.first->release();
+            }
+            for (auto m : other_moves) {
+                m->move(1.0);
+                m->move(0.1);
+                m->move(0.01);
+            }
+            trace.line();
+        }
     }
 };
