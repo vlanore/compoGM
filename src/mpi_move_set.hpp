@@ -36,11 +36,11 @@ class MPIMoveSet : public MoveSet {
 
     template <class... Args>
     void master_add(Args&&... args) {
-        if (compoGM::p.rank == 0) { add(std::forward<Args>(args)...); }
+        if (compoGM::p.rank == 0) { move(std::forward<Args>(args)...); }
     }
 
     template <class... Args>
     void slave_add(Args&&... args) {
-        if (compoGM::p.rank != 0) { add(std::forward<Args>(args)...); }
+        if (compoGM::p.rank != 0) { move(std::forward<Args>(args)...); }
     }
 };

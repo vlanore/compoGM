@@ -106,12 +106,13 @@ class MoveSet {
         tc::Introspector i(model.get_composite(gm));
         auto target_in_gm = tc::Address(target_name);
         auto edges = i.directed_binops();
-        std::vector<tc::Address> parents;
+        std::set<std::pair<std::string, tc::Address>> parents;
         for (auto edge : edges) {
-            std::cout << "Found edge from " << edge.first.address.to_string() << " to "
-                      << edge.second.to_string() << "\n";
-            if (target_in_gm.is_ancestor(edge.first.address)) { std::cout << "Selected edge!\n"; }
+            if (target_in_gm.is_ancestor(edge.first.address)) {
+                parents.insert({edge.first.prop, edge.second});
+            }
         }
+        for (auto p : parents) { std::cout << "Parent " << p.first << " is " << p.second << "\n"; }
 
         switch (type) {
             case compoGM::gamma_sr:
