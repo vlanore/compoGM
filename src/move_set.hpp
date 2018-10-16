@@ -103,23 +103,21 @@ class MoveSet {
         }
 
         // computing target's parents
-        tc::Introspector i(model);
+        tc::Introspector i(model.get_composite(gm));
+        auto target_in_gm = tc::Address(target_name);
         auto edges = i.directed_binops();
         std::vector<tc::Address> parents;
         for (auto edge : edges) {
-            std::cout << "Found edge from " << target.to_string() << " to "
+            std::cout << "Found edge from " << edge.first.address.to_string() << " to "
                       << edge.second.to_string() << "\n";
-            if (edge.first.address == target) {
-                std::cout << "Selected edge from " << target.to_string() << " to "
-                          << edge.second.to_string() << "\n";
-            }
+            if (target_in_gm.is_ancestor(edge.first.address)) { std::cout << "Selected edge!\n"; }
         }
 
         switch (type) {
             case compoGM::gamma_sr:
             case compoGM::gamma_ss:
                 model.connect<AdaptiveOneToMany<Use<Value<double>>>>(
-                    tc::PortAddress("values"), target);
+                    tc::PortAddress("values", ssname), target);
                 break;
             case compoGM::poisson:
                 model.connect<AdaptiveOneToMany<Use<Value<int>>>>(

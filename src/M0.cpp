@@ -61,7 +61,7 @@ void compute(int, char**) {
     ms.move("alpha", scale);
     ms.move("mu", scale);
     ms.move("lambda", scale);
-    ms.suffstat("K", {"lambda"}, poisson);
+    ms.suffstat("lambda", {"alpha", "mu"}, gamma_ss);
     ms.declare_moves();
 
     Assembly a(m);
