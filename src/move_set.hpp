@@ -101,6 +101,20 @@ class MoveSet {
             case compoGM::gamma_ss: model.component<GammaShapeScaleSuffstat>(ssname); break;
             case compoGM::poisson: model.component<PoissonSuffstat>(ssname); break;
         }
+
+        // computing target's parents
+        tc::Introspector i(model);
+        auto edges = i.directed_binops();
+        std::vector<tc::Address> parents;
+        for (auto edge : edges) {
+            std::cout << "Found edge from " << target.to_string() << " to "
+                      << edge.second.to_string() << "\n";
+            if (edge.first.address == target) {
+                std::cout << "Selected edge from " << target.to_string() << " to "
+                          << edge.second.to_string() << "\n";
+            }
+        }
+
         switch (type) {
             case compoGM::gamma_sr:
             case compoGM::gamma_ss:
@@ -110,9 +124,9 @@ class MoveSet {
             case compoGM::poisson:
                 model.connect<AdaptiveOneToMany<Use<Value<int>>>>(
                     tc::PortAddress("values", ssname), target);
-                model.connect<Use<Value<int>>>(
-                    tc::PortAddress("lambda", ssname))  // TODO get address of parent!
-                    break;
+                // model.connect<Use<Value<int>>>(
+                // tc::PortAddress("lambda", ssname))  // TODO get address of parent!
+                break;
         }
     }
 
@@ -135,5 +149,6 @@ class MoveSet {
 
     void declare_moves() const {
         for (auto m : moves) { declare_move(m.target_name, m.move_type, m.data_type); }
+        for (auto s : suffstats) { declare_suffstat(s.target_name, s.affected_moves, s.type); }
     }
 };
