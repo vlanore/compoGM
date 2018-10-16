@@ -64,16 +64,25 @@ void compute(int, char**) {
     ms.suffstat("lambda", {"alpha", "mu"}, gamma_ss);
     ms.declare_moves();
 
-    m.dot_to_file();
     Assembly a(m);
 
-    auto moves = a.get_all<Move>().pointers();
+    auto lambda_moves = a.get_all<Move>("move_lambda").pointers();
+    auto other_moves = a.get_all<Move>(std::set<Address>{"move_mu", "move_alpha"}).pointers();
     auto ss = a.get_all<Proxy>().pointers();
     auto trace = make_trace(a.get_all<Value<double>>("model"), "tmp.dat");
     trace.header();
 
     for (int iteration = 0; iteration < 50000; iteration++) {
-        for (auto& move : moves) {
+        for (auto& s : ss) { s->acquire(); }
+        for (int i = 0; i < 10; i++) {
+            for (auto& move : other_moves) {
+                move->move(1.0);
+                move->move(0.1);
+                move->move(0.01);
+            }
+        }
+        for (auto& s : ss) { s->release(); }
+        for (auto& move : lambda_moves) {
             move->move(1.0);
             move->move(0.1);
             move->move(0.01);

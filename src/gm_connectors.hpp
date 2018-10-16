@@ -124,10 +124,6 @@ struct ConnectIndividualMove : tc::Meta {
             m.connect<DirectedLogProb>(tc::PortAddress("logprob", move.address),
                 tc::Address(model, tc::Address(c)), LogProbSelector::Full);
         }
-        for (auto ss : use_ss) {
-            m.connect<DirectedLogProb>(
-                tc::PortAddress("logprob", move.address), ss.second, LogProbSelector::Full);
-        }
     }
 };
 
