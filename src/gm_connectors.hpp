@@ -64,35 +64,28 @@ struct MoveToTarget : tc::Meta {
 
 template <typename ValueType>
 struct ConnectIndividualMove : tc::Meta {
-    static void connect(tc::Model& m, tc::PortAddress move, tc::Address model, tc::Address target) {
+    static void connect(tc::Model& m, tc::PortAddress move, tc::Address model, tc::Address target,
+        std::map<tc::Address, tc::Address> use_ss = {}) {  // use_ss is target->ss
         // getting digraph representation of graphical model
         auto& gmref = m.get_composite(model);
         auto digraph =
             gmref.get_digraph();  // digraph of all components inside graphical model composite
         auto vertices = digraph.first;
         auto edges = digraph.second;
+        NodeName target_name_str = target.rebase(model).to_string();  // address of target in model
 
-        // getting address of target in model (TODO: should probably be refactored into
-        // tinycompo)
-        auto tmp = model;
-        auto target_name_in_model = target;
-        auto f = [&]() {
-            if (target_name_in_model.first() == tmp.first()) {
-                target_name_in_model = target_name_in_model.rest();
-                tmp = tmp.rest();
-            } else {
-                std::cerr << "Error in ConnectMove: target is not in model!\n";
-                exit(1);
+        // ss-related preparation
+        auto is_supported = [use_ss](std::string n) {
+            for (auto ss : use_ss) {
+                if (ss.first.is_ancestor(tc::Address(n))) { return true; }
             }
+            return false;
         };
-        while (model.is_composite()) { f(); }
-        f();
-        NodeName target_name_str = target_name_in_model.to_string();
 
         // Algorithm: blanket(targets, graph) =
         //   [prob nodes pointing to targets] U blanket([det nodes pointing to targets])
-        std::function<NameSet(NameSet)> compute_blanket;
-        compute_blanket = [&compute_blanket, edges, gmref](NameSet targets) {
+        std::function<NameSet(NameSet)> compute_blanket = [&compute_blanket, edges, gmref,
+                                                              is_supported](NameSet targets) {
             if (targets.size() == 0) {
                 return NameSet{};
             } else {
@@ -102,7 +95,13 @@ struct ConnectIndividualMove : tc::Meta {
                     auto dest = edge_dest(e);
                     if (targets.count(dest) > 0) {  // points to a target
                         if (is_prob(origin, gmref)) {
-                            partial_blanket.insert(origin);
+                            if (is_supported(origin)) {
+                                compoGM::p.message(
+                                    "Skipping %s in blanket because it is supported by a suffstat",
+                                    origin.c_str());
+                            } else {
+                                partial_blanket.insert(origin);
+                            }
                         } else if (is_det(origin, gmref)) {
                             next_targets.insert(origin);
                         }
@@ -125,19 +124,24 @@ struct ConnectIndividualMove : tc::Meta {
             m.connect<DirectedLogProb>(tc::PortAddress("logprob", move.address),
                 tc::Address(model, tc::Address(c)), LogProbSelector::Full);
         }
+        for (auto ss : use_ss) {
+            m.connect<DirectedLogProb>(
+                tc::PortAddress("logprob", move.address), ss.second, LogProbSelector::Full);
+        }
     }
 };
 
 template <typename ValueType>
 struct ConnectMove : tc::Meta {
-    static void connect(tc::Model& m, tc::PortAddress move, tc::Address model, tc::Address target) {
+    static void connect(tc::Model& m, tc::PortAddress move, tc::Address model, tc::Address target,
+        std::map<tc::Address, tc::Address> use_ss = {}) {
         if (is_matrix(move.address, m)) {
             auto& tc = m.get_composite(target);
             auto element_addresses = tc.all_addresses();
             for (auto element_address : element_addresses) {
                 m.connect<ConnectIndividualMove<ValueType>>(
                     tc::PortAddress(move.prop, tc::Address(move.address, element_address)), model,
-                    tc::Address(target, element_address));
+                    tc::Address(target, element_address), use_ss);
             }
 
         } else if (is_array(move.address, m)) {
@@ -145,10 +149,10 @@ struct ConnectMove : tc::Meta {
             for (auto address : target_adresses) {
                 m.connect<ConnectIndividualMove<ValueType>>(
                     tc::PortAddress(move.prop, tc::Address(move.address, address)), model,
-                    tc::Address(target, address));
+                    tc::Address(target, address), use_ss);
             }
         } else {
-            m.connect<ConnectIndividualMove<ValueType>>(move, model, target);
+            m.connect<ConnectIndividualMove<ValueType>>(move, model, target, use_ss);
         }
     }
 };

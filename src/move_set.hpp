@@ -60,6 +60,7 @@ class MoveSet {
     tc::Address gm;
     std::vector<compoGM::_MoveDecl> moves;
     std::vector<compoGM::_SuffstatDecl> suffstats;
+    std::map<tc::Address, std::pair<tc::Address, tc::Address>> ss_usage;  // move->(target, ss)
 
     template <class MoveType>
     void adaptive_create(std::string move_name, tc::Address target) const {
@@ -90,10 +91,14 @@ class MoveSet {
     void suffstat(
         std::string target_name, std::set<std::string> affected_moves, compoGM::SuffstatType type) {
         suffstats.push_back({target_name, affected_moves, type});
+        for (auto m : affected_moves) { ss_usage[m] = {target_name, target_name + "_suffstats"}; }
     }
 
     void declare_suffstat(std::string target_name, std::set<std::string> affected_moves,
         compoGM::SuffstatType type) const {
+        compoGM::p.message(
+            "Adding sufftsat on %s in model %s", target_name.c_str(), gm.to_string().c_str());
+
         auto ssname = target_name + "_suffstats";
         tc::Address target(gm, target_name);
         switch (type) {  // declaring suffstat component
@@ -106,13 +111,16 @@ class MoveSet {
         tc::Introspector i(model.get_composite(gm));
         auto target_in_gm = tc::Address(target_name);
         auto edges = i.directed_binops();
-        std::set<std::pair<std::string, tc::Address>> parents;
+        std::map<std::string, tc::Address> parents;
         for (auto edge : edges) {
             if (target_in_gm.is_ancestor(edge.first.address)) {
-                parents.insert({edge.first.prop, edge.second});
+                parents[edge.first.prop] = tc::Address(gm, edge.second);
             }
         }
-        for (auto p : parents) { std::cout << "Parent " << p.first << " is " << p.second << "\n"; }
+        for (auto p : parents) {
+            compoGM::p.message("Parent %s of %s is %s", p.first.c_str(), target.to_string().c_str(),
+                p.second.to_string().c_str());
+        }
 
         switch (type) {
             case compoGM::gamma_sr:
@@ -123,9 +131,14 @@ class MoveSet {
             case compoGM::poisson:
                 model.connect<AdaptiveOneToMany<Use<Value<int>>>>(
                     tc::PortAddress("values", ssname), target);
-                // model.connect<Use<Value<int>>>(
-                // tc::PortAddress("lambda", ssname))  // TODO get address of parent!
                 break;
+        }
+        for (auto p : parents) {
+            model.connect<Use<Value<double>>>(tc::PortAddress(p.first, ssname), p.second);
+        }
+        for (auto am : affected_moves) {
+            model.connect<DirectedLogProb>(
+                tc::PortAddress("logprob", "move_" + am), ssname, LogProbSelector::Full);
         }
     }
 
@@ -135,14 +148,22 @@ class MoveSet {
             "Adding move on %s in model %s", target_name.c_str(), gm.to_string().c_str());
         tc::Address target(gm, target_name);
         std::string move_name = "move_" + target_name;
-        tc::PortAddress move_port("target", move_name);
+        tc::PortAddress mp("target", move_name);
+
+        std::map<tc::Address, tc::Address> use_ss;
+        for (auto ss : ss_usage) {
+            if (ss.first == target_name) {
+                use_ss[tc::Address(ss.second.first)] = ss.second.second;
+            }
+        }
+
         switch (move_type) {
             case compoGM::scale: adaptive_create<Scale>(move_name, target); break;
             case compoGM::shift: adaptive_create<Shift>(move_name, target); break;
         }
         switch (data_type) {
-            case compoGM::integer: model.connect<ConnectMove<int>>(move_port, gm, target); break;
-            case compoGM::fp: model.connect<ConnectMove<double>>(move_port, gm, target); break;
+            case compoGM::integer: model.connect<ConnectMove<int>>(mp, gm, target, use_ss); break;
+            case compoGM::fp: model.connect<ConnectMove<double>>(mp, gm, target, use_ss); break;
         }
     }
 

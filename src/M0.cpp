@@ -64,9 +64,11 @@ void compute(int, char**) {
     ms.suffstat("lambda", {"alpha", "mu"}, gamma_ss);
     ms.declare_moves();
 
+    m.dot_to_file();
     Assembly a(m);
 
     auto moves = a.get_all<Move>().pointers();
+    auto ss = a.get_all<Proxy>().pointers();
     auto trace = make_trace(a.get_all<Value<double>>("model"), "tmp.dat");
     trace.header();
 
