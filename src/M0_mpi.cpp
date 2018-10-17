@@ -81,13 +81,13 @@ void compute(int, char**) {
     auto moves = a.get_all<Move>().pointers();
     auto proxies = a.get_all<Proxy>().pointers();
 
-    auto trace =
-        make_trace(a.get_all<Value<double>>("model"), "tmp" + std::to_string(p.rank) + ".dat");
+    auto trace = make_trace(a.get_all<Value<double>>("model"), "tmp" + to_string(p.rank) + ".dat");
     if (!p.rank) { trace.header(); }
 
     if (p.rank) {  // slaves broadcast their data
         for (auto proxy : proxies) { proxy->release(); }
     }
+    auto begin = chrono::high_resolution_clock::now();
     for (int iteration = 0; iteration < 50000; iteration++) {
         for (auto proxy : proxies) { proxy->acquire(); }
         for (auto move : moves) {
@@ -98,6 +98,11 @@ void compute(int, char**) {
         for (auto proxy : proxies) { proxy->release(); }
         if (!p.rank) { trace.line(); }
     }
+    auto end = chrono::high_resolution_clock::now();
+    double elapsed_time =
+        chrono::duration_cast<chrono::nanoseconds>(end - begin).count() / 1000000.;
+    compoGM::p.message(
+        "MCMC chain has finished in %fms (%fms/iteration)", elapsed_time, elapsed_time / 50000);
 }
 
 int main(int argc, char** argv) { mpi_run(argc, argv, compute); }
