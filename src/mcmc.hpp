@@ -27,6 +27,7 @@ license and that you accept its terms.*/
 
 #pragma once
 
+#include <chrono>
 #include "gm_connectors.hpp"
 #include "introspection.hpp"
 #include "mcmc_moves.hpp"
@@ -174,9 +175,10 @@ class MCMC {
     }
 
     void go(int nb_iterations, int nb_rep) const {
+        compoGM::p.message("Instantiating component assembly");
         tc::Assembly a(model);
 
-        // trace
+        compoGM::p.message("Setting up trace");
         std::set<tc::Address> all_moved;
         for (auto m : moves) { all_moved.insert(tc::Address(gm, m.target)); }
         auto trace = make_trace(a.get_all<Value<double>>(all_moved), "tmp.dat");
@@ -189,7 +191,7 @@ class MCMC {
         // debug
         std::stringstream schedule;
 
-        // gathering pointers to everything
+        compoGM::p.message("Gathering pointers to moves and suff stats");
         std::map<tc::Address, std::pair<Proxy*, std::vector<Move*>>> pointersets;
         for (auto ss : suffstats) {
             schedule << "\t* gather suff stats for " << ss.target
@@ -211,7 +213,8 @@ class MCMC {
         for (auto m : all_moves) { schedule << m << " "; }
         compoGM::p.message("Move schedule is:\n%s", schedule.str().c_str());
 
-        // go!
+        compoGM::p.message("Starting MCMC chain for %d iterations", nb_iterations);
+        auto begin = std::chrono::high_resolution_clock::now();
         for (int iteration = 0; iteration < nb_iterations; iteration++) {
             for (auto ps : pointersets) {
                 ps.second.first->acquire();
@@ -231,5 +234,8 @@ class MCMC {
             }
             trace.line();
         }
+        auto end = std::chrono::high_resolution_clock::now();
+        compoGM::p.message("MCMC chain has finished in %fms",
+            std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1000000.);
     }
 };

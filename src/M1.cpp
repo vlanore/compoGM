@@ -65,9 +65,9 @@ void compute(int argc, char** argv) {
     MCMC mcmc(m, "model");
     mcmc.move("log10(lambda)", scale);
     // TODO support array of suffstats and/or addresses for targets (instead of just strings)!
-    // for (auto gene : counts.genes) {
-    //     mcmc.suffstat("K__" + gene, {"log10(lambda)__" + gene}, poisson);
-    // }
+    for (auto gene : counts.genes) {
+        mcmc.suffstat("K__" + gene, {"log10(lambda)__" + gene}, poisson);
+    }
     mcmc.declare_moves();
 
     mcmc.go(5000, 10);
