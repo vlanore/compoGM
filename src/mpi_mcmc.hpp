@@ -27,12 +27,12 @@ license and that you accept its terms.*/
 
 #pragma once
 
-#include "move_set.hpp"
+#include "mcmc.hpp"
 #include "mpi_helpers.hpp"
 
-class MPIMoveSet : public MoveSet {
+class MpiMCMC : public MCMC {
   public:
-    MPIMoveSet(tc::Model& m, tc::Address gm) : MoveSet(m, gm) {}
+    MpiMCMC(tc::Model& m, tc::Address gm) : MCMC(m, gm) {}
 
     template <class... Args>
     void master_add(Args&&... args) {

@@ -57,14 +57,14 @@ void compute(int, char**) {
     Model m;
     m.component<M0>("model", experiments, samples, data);
 
-    MoveSet ms(m, "model");
-    ms.move("alpha", scale);
-    ms.move("mu", scale);
-    ms.move("lambda", scale);
-    ms.suffstat("lambda", {"alpha", "mu"}, gamma_ss);
-    ms.declare_moves();
+    MCMC mcmc(m, "model");
+    mcmc.move("alpha", scale);
+    mcmc.move("mu", scale);
+    mcmc.move("lambda", scale);
+    mcmc.suffstat("lambda", {"alpha", "mu"}, gamma_ss);
+    mcmc.declare_moves();
 
-    ms.go(50000, 10);
+    mcmc.go(50000, 10);
 }
 
 int main(int argc, char** argv) { compute(argc, argv); }

@@ -70,11 +70,11 @@ void compute(int, char**) {
     m.component<Gather>("lambda_handler", experiment_partition)
         .connect<OneToMany<UseValue>>("target", Address("model", "lambda"));
 
-    MPIMoveSet ms(m, "model");
-    ms.master_add("alpha", scale);
-    ms.master_add("mu", scale);
-    ms.slave_add("lambda", scale);
-    ms.declare_moves();
+    MpiMCMC mcmc(m, "model");
+    mcmc.master_add("alpha", scale);
+    mcmc.master_add("mu", scale);
+    mcmc.slave_add("lambda", scale);
+    mcmc.declare_moves();
 
     Assembly a(m);
 

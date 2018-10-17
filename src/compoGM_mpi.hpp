@@ -29,5 +29,5 @@ license and that you accept its terms.*/
 
 #include "compoGM.hpp"
 #include "mpi_helpers.hpp"
-#include "mpi_move_set.hpp"
+#include "mpi_mcmc.hpp"
 #include "mpi_proxies.hpp"

@@ -36,7 +36,7 @@ license and that you accept its terms.*/
 #include "trace.hpp"
 using tc::Use;
 
-class MoveSet;
+class MCMC;
 
 namespace compoGM {
     enum MoveType { scale, shift };
@@ -56,7 +56,7 @@ namespace compoGM {
     };
 }  // namespace compoGM
 
-class MoveSet {
+class MCMC {
     tc::Model& model;
     tc::Address gm;
     std::vector<compoGM::_MoveDecl> moves;
@@ -82,7 +82,7 @@ class MoveSet {
     }
 
   public:
-    MoveSet(tc::Model& model, tc::Address gm) : model(model), gm(gm) {}
+    MCMC(tc::Model& model, tc::Address gm) : model(model), gm(gm) {}
 
     void move(std::string target_name, compoGM::MoveType move_type,
         compoGM::DataType data_type = compoGM::fp) {

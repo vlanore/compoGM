@@ -62,15 +62,15 @@ void compute(int argc, char** argv) {
     m.component<M1>("model", counts.genes, samples.conditions, make_index_set(counts.samples),
         counts.counts, samples.condition_mapping);
 
-    MoveSet ms(m, "model");
-    ms.move("log10(lambda)", scale);
+    MCMC mcmc(m, "model");
+    mcmc.move("log10(lambda)", scale);
     // TODO support array of suffstats and/or addresses for targets (instead of just strings)!
     // for (auto gene : counts.genes) {
-    //     ms.suffstat("K__" + gene, {"log10(lambda)__" + gene}, poisson);
+    //     mcmc.suffstat("K__" + gene, {"log10(lambda)__" + gene}, poisson);
     // }
-    ms.declare_moves();
+    mcmc.declare_moves();
 
-    ms.go(5000, 10);
+    mcmc.go(5000, 10);
 }
 
 int main(int argc, char** argv) { compute(argc, argv); }
