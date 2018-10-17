@@ -44,14 +44,14 @@ namespace compoGM {
     enum SuffstatType { gamma_ss, gamma_sr, poisson };
 
     struct _MoveDecl {
-        std::string target_name;
+        tc::Address target;
         compoGM::MoveType move_type;
         compoGM::DataType data_type;
     };
 
     struct _SuffstatDecl {
-        std::string target_name;
-        std::set<std::string> affected_moves;
+        tc::Address target;
+        std::set<tc::Address> affected_moves;
         SuffstatType type;
     };
 }  // namespace compoGM
@@ -64,113 +64,113 @@ class MCMC {
     std::map<tc::Address, std::pair<tc::Address, tc::Address>> ss_usage;  // move->(target, ss)
 
     template <class MoveType>
-    void adaptive_create(std::string move_name, tc::Address target) const {
+    void adaptive_create(tc::Address move_address, tc::Address target) const {
         if (is_matrix(target, model)) {
             auto& tc = model.get_composite(target);
             auto raw_indices_x = tc.all_component_names(0, true);
             auto indices_x = make_index_set(raw_indices_x);
             auto raw_indices_y = tc.get_composite(raw_indices_x.front()).all_component_names();
             auto indices_y = make_index_set(raw_indices_y);
-            model.component<Matrix<SimpleMHMove<MoveType>>>(move_name, indices_x, indices_y);
+            model.component<Matrix<SimpleMHMove<MoveType>>>(move_address, indices_x, indices_y);
         } else if (is_array(target, model)) {
             auto raw_indices = model.get_composite(target).all_component_names();
             auto indices = make_index_set(raw_indices);
-            model.component<Array<SimpleMHMove<MoveType>>>(move_name, indices);
+            model.component<Array<SimpleMHMove<MoveType>>>(move_address, indices);
         } else {
-            model.component<SimpleMHMove<MoveType>>(move_name);
+            model.component<SimpleMHMove<MoveType>>(move_address);
         }
     }
 
   public:
     MCMC(tc::Model& model, tc::Address gm) : model(model), gm(gm) {}
 
-    void move(std::string target_name, compoGM::MoveType move_type,
+    void move(tc::Address target, compoGM::MoveType move_type,
         compoGM::DataType data_type = compoGM::fp) {
-        moves.push_back({target_name, move_type, data_type});
+        moves.push_back({target, move_type, data_type});
     }
 
     void suffstat(
-        std::string target_name, std::set<std::string> affected_moves, compoGM::SuffstatType type) {
-        suffstats.push_back({target_name, affected_moves, type});
-        for (auto m : affected_moves) { ss_usage[m] = {target_name, target_name + "_suffstats"}; }
+        tc::Address target, std::set<tc::Address> affected_moves, compoGM::SuffstatType type) {
+        suffstats.push_back({target, affected_moves, type});
+        for (auto m : affected_moves) { ss_usage[m] = {target, target.last() + "_suffstats"}; }
     }
 
-    void declare_suffstat(std::string target_name, std::set<std::string> affected_moves,
+    void declare_suffstat(tc::Address target, std::set<tc::Address> affected_moves,
         compoGM::SuffstatType type) const {
-        compoGM::p.message(
-            "Adding sufftsat on %s in model %s", target_name.c_str(), gm.to_string().c_str());
+        compoGM::p.message("Adding sufftsat on %s in model %s", target.c_str(), gm.c_str());
 
-        auto ssname = target_name + "_suffstats";
-        tc::Address target(gm, target_name);
+        tc::Address ss_address(target.to_string("-") + "_suffstats");
+        tc::Address target_glob(gm, target);
         switch (type) {  // declaring suffstat component
-            case compoGM::gamma_sr: model.component<GammaShapeRateSuffstat>(ssname); break;
-            case compoGM::gamma_ss: model.component<GammaShapeScaleSuffstat>(ssname); break;
-            case compoGM::poisson: model.component<PoissonSuffstat>(ssname); break;
+            case compoGM::gamma_sr: model.component<GammaShapeRateSuffstat>(ss_address); break;
+            case compoGM::gamma_ss: model.component<GammaShapeScaleSuffstat>(ss_address); break;
+            case compoGM::poisson: model.component<PoissonSuffstat>(ss_address); break;
         }
 
         // computing target's parents
         tc::Introspector i(model.get_composite(gm));
-        auto target_in_gm = tc::Address(target_name);
         auto edges = i.directed_binops();
-        std::map<std::string, tc::Address> parents;
+        std::map<std::string, tc::Address> parents;  // key is the portname associated to the parent
         for (auto edge : edges) {
-            if (target_in_gm.is_ancestor(edge.first.address)) {
+            if (target.is_ancestor(edge.first.address)) {
                 parents[edge.first.prop] = tc::Address(gm, edge.second);
             }
         }
         for (auto p : parents) {
-            compoGM::p.message("Parent %s of %s is %s", p.first.c_str(), target.to_string().c_str(),
-                p.second.to_string().c_str());
+            compoGM::p.message(
+                "Parent %s of %s is %s", p.first.c_str(), target.c_str(), p.second.c_str());
         }
 
         switch (type) {
             case compoGM::gamma_sr:
             case compoGM::gamma_ss:
                 model.connect<AdaptiveOneToMany<Use<Value<double>>>>(
-                    tc::PortAddress("values", ssname), target);
+                    tc::PortAddress("values", ss_address), target_glob);
                 break;
             case compoGM::poisson:
                 model.connect<AdaptiveOneToMany<Use<Value<int>>>>(
-                    tc::PortAddress("values", ssname), target);
+                    tc::PortAddress("values", ss_address), target_glob);
                 break;
         }
         for (auto p : parents) {
-            model.connect<Use<Value<double>>>(tc::PortAddress(p.first, ssname), p.second);
+            model.connect<Use<Value<double>>>(tc::PortAddress(p.first, ss_address), p.second);
         }
         for (auto am : affected_moves) {
+            tc::Address move_address(am.to_string("-") + "_move");
             model.connect<DirectedLogProb>(
-                tc::PortAddress("logprob", "move_" + am), ssname, LogProbSelector::Full);
+                tc::PortAddress("logprob", move_address), ss_address, LogProbSelector::Full);
         }
     }
 
-    void declare_move(std::string target_name, compoGM::MoveType move_type,
+    void declare_move(tc::Address target, compoGM::MoveType move_type,
         compoGM::DataType data_type = compoGM::fp) const {
-        compoGM::p.message(
-            "Adding move on %s in model %s", target_name.c_str(), gm.to_string().c_str());
-        tc::Address target(gm, target_name);
-        std::string move_name = "move_" + target_name;
-        tc::PortAddress mp("target", move_name);
+        compoGM::p.message("Adding move on %s in model %s", target.c_str(), gm.c_str());
+        tc::Address target_glob(gm, target);
+        tc::Address move_address(target.to_string("-") + "_move");
+        tc::PortAddress mp("target", move_address);
 
-        std::map<tc::Address, tc::Address> use_ss;
+        std::set<tc::Address> used_ss;
         for (auto ss : ss_usage) {
-            if (ss.first == target_name) {
-                use_ss[tc::Address(ss.second.first)] = ss.second.second;
-            }
+            if (ss.first == target) { used_ss.insert(ss.second.first); }
         }
 
         switch (move_type) {
-            case compoGM::scale: adaptive_create<Scale>(move_name, target); break;
-            case compoGM::shift: adaptive_create<Shift>(move_name, target); break;
+            case compoGM::scale: adaptive_create<Scale>(move_address, target_glob); break;
+            case compoGM::shift: adaptive_create<Shift>(move_address, target_glob); break;
         }
         switch (data_type) {
-            case compoGM::integer: model.connect<ConnectMove<int>>(mp, gm, target, use_ss); break;
-            case compoGM::fp: model.connect<ConnectMove<double>>(mp, gm, target, use_ss); break;
+            case compoGM::integer:
+                model.connect<ConnectMove<int>>(mp, gm, target_glob, used_ss);
+                break;
+            case compoGM::fp:
+                model.connect<ConnectMove<double>>(mp, gm, target_glob, used_ss);
+                break;
         }
     }
 
     void declare_moves() const {
-        for (auto m : moves) { declare_move(m.target_name, m.move_type, m.data_type); }
-        for (auto s : suffstats) { declare_suffstat(s.target_name, s.affected_moves, s.type); }
+        for (auto m : moves) { declare_move(m.target, m.move_type, m.data_type); }
+        for (auto s : suffstats) { declare_suffstat(s.target, s.affected_moves, s.type); }
     }
 
     void go(int nb_iterations, int nb_rep) const {
@@ -178,24 +178,38 @@ class MCMC {
 
         // trace
         std::set<tc::Address> all_moved;
-        for (auto m : moves) { all_moved.insert(tc::Address(gm, m.target_name)); }
+        for (auto m : moves) { all_moved.insert(tc::Address(gm, m.target)); }
         auto trace = make_trace(a.get_all<Value<double>>(all_moved), "tmp.dat");
         trace.header();
 
-        // gathering pointers to everything
+        // set of all moves, used to determine which ones are not covered by suffstats
         std::set<tc::Address> all_moves;
-        for (auto m : moves) { all_moves.insert(tc::Address("move_" + m.target_name)); }
-        std::map<std::string, std::pair<Proxy*, std::vector<Move*>>> pointersets;
+        for (auto m : moves) { all_moves.insert(tc::Address(m.target.to_string("-") + "_move")); }
+
+        // debug
+        std::stringstream schedule;
+
+        // gathering pointers to everything
+        std::map<tc::Address, std::pair<Proxy*, std::vector<Move*>>> pointersets;
         for (auto ss : suffstats) {
-            pointersets[ss.target_name].first = &a.at<Proxy>(ss.target_name + "_suffstats");
+            schedule << "\t* gather suff stats for " << ss.target
+                     << "\n\t* perfom the following moves " << nb_rep << " times: ";
+            pointersets[ss.target].first = &a.at<Proxy>(ss.target.to_string("-") + "_suffstats");
             for (auto m : ss.affected_moves) {
-                all_moves.erase(tc::Address("move_" + m));
-                auto ptrs = a.get_all<Move>(std::set<tc::Address>{"move_" + m}).pointers();
-                auto& entry = pointersets.at(ss.target_name).second;
+                tc::Address move_address(m.to_string("-") + "_move");
+                schedule << move_address << " ";
+
+                all_moves.erase(move_address);
+                auto ptrs = a.get_all<Move>(std::set<tc::Address>{move_address}).pointers();
+                auto& entry = pointersets.at(ss.target).second;
                 entry.insert(entry.end(), ptrs.begin(), ptrs.end());
             }
+            schedule << "\n\t* release suff stats for " << ss.target << "\n";
         }
         auto other_moves = a.get_all<Move>(all_moves).pointers();
+        schedule << "\t* perfom the following moves: ";
+        for (auto m : all_moves) { schedule << m << " "; }
+        compoGM::p.message("Move schedule is:\n%s", schedule.str().c_str());
 
         // go!
         for (int iteration = 0; iteration < nb_iterations; iteration++) {

@@ -65,7 +65,7 @@ struct MoveToTarget : tc::Meta {
 template <typename ValueType>
 struct ConnectIndividualMove : tc::Meta {
     static void connect(tc::Model& m, tc::PortAddress move, tc::Address model, tc::Address target,
-        std::map<tc::Address, tc::Address> use_ss = {}) {  // use_ss is target->ss
+        std::set<tc::Address> used_ss = {}) {  // use_ss is target->ss
         // getting digraph representation of graphical model
         auto& gmref = m.get_composite(model);
         auto digraph =
@@ -75,9 +75,9 @@ struct ConnectIndividualMove : tc::Meta {
         NodeName target_name_str = target.rebase(model).to_string();  // address of target in model
 
         // ss-related preparation
-        auto is_supported = [use_ss](std::string n) {
-            for (auto ss : use_ss) {
-                if (ss.first.is_ancestor(tc::Address(n))) { return true; }
+        auto is_supported = [used_ss](std::string n) {
+            for (auto move : used_ss) {
+                if (move.is_ancestor(tc::Address(n))) { return true; }
             }
             return false;
         };
@@ -130,14 +130,14 @@ struct ConnectIndividualMove : tc::Meta {
 template <typename ValueType>
 struct ConnectMove : tc::Meta {
     static void connect(tc::Model& m, tc::PortAddress move, tc::Address model, tc::Address target,
-        std::map<tc::Address, tc::Address> use_ss = {}) {
+        std::set<tc::Address> used_ss = {}) {
         if (is_matrix(move.address, m)) {
             auto& tc = m.get_composite(target);
             auto element_addresses = tc.all_addresses();
             for (auto element_address : element_addresses) {
                 m.connect<ConnectIndividualMove<ValueType>>(
                     tc::PortAddress(move.prop, tc::Address(move.address, element_address)), model,
-                    tc::Address(target, element_address), use_ss);
+                    tc::Address(target, element_address), used_ss);
             }
 
         } else if (is_array(move.address, m)) {
@@ -145,10 +145,10 @@ struct ConnectMove : tc::Meta {
             for (auto address : target_adresses) {
                 m.connect<ConnectIndividualMove<ValueType>>(
                     tc::PortAddress(move.prop, tc::Address(move.address, address)), model,
-                    tc::Address(target, address), use_ss);
+                    tc::Address(target, address), used_ss);
             }
         } else {
-            m.connect<ConnectIndividualMove<ValueType>>(move, model, target, use_ss);
+            m.connect<ConnectIndividualMove<ValueType>>(move, model, target, used_ss);
         }
     }
 };
