@@ -35,7 +35,8 @@ license and that you accept its terms.*/
 // abstraction that groups mpi processes and threads
 struct CE {
     static const std::vector<int> colors;
-    static bool master_only;
+    static bool master_and_ce1_only;
+    static bool silence_all;
     int rank{0}, size{0};
 
     template <class... Args>
@@ -45,7 +46,7 @@ struct CE {
         std::string normal = "\e[0m";
         std::string format2 = bold + "[" + color + "%d" + bold + "/" + color + "%d" + bold + "] " +
                               normal + format + "\n";
-        if (rank == 0 or not master_only) {
+        if (not silence_all and (rank == 0 or rank == 1 or not master_and_ce1_only)) {
             printf(format2.c_str(), rank, size, std::forward<Args>(args)...);
         }
     }
@@ -63,7 +64,8 @@ struct CE {
     }
 };
 
-bool CE::master_only = false;
+bool CE::master_and_ce1_only = false;
+bool CE::silence_all = false;
 
 const std::vector<int> CE::colors{31, 32, 33, 34, 35, 36, 91, 92, 93, 94, 95, 96};
 
