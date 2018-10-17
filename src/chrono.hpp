@@ -28,16 +28,25 @@ license and that you accept its terms.*/
 #pragma once
 
 #include <chrono>
+#include <vector>
 
 class Chrono {
     std::chrono::time_point<std::chrono::high_resolution_clock> _start;
+    std::vector<double> results;
 
   public:
     Chrono() : _start(std::chrono::high_resolution_clock::now()) {}
     void start() { _start = std::chrono::high_resolution_clock::now(); }
     double end() {
         auto end = std::chrono::high_resolution_clock::now();
-        return std::chrono::duration_cast<std::chrono::nanoseconds>(end - _start).count() /
-               1000000.;
+        double result =
+            std::chrono::duration_cast<std::chrono::nanoseconds>(end - _start).count() / 1000000.;
+        results.push_back(result);
+        return result;
+    }
+    double mean() const {
+        double sum = 0;
+        for (auto r : results) { sum += r; }
+        return sum / results.size();
     }
 };

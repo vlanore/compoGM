@@ -102,4 +102,7 @@ void compute(int, char**) {
         "MCMC chain has finished in %fms (%fms/iteration)", elapsed_time, elapsed_time / 1000);
 }
 
-int main(int argc, char** argv) { mpi_run(argc, argv, compute); }
+int main(int argc, char** argv) {
+    CE::master_only = true;
+    mpi_run(argc, argv, compute);
+}
