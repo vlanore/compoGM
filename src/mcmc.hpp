@@ -235,7 +235,9 @@ class MCMC {
             trace.line();
         }
         auto end = std::chrono::high_resolution_clock::now();
-        compoGM::p.message("MCMC chain has finished in %fms",
-            std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1000000.);
+        double elapsed_time =
+            std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1000000.;
+        compoGM::p.message("MCMC chain has finished in %fms (%fms/iteration)", elapsed_time,
+            elapsed_time / nb_iterations);
     }
 };
