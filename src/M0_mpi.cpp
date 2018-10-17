@@ -51,7 +51,7 @@ struct M0 : public Composite {
 
 void compute(int, char**) {
     IndexSet experiments = gen_indexset("e", (p.size - 1) * 10);
-    IndexSet samples = gen_indexset("s", 500);
+    IndexSet samples = gen_indexset("s", 5000);
     auto data = gen_data(experiments, samples);
     Partition experiment_partition(experiments, p.size - 1, 1);
     auto my_experiments = experiment_partition.my_partition();
@@ -89,7 +89,7 @@ void compute(int, char**) {
     Chrono total_time;
     Chrono computing_time;
     Chrono writing_time;
-    for (int iteration = 0; iteration < 1000; iteration++) {
+    for (int iteration = 0; iteration < 100; iteration++) {
         for (auto proxy : proxies) { proxy->acquire(); }
         computing_time.start();
         for (int i = 0; i < 10; i++) {
@@ -109,7 +109,7 @@ void compute(int, char**) {
     }
     double elapsed_time = total_time.end();
     compoGM::p.message(
-        "MCMC chain has finished in %fms (%fms/iteration)", elapsed_time, elapsed_time / 1000);
+        "MCMC chain has finished in %fms (%fms/iteration)", elapsed_time, elapsed_time / 100);
     compoGM::p.message("Average computing time is %fms", computing_time.mean());
     if (!p.rank) compoGM::p.message("Average writing time is %fms", writing_time.mean());
 }
