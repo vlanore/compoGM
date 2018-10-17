@@ -84,7 +84,7 @@ void compute(int, char**) {
         for (auto proxy : proxies) { proxy->release(); }
     }
     p.message("Go!");
-    auto begin = chrono::high_resolution_clock::now();
+    Chrono total_time;
     for (int iteration = 0; iteration < 1000; iteration++) {
         for (auto proxy : proxies) { proxy->acquire(); }
         for (int i = 0; i < 10; i++) {
@@ -97,9 +97,7 @@ void compute(int, char**) {
         for (auto proxy : proxies) { proxy->release(); }
         if (!p.rank) { trace.line(); }
     }
-    auto end = chrono::high_resolution_clock::now();
-    double elapsed_time =
-        chrono::duration_cast<chrono::nanoseconds>(end - begin).count() / 1000000.;
+    double elapsed_time = total_time.end();
     compoGM::p.message(
         "MCMC chain has finished in %fms (%fms/iteration)", elapsed_time, elapsed_time / 1000);
 }

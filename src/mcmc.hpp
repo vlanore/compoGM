@@ -27,7 +27,7 @@ license and that you accept its terms.*/
 
 #pragma once
 
-#include <chrono>
+#include "chrono.hpp"
 #include "gm_connectors.hpp"
 #include "introspection.hpp"
 #include "mcmc_moves.hpp"
@@ -214,7 +214,7 @@ class MCMC {
         compoGM::p.message("Move schedule is:\n%s", schedule.str().c_str());
 
         compoGM::p.message("Starting MCMC chain for %d iterations", nb_iterations);
-        auto begin = std::chrono::high_resolution_clock::now();
+        Chrono total_time;
         for (int iteration = 0; iteration < nb_iterations; iteration++) {
             for (auto ps : pointersets) {
                 ps.second.first->acquire();
@@ -234,9 +234,7 @@ class MCMC {
             }
             trace.line();
         }
-        auto end = std::chrono::high_resolution_clock::now();
-        double elapsed_time =
-            std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1000000.;
+        double elapsed_time = total_time.end();
         compoGM::p.message("MCMC chain has finished in %fms (%fms/iteration)", elapsed_time,
             elapsed_time / nb_iterations);
     }
