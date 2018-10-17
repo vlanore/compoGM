@@ -38,14 +38,14 @@ model <- "model {
   }
 
   for(i in 1:ngenes) {
-    q_bar[i] <- sum(log10_q[i,1:ncond])
+    q_bar[i] <- sum(10 ** log10_q[i,1:ncond]) / ncond
     alpha[i] <- 10 ** log10_alpha[i]
-    log10_alpha[i] ~ dnorm(log10_alpha_bar[i], 1 / sigma_alpha ** 2)
-    log10_alpha_bar[i] <- log(10 ** log10_a + (10 ** log10_b) / q_bar[i]) / log(10)
+    log10_alpha[i] ~ dnorm(log(alpha_bar[i])/log(10)), 1 / sigma_alpha ** 2)
+    alpha_bar[i] <- a0 + a1 / q_bar[i]
   }
   sigma_alpha ~ dexp(1)
-  log10_a ~ dnorm(-2, 1/2**2)
-  log10_b ~ dnorm(0, 1/2**2)
+  a0 ~ dlnorm(-2, 1/2**2)
+  a1 ~ dlnorm(0, 1/2**2)
 }
 "
 
