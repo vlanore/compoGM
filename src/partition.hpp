@@ -28,6 +28,7 @@ license and that you accept its terms.*/
 #pragma once
 
 #include <map>
+#include <numeric>
 #include <set>
 #include <string>
 #include <vector>

@@ -25,44 +25,30 @@ more generally, to use and operate it in the same conditions as regards security
 The fact that you are presently reading this means that you have had knowledge of the CeCILL-C
 license and that you accept its terms.*/
 
-#include "M0_data.hpp"
-#include "compoGM.hpp"
+#pragma once
 
-using namespace std;
-using namespace compoGM;
+#include "distributions.hpp"
+#include "partition.hpp"
 
-struct M0 : public Composite {
-    static void contents(
-        Model& m, IndexSet& experiments, IndexSet& samples, map<string, map<string, int>>& data) {
-        m.component<OrphanExp>("alpha", 1, 1);
-        m.component<OrphanExp>("mu", 1, 1);
-
-        m.component<Array<Gamma>>("lambda", experiments, 1)
-            .connect<ArrayToValue>("a", "alpha")
-            .connect<ArrayToValue>("b", "mu");
-
-        m.component<Matrix<Poisson>>("K", experiments, samples, 0)
-            .connect<MatrixLinesToValueArray>("a", "lambda")
-            .connect<SetMatrix<int>>("x", data);
-    }
-};
-
-void compute(int, char**) {
-    IndexSet experiments = gen_indexset("e", 5);
-    IndexSet samples = gen_indexset("s", 10);
-    auto data = gen_data(experiments, samples);
-
-    Model m;
-    m.component<M0>("model", experiments, samples, data);
-
-    MCMC mcmc(m, "model");
-    mcmc.move("alpha", scale);
-    mcmc.move("mu", scale);
-    mcmc.move("lambda", scale);
-    mcmc.suffstat("lambda", {"alpha", "mu"}, gamma_ss);
-    mcmc.declare_moves();
-
-    mcmc.go(50000, 10);
+IndexSet gen_indexset(std::string prefix, int amount) {
+    IndexSet result;
+    for (int i = 0; i < amount; i++) { result.insert(prefix + std::to_string(i)); }
+    return result;
 }
 
-int main(int argc, char** argv) { compute(argc, argv); }
+std::map<std::string, std::map<std::string, int>> gen_data(const IndexSet& s1, const IndexSet& s2) {
+    std::map<std::string, std::map<std::string, int>> result;
+    int i = 0;
+    for (auto e_i : s1) {
+        i++;
+        int baseline_i = 10 + (i % 5);
+        int j = 0;
+        result[e_i] = {};
+        for (auto e_j : s2) {
+            j++;
+            int value = baseline_i + (j % 5);
+            result.at(e_i)[e_j] = value;
+        }
+    }
+    return result;
+}

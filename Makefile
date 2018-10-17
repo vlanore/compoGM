@@ -1,4 +1,4 @@
-CPPFLAGS= -Wall -Wextra -Wfatal-errors -O3 --std=c++11 -pthread -g
+CPPFLAGS= -Wall -Wextra -Wfatal-errors -O3 --std=c++11 -pthread -march=native
 
 all: test_bin M0_bin M0_mpi_bin M1_bin M2_bin M3_bin
 

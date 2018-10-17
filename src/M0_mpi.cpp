@@ -25,6 +25,7 @@ more generally, to use and operate it in the same conditions as regards security
 The fact that you are presently reading this means that you have had knowledge of the CeCILL-C
 license and that you accept its terms.*/
 
+#include "M0_data.hpp"
 #include "compoGM_mpi.hpp"
 
 using namespace std;
@@ -49,16 +50,11 @@ struct M0 : public Composite {
 };
 
 void compute(int, char**) {
-    IndexSet experiments{"e0", "e1", "e2"};
+    IndexSet experiments = gen_indexset("e", (p.size - 1) * 10);
+    IndexSet samples = gen_indexset("s", 500);
+    auto data = gen_data(experiments, samples);
     Partition experiment_partition(experiments, p.size - 1, 1);
     auto my_experiments = experiment_partition.my_partition();
-    // p.message("Got %d experiments!!", my_experiments.size());
-
-    IndexSet samples{"s0", "s1", "s2", "s3", "s4", "s5"};
-    map<string, map<string, int>> data{
-        {"e0", {{"s0", 12}, {"s1", 13}, {"s2", 12}, {"s3", 11}, {"s4", 12}, {"s5", 12}}},
-        {"e1", {{"s0", 20}, {"s1", 21}, {"s2", 22}, {"s3", 23}, {"s4", 20}, {"s5", 22}}},
-        {"e2", {{"s0", 23}, {"s1", 22}, {"s2", 22}, {"s3", 23}, {"s4", 24}, {"s5", 22}}}};
 
     Model m;
     m.component<M0>("model", my_experiments, samples, data);
@@ -87,13 +83,16 @@ void compute(int, char**) {
     if (p.rank) {  // slaves broadcast their data
         for (auto proxy : proxies) { proxy->release(); }
     }
+    p.message("Go!");
     auto begin = chrono::high_resolution_clock::now();
-    for (int iteration = 0; iteration < 50000; iteration++) {
+    for (int iteration = 0; iteration < 1000; iteration++) {
         for (auto proxy : proxies) { proxy->acquire(); }
-        for (auto move : moves) {
-            move->move(1.0);
-            move->move(0.1);
-            move->move(0.01);
+        for (int i = 0; i < 10; i++) {
+            for (auto move : moves) {
+                move->move(1.0);
+                move->move(0.1);
+                move->move(0.01);
+            }
         }
         for (auto proxy : proxies) { proxy->release(); }
         if (!p.rank) { trace.line(); }
@@ -102,7 +101,7 @@ void compute(int, char**) {
     double elapsed_time =
         chrono::duration_cast<chrono::nanoseconds>(end - begin).count() / 1000000.;
     compoGM::p.message(
-        "MCMC chain has finished in %fms (%fms/iteration)", elapsed_time, elapsed_time / 50000);
+        "MCMC chain has finished in %fms (%fms/iteration)", elapsed_time, elapsed_time / 1000);
 }
 
 int main(int argc, char** argv) { mpi_run(argc, argv, compute); }
