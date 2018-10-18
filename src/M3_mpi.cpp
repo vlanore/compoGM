@@ -95,7 +95,21 @@ void compute(int argc, char** argv) {
     check_consistency(counts, samples, size_factors);
 
     // partitioning genes for slaves
-    Partition gene_partition(counts.genes, p.size - 1, 1);
+    IndexSet genes;
+    bool weak = true;
+    if (weak) {
+        int nb_genes_total = (p.size - 1) * 8;
+        int i = 0;
+        for (auto g : counts.genes) {
+            genes.insert(g);
+            i++;
+            if (i >= nb_genes_total) { break; }
+        }
+    } else {
+        genes = counts.genes;
+    }
+
+    Partition gene_partition(genes, p.size - 1, 1);
     auto my_genes = gene_partition.my_partition();
     p.message("Got %d genes", gene_partition.my_partition_size());
 
