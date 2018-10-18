@@ -53,6 +53,8 @@ class MpiMCMC : public MCMC {
         auto proxies = a.get_all<Proxy>().pointers();
 
         // main loop
+        compoGM::p.message("Reaching go barrier");
+        MPI_Barrier(MPI_COMM_WORLD);
         compoGM::p.message("Go!");
         Chrono total_time;
         Chrono computing_time;
@@ -61,7 +63,8 @@ class MpiMCMC : public MCMC {
             compoGM::p.message("Setting up trace");
             std::set<tc::Address> all_moved;
             for (auto m : MCMC::moves) { all_moved.insert(tc::Address(gm, m.target)); }
-            std::string tracename = "trace_m3_" + std::to_string(compoGM::p.size) + "_processes.dat";
+            std::string tracename =
+                "trace_m3_" + std::to_string(compoGM::p.size) + "_processes.dat";
             auto trace = make_trace(a.get_all<Value<double>>(all_moved), tracename);
             trace.header();
 
