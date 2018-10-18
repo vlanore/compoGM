@@ -61,7 +61,8 @@ class MpiMCMC : public MCMC {
             compoGM::p.message("Setting up trace");
             std::set<tc::Address> all_moved;
             for (auto m : MCMC::moves) { all_moved.insert(tc::Address(gm, m.target)); }
-            auto trace = make_trace(a.get_all<Value<double>>(all_moved), "tmp.dat");
+            std::string tracename = "trace_m3_" + std::to_string(compoGM::p.size) + "_processes.dat";
+            auto trace = make_trace(a.get_all<Value<double>>(all_moved), tracename);
             trace.header();
 
             Chrono writing_time;
