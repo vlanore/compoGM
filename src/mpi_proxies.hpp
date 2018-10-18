@@ -138,34 +138,38 @@ class MasterGather : public tc::Component, public Proxy {
     std::vector<double> data;
     Partition partition;
 
+    size_t nb_partitions;
+    size_t buffer_size;
+    std::vector<int> displs{1, 0}, revcounts{1, 0};
+
   public:
-    MasterGather(Partition partition) : partition(partition) {
+    MasterGather(Partition partition)
+        : partition(partition),
+          nb_partitions(partition.size()),
+          buffer_size(partition.partition_size_sum()) {
         if (partition.size() != size_t(compoGM::p.size - 1)) {
             std::cerr << "MasterGather error: number of partitions (" << partition.size()
                       << ") doesn't match number of workerss (" << compoGM::p.size - 1 << ")\n";
             exit(1);
         }
         port("target", &MasterGather::add_target);
-    }
 
-    void acquire() override {
-        size_t nb_partitions = partition.size();
-        size_t buffer_size = partition.partition_size_sum();
-
-        if (buffer_size != targets.size()) {
-            std::cerr << "MasterGather error: number of targets (" << targets.size()
-                      << ") doesn't match number of elements in partition ("
-                      << partition.partition_size_sum() << ")\n";
-            exit(1);
-        }
+        // preparing gatherv parameters once and for all
         data.assign(buffer_size, -1);
-
-        std::vector<int> displs(1, 0), revcounts(1, 0);  // O elements for root
         int displ = 0;
         for (size_t i = 1; i <= nb_partitions; i++) {
             revcounts.push_back(partition.partition_size(i));
             displs.push_back(displ);
             displ += partition.partition_size(i);
+        }
+    }
+
+    void acquire() override {
+        if (buffer_size != targets.size()) {
+            std::cerr << "MasterGather error: number of targets (" << targets.size()
+                      << ") doesn't match number of elements in partition ("
+                      << partition.partition_size_sum() << ")\n";
+            exit(1);
         }
 
         MPI_Gatherv(NULL, 0, MPI_DOUBLE, data.data(), revcounts.data(), displs.data(), MPI_DOUBLE,
