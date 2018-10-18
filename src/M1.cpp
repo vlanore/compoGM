@@ -34,9 +34,7 @@ struct M1 : public Composite {
     static void contents(Model& m, IndexSet& genes, IndexSet& conditions, IndexSet& samples,
         map<string, map<string, int>>& counts, map<string, string>& condition_mapping) {
         m.component<Matrix<OrphanNormal>>("log10(lambda)", genes, conditions, 1, 3, pow(1.5, 2));
-
-        m.component<Matrix<Power10>>("lambda", genes, conditions)
-            .connect<MatrixToValueMatrix>("a", "log10(lambda)");
+        m.connect<MapPower10>("log10(lambda)", "lambda");
 
         m.component<Matrix<Poisson>>("K", genes, samples, 0)
             .connect<SetMatrix<int>>("x", counts)
@@ -65,9 +63,9 @@ void compute(int argc, char** argv) {
     MCMC mcmc(m, "model");
     mcmc.move("log10(lambda)", scale);
     // TODO support array of suffstats and/or addresses for targets (instead of just strings)!
-    for (auto gene : counts.genes) {
-        mcmc.suffstat("K__" + gene, {"log10(lambda)__" + gene}, poisson);
-    }
+    // for (auto gene : counts.genes) {
+    //     mcmc.suffstat("K__" + gene, {"log10(lambda)__" + gene}, poisson);
+    // }
     mcmc.declare_moves();
 
     mcmc.go(5000, 10);

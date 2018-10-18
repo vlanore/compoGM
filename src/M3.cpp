@@ -57,8 +57,7 @@ struct M3 : public Composite {
         m.component<Array<Normal>>("log10(alpha)", genes, 1)
             .connect<ArrayToValueArray>("a", "log10(alpha_bar)")
             .connect<ArrayToValue>("b", "sigma");
-        m.connect<MapOperation>(
-            "log10(alpha)", "1/alpha", [](double a) { return 1. / double(pow(10, a)); });
+        m.connect<MapInversePower10>("log10(alpha)", "1/alpha");
 
         m.component<Matrix<GammaSR>>("tau", genes, samples, 1)
             .connect<MatrixLinesToValueArray>("a", "1/alpha")

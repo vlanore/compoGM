@@ -38,8 +38,7 @@ struct M2 : public Composite {
         m.connect<MapPower10>("log10(q)", "q");
 
         m.component<Array<OrphanNormal>>("log10(alpha)", genes, 1, -2, 2);
-        m.connect<MapOperation>(
-            "log10(alpha)", "1/alpha", [](double a) { return 1. / double(pow(10, a)); });
+        m.connect<MapInversePower10>("log10(alpha)", "1/alpha");
 
         m.component<Matrix<GammaSR>>("tau", genes, samples, 1)
             .connect<MatrixLinesToValueArray>("a", "1/alpha")

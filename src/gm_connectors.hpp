@@ -194,3 +194,10 @@ struct MapOperation : tc::Meta {
             "a", target, new_address, f);
     }
 };
+
+struct MapInversePower10 : tc::Meta {
+    static void connect(tc::Model& m, tc::Address target, tc::Address new_address) {
+        m.connect<MapOperation>(
+            target, new_address, [](double a) { return 1. / double(pow(10, a)); });
+    }
+};
