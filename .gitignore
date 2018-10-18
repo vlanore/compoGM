@@ -4,3 +4,5 @@ tinycompo*
 csv-parser*
 *.tsv
 *.json
+*.slurm
+*_slurmgen

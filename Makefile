@@ -1,6 +1,6 @@
 CPPFLAGS= -Wall -Wextra -Wfatal-errors -O3 --std=c++11 -pthread -march=native
 
-all: test_bin M0_bin M0_mpi_bin M1_bin M2_bin M3_bin M3_mpi_bin
+all: test_bin M0_bin M0_mpi_bin M1_bin M2_bin M3_bin M3_mpi_bin m3_slurmgen
 
 tinycompo.hpp:
 	@echo "Downloading tinycompo.hpp from github..."
@@ -46,6 +46,9 @@ m3: M3_bin
 .PHONY: m3_mpi
 m3_mpi: M3_mpi_bin
 	mpirun -np 3 ./$< ~/data/rnaseq_mini
+
+m3_slurmgen: src/m3_slurmgen.cpp
+	$(CXX) -o $@ --std=c++11 $<
 
 .PHONY: tmp
 tmp: tmp_bin
