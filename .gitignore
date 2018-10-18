@@ -6,3 +6,4 @@ csv-parser*
 *.json
 *.slurm
 *_slurmgen
+trace_*.dat
