@@ -97,6 +97,7 @@ void compute(int argc, char** argv) {
     // partitioning genes for slaves
     Partition gene_partition(counts.genes, p.size - 1, 1);
     auto my_genes = gene_partition.my_partition();
+    p.message("Got %d genes", gene_partition.my_partition_size());
 
     // graphical model
     m.component<M3>("model", my_genes, samples.conditions, make_index_set(counts.samples),

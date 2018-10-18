@@ -115,10 +115,10 @@ struct ConnectIndividualMove : tc::Meta {
         };
 
         NameSet blanket = compute_blanket(NameSet{target_name_str});
-        std::set<std::string> short_blanket;
-        for (auto a : blanket) { short_blanket.insert(tc::Address(a).first()); }
-        compoGM::p.message(
-            "Blanket of %s is %s", target.c_str(), nameset_to_string(short_blanket).c_str());
+        // std::set<std::string> short_blanket;
+        // for (auto a : blanket) { short_blanket.insert(tc::Address(a).first()); }
+        // compoGM::p.message(
+        //     "Blanket of %s is %s", target.c_str(), nameset_to_string(short_blanket).c_str());
 
         // connect move to things
         m.connect<MoveToTarget<ValueType>>(move, target);  // to target
