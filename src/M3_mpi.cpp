@@ -122,7 +122,7 @@ void compute(int argc, char** argv) {
     mcmc.slave_add("log10(alpha)", shift);
     mcmc.declare_moves();
 
-    mcmc.go(5000, 10);
+    mcmc.go(100, 10);
 }
 
 int main(int argc, char** argv) {
