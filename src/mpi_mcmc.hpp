@@ -58,7 +58,10 @@ class MpiMCMC : public MCMC {
         Chrono computing_time;
         // master ==================================================================================
         if (!compoGM::p.rank) {
-            auto trace = make_trace(a.get_all<Value<double>>("model"), "tmp.dat");
+            compoGM::p.message("Setting up trace");
+            std::set<tc::Address> all_moved;
+            for (auto m : MCMC::moves) { all_moved.insert(tc::Address(gm, m.target)); }
+            auto trace = make_trace(a.get_all<Value<double>>(all_moved), "tmp.dat");
             trace.header();
 
             Chrono writing_time;
