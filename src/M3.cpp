@@ -37,26 +37,25 @@ struct M3 : public Composite {
     static void contents(Model& m, IndexSet& genes, IndexSet& conditions, IndexSet& samples,
         map<string, map<string, int>>& counts, IndexMapping& condition_mapping,
         map<string, double>& size_factors) {
-        m.component<Matrix<OrphanNormal>>("log10(q)", genes, conditions, 1, 3, 1.5);
-        m.connect<MapPower10>("log10(q)", "q");
+        // global variables
+        m.component<OrphanNormal>("a0", 1, -2, 2);
+        m.component<OrphanNormal>("a1", 1, 0, 2);
+        m.component<OrphanExp>("sigma_alpha", 1, 1);
 
-        m.component<OrphanNormal>("log10(a)", 1, -2, 2);
-        m.component<OrphanNormal>("log10(b)", 1, 0, 2);
-        m.component<OrphanExp>("sigma", 1, 1);
+        m.component<Matrix<OrphanNormal>>("log10(q)", genes, conditions, 1, 2, 2);  // changed
+        m.connect<MapPower10>("log10(q)", "q");
 
         m.component<Array<Sum>>("q_bar", genes).connect<ArrayToValueMatrixLines>("parent", "q");
 
         m.component<Array<DeterministicTernaryNode<double>>>("log10(alpha_bar)", genes,
-             [](double a, double b, double q_bar) {
-                 return log10(pow(10, a) + pow(10, b) / q_bar);
-             })
-            .connect<ArrayToValue>("a", "log10(a)")
-            .connect<ArrayToValue>("b", "log10(b)")
+             [](double a0, double a1, double q_bar) { return log10(a0 + a1 / q_bar); })
+            .connect<ArrayToValue>("a", "a0")
+            .connect<ArrayToValue>("b", "a1")
             .connect<ArrayToValueArray>("c", "q_bar");
 
         m.component<Array<Normal>>("log10(alpha)", genes, 1)
             .connect<ArrayToValueArray>("a", "log10(alpha_bar)")
-            .connect<ArrayToValue>("b", "sigma");
+            .connect<ArrayToValue>("b", "sigma_alpha");
         m.connect<MapInversePower10>("log10(alpha)", "1/alpha");
 
         m.component<Matrix<GammaSR>>("tau", genes, samples, 1)
@@ -99,9 +98,9 @@ void compute(int argc, char** argv) {
 
     // suffstats and metropolis hastings moves
     MCMC mcmc(m, "model");
-    mcmc.move("log10(a)", shift);
-    mcmc.move("log10(b)", shift);
-    mcmc.move("sigma", scale);
+    mcmc.move("a0", scale);
+    mcmc.move("a1", scale);
+    mcmc.move("sigma_alpha", scale);
     mcmc.move("log10(q)", shift);
     mcmc.move("tau", scale);
     mcmc.move("log10(alpha)", shift);
