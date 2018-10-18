@@ -43,6 +43,10 @@ m2: M2_bin
 m3: M3_bin
 	./$< ~/data/rnaseq_mini
 
+.PHONY: m3_mpi
+m3_mpi: M3_mpi_bin
+	mpirun -np 3 ./$< ~/data/rnaseq_mini
+
 .PHONY: tmp
 tmp: tmp_bin
 	./$<
