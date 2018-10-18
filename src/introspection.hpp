@@ -67,6 +67,15 @@ IndexSet get_array_indices(tc::Address a, const tc::Model& m) {
     return make_index_set(names);
 }
 
+std::pair<IndexSet, IndexSet> get_matrix_indices(tc::Address a, const tc::Model& m) {
+    auto& tc = m.get_composite(a);
+    auto raw_indices_x = tc.all_component_names(0, true);
+    auto indices_x = make_index_set(raw_indices_x);
+    auto raw_indices_y = tc.get_composite(raw_indices_x.front()).all_component_names();
+    auto indices_y = make_index_set(raw_indices_y);
+    return {indices_x, indices_y};
+}
+
 template <class T>
 bool has_type(tc::Address a, const tc::Model& m) {
     if (m.is_composite(a)) {

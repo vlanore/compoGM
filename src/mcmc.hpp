@@ -67,15 +67,11 @@ class MCMC {
     template <class MoveType>
     void adaptive_create(tc::Address move_address, tc::Address target) const {
         if (is_matrix(target, model)) {
-            auto& tc = model.get_composite(target);
-            auto raw_indices_x = tc.all_component_names(0, true);
-            auto indices_x = make_index_set(raw_indices_x);
-            auto raw_indices_y = tc.get_composite(raw_indices_x.front()).all_component_names();
-            auto indices_y = make_index_set(raw_indices_y);
-            model.component<Matrix<SimpleMHMove<MoveType>>>(move_address, indices_x, indices_y);
+            auto indices = get_matrix_indices(target, model);
+            model.component<Matrix<SimpleMHMove<MoveType>>>(
+                move_address, indices.first, indices.second);
         } else if (is_array(target, model)) {
-            auto raw_indices = model.get_composite(target).all_component_names();
-            auto indices = make_index_set(raw_indices);
+            auto indices = get_array_indices(target, model);
             model.component<Array<SimpleMHMove<MoveType>>>(move_address, indices);
         } else {
             model.component<SimpleMHMove<MoveType>>(move_address);

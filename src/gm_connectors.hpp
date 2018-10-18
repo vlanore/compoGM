@@ -161,17 +161,12 @@ struct Map : tc::Meta {
     static void connect(
         tc::Model& m, std::string prop, tc::Address target, tc::Address new_address, Args... args) {
         if (is_matrix(target, m)) {
-            auto& tc = m.get_composite(target);
-            auto raw_indices_x = tc.all_component_names(0, true);
-            auto indices_x = make_index_set(raw_indices_x);
-            auto raw_indices_y = tc.get_composite(raw_indices_x.front()).all_component_names();
-            auto indices_y = make_index_set(raw_indices_y);
-            m.component<Matrix<Compo>>(new_address, indices_x, indices_y, args...);
+            auto indices = get_matrix_indices(target, m);
+            m.component<Matrix<Compo>>(new_address, indices.first, indices.second, args...);
             m.connect<ManyToMany<ManyToMany<BaseConnector>>>(
                 tc::PortAddress(prop, new_address), target);
         } else if (is_array(target, m)) {
-            auto raw_indices = m.get_composite(target).all_component_names();
-            auto indices = make_index_set(raw_indices);
+            auto indices = get_array_indices(target, m);
             m.component<Array<Compo>>(new_address, indices, args...);
             m.connect<ManyToMany<BaseConnector>>(tc::PortAddress(prop, new_address), target);
         } else {
