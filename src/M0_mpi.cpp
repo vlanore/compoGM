@@ -56,62 +56,23 @@ void compute(int, char**) {
     Partition experiment_partition(experiments, p.size - 1, 1);
     auto my_experiments = experiment_partition.my_partition();
 
-    Assembly a;
-    {
-        Model m;
-        m.component<M0>("model", my_experiments, samples, data);
+    Model m;
+    m.component<M0>("model", my_experiments, samples, data);
 
-        m.component<Bcast>("alpha_mu_handler")
-            .connect<UseValue>("target", Address("model", "alpha"))
-            .connect<UseValue>("target", Address("model", "mu"));
+    m.component<Bcast>("alpha_mu_handler")
+        .connect<UseValue>("target", Address("model", "alpha"))
+        .connect<UseValue>("target", Address("model", "mu"));
 
-        m.component<Gather>("lambda_handler", experiment_partition)
-            .connect<OneToMany<UseValue>>("target", Address("model", "lambda"));
+    m.component<Gather>("lambda_handler", experiment_partition)
+        .connect<OneToMany<UseValue>>("target", Address("model", "lambda"));
 
-        MpiMCMC mcmc(m, "model");
-        mcmc.master_add("alpha", scale);
-        mcmc.master_add("mu", scale);
-        mcmc.slave_add("lambda", scale);
-        mcmc.declare_moves();
-        a.instantiate_from(m);
-    }
+    MpiMCMC mcmc(m, "model");
+    mcmc.master_add("alpha", scale);
+    mcmc.master_add("mu", scale);
+    mcmc.slave_add("lambda", scale);
+    mcmc.declare_moves();
 
-    auto moves = a.get_all<Move>().pointers();
-    auto proxies = a.get_all<Proxy>().pointers();
-
-    auto trace = make_trace(a.get_all<Value<double>>("model"), "tmp" + to_string(p.rank) + ".dat");
-    if (!p.rank) { trace.header(); }
-
-    if (p.rank) {  // slaves broadcast their data
-        for (auto proxy : proxies) { proxy->release(); }
-    }
-    p.message("Go!");
-    Chrono total_time;
-    Chrono computing_time;
-    Chrono writing_time;
-    for (int iteration = 0; iteration < 100; iteration++) {
-        for (auto proxy : proxies) { proxy->acquire(); }
-        computing_time.start();
-        for (int i = 0; i < 10; i++) {
-            for (auto move : moves) {
-                move->move(1.0);
-                move->move(0.1);
-                move->move(0.01);
-            }
-        }
-        computing_time.end();
-        for (auto proxy : proxies) { proxy->release(); }
-        if (!p.rank) {
-            writing_time.start();
-            trace.line();
-            writing_time.end();
-        }
-    }
-    double elapsed_time = total_time.end();
-    compoGM::p.message(
-        "MCMC chain has finished in %fms (%fms/iteration)", elapsed_time, elapsed_time / 100);
-    compoGM::p.message("Average computing time is %fms", computing_time.mean());
-    if (!p.rank) compoGM::p.message("Average writing time is %fms", writing_time.mean());
+    mcmc.go(100, 10);
 }
 
 int main(int argc, char** argv) {

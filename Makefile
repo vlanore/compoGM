@@ -1,6 +1,6 @@
 CPPFLAGS= -Wall -Wextra -Wfatal-errors -O3 --std=c++11 -pthread -march=native
 
-all: test_bin M0_bin M0_mpi_bin M1_bin M2_bin M3_bin
+all: test_bin M0_bin M0_mpi_bin M1_bin M2_bin M3_bin M3_mpi_bin
 
 tinycompo.hpp:
 	@echo "Downloading tinycompo.hpp from github..."
@@ -60,7 +60,7 @@ ready:
 	@echo "\033[1m\033[95mFormatting with clang-format...\033[0m"
 	@make format --no-print-directory
 	@echo "\033[1m\033[95m\nCompiling if necessary...\033[0m"
-	@make -j6 --no-print-directory
+	@make -j8 --no-print-directory
 	@echo "\033[1m\033[95m\nLaunching test...\033[0m"
 	@make test --no-print-directory
 	@echo "\033[1m\033[95m\nAll done, git status is:\033[0m"

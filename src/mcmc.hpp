@@ -58,6 +58,7 @@ namespace compoGM {
 }  // namespace compoGM
 
 class MCMC {
+  protected:
     tc::Model& model;
     tc::Address gm;
     std::vector<compoGM::_MoveDecl> moves;

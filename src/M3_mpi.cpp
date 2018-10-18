@@ -121,47 +121,7 @@ void compute(int argc, char** argv) {
     mcmc.slave_add("log10(alpha)", shift);
     mcmc.declare_moves();
 
-    // instantiating assembly
-    Assembly a(m);
-
-    // gathering pointers and preparing trace
-    auto moves = a.get_all<Move>().pointers();
-    auto proxies = a.get_all<Proxy>().pointers();
-    auto trace = make_trace(a.get_all<Value<double>>("model"), "tmp" + to_string(p.rank) + ".dat");
-    if (!p.rank) { trace.header(); }
-
-    // main loop
-    if (p.rank) {  // slaves broadcast their data
-        for (auto proxy : proxies) { proxy->release(); }
-    }
-    p.message("Go!");
-    Chrono total_time;
-    Chrono computing_time;
-    Chrono writing_time;
-    int nb_iterations = 500;
-    for (int iteration = 0; iteration < nb_iterations; iteration++) {
-        for (auto proxy : proxies) { proxy->acquire(); }
-        computing_time.start();
-        for (int i = 0; i < 10; i++) {
-            for (auto move : moves) {
-                move->move(1.0);
-                move->move(0.1);
-                move->move(0.01);
-            }
-        }
-        computing_time.end();
-        for (auto proxy : proxies) { proxy->release(); }
-        if (!p.rank) {
-            writing_time.start();
-            trace.line();
-            writing_time.end();
-        }
-    }
-    double elapsed_time = total_time.end();
-    compoGM::p.message("MCMC chain has finished in %fms (%fms/iteration)", elapsed_time,
-        elapsed_time / nb_iterations);
-    compoGM::p.message("Average computing time is %fms", computing_time.mean());
-    if (!p.rank) compoGM::p.message("Average writing time is %fms", writing_time.mean());
+    mcmc.go(5000, 10);
 }
 
 int main(int argc, char** argv) {

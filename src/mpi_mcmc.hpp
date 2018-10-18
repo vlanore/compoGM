@@ -43,4 +43,49 @@ class MpiMCMC : public MCMC {
     void slave_add(Args&&... args) {
         if (compoGM::p.rank != 0) { move(std::forward<Args>(args)...); }
     }
+
+    void go(int nb_iterations, int nb_rep) const {
+        // instantiating assembly
+        Assembly a(model);
+
+        // gathering pointers and preparing trace
+        auto moves = a.get_all<Move>().pointers();
+        auto proxies = a.get_all<Proxy>().pointers();
+        auto trace = make_trace(
+            a.get_all<Value<double>>("model"), "tmp" + std::to_string(compoGM::p.rank) + ".dat");
+        if (!compoGM::p.rank) { trace.header(); }
+
+        // main loop
+        if (compoGM::p.rank) {  // slaves broadcast their data
+            for (auto proxy : proxies) { proxy->release(); }
+        }
+        compoGM::p.message("Go!");
+        Chrono total_time;
+        Chrono computing_time;
+        Chrono writing_time;
+        for (int iteration = 0; iteration < nb_iterations; iteration++) {
+            for (auto proxy : proxies) { proxy->acquire(); }
+            computing_time.start();
+            for (int i = 0; i < nb_rep; i++) {
+                for (auto move : moves) {
+                    move->move(1.0);
+                    move->move(0.1);
+                    move->move(0.01);
+                }
+            }
+            computing_time.end();
+            for (auto proxy : proxies) { proxy->release(); }
+            if (!compoGM::p.rank) {
+                writing_time.start();
+                trace.line();
+                writing_time.end();
+            }
+        }
+        double elapsed_time = total_time.end();
+        compoGM::p.message("MCMC chain has finished in %fms (%fms/iteration)", elapsed_time,
+            elapsed_time / nb_iterations);
+        compoGM::p.message("Average computing time is %fms", computing_time.mean());
+        if (!compoGM::p.rank)
+            compoGM::p.message("Average writing time is %fms", writing_time.mean());
+    }
 };
