@@ -38,8 +38,7 @@ struct M3 : public Composite {
         map<string, map<string, int>>& counts, IndexMapping& condition_mapping,
         map<string, double>& size_factors) {
         m.component<Matrix<OrphanNormal>>("log10(q)", genes, conditions, 1, 3, 1.5);
-        m.component<Matrix<Power10>>("q", genes, conditions)
-            .connect<MatrixToValueMatrix>("a", "log10(q)");
+        m.connect<MapPower10>("log10(q)", "q");
 
         m.component<OrphanNormal>("log10(a)", 1, -2, 2);
         m.component<OrphanNormal>("log10(b)", 1, 0, 2);
@@ -58,9 +57,8 @@ struct M3 : public Composite {
         m.component<Array<Normal>>("log10(alpha)", genes, 1)
             .connect<ArrayToValueArray>("a", "log10(alpha_bar)")
             .connect<ArrayToValue>("b", "sigma");
-        m.component<Array<DeterministicUnaryNode<double>>>(
-             "1/alpha", genes, [](double a) { return 1. / double(pow(10, a)); })
-            .connect<ArrayToValueArray>("a", "log10(alpha)");
+        m.connect<MapOperation>(
+            "log10(alpha)", "1/alpha", [](double a) { return 1. / double(pow(10, a)); });
 
         m.component<Matrix<GammaSR>>("tau", genes, samples, 1)
             .connect<MatrixLinesToValueArray>("a", "1/alpha")

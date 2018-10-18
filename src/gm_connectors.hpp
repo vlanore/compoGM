@@ -30,6 +30,7 @@ license and that you accept its terms.*/
 #include "arrays.hpp"
 #include "interfaces.hpp"
 #include "introspection.hpp"
+#include "node_skeletons.hpp"
 
 struct DirectedLogProb {
     static void _connect(tc::Assembly& a, tc::PortAddress user, tc::Address provider,
@@ -152,5 +153,44 @@ struct ConnectMove : tc::Meta {
         } else {
             m.connect<ConnectIndividualMove<ValueType>>(move, model, target, used_ss);
         }
+    }
+};
+
+template <class Compo, class BaseConnector, class... Args>
+struct Map : tc::Meta {
+    static void connect(
+        tc::Model& m, std::string prop, tc::Address target, tc::Address new_address, Args... args) {
+        if (is_matrix(target, m)) {
+            auto& tc = m.get_composite(target);
+            auto raw_indices_x = tc.all_component_names(0, true);
+            auto indices_x = make_index_set(raw_indices_x);
+            auto raw_indices_y = tc.get_composite(raw_indices_x.front()).all_component_names();
+            auto indices_y = make_index_set(raw_indices_y);
+            m.component<Matrix<Compo>>(new_address, indices_x, indices_y, args...);
+            m.connect<ManyToMany<ManyToMany<BaseConnector>>>(
+                tc::PortAddress(prop, new_address), target);
+        } else if (is_array(target, m)) {
+            auto raw_indices = m.get_composite(target).all_component_names();
+            auto indices = make_index_set(raw_indices);
+            m.component<Array<Compo>>(new_address, indices, args...);
+            m.connect<ManyToMany<BaseConnector>>(tc::PortAddress(prop, new_address), target);
+        } else {
+            m.component<Compo>(new_address, args...);
+            m.connect<BaseConnector>(tc::PortAddress(prop, new_address), target);
+        }
+    }
+};
+
+struct MapPower10 : tc::Meta {
+    static void connect(tc::Model& m, tc::Address target, tc::Address new_address) {
+        m.connect<Map<Power10, tc::Use<Value<double>>>>("a", target, new_address);
+    }
+};
+
+struct MapOperation : tc::Meta {
+    static void connect(
+        tc::Model& m, tc::Address target, tc::Address new_address, double (*f)(double)) {
+        m.connect<Map<DeterministicUnaryNode<double>, tc::Use<Value<double>>, double (*)(double)>>(
+            "a", target, new_address, f);
     }
 };
