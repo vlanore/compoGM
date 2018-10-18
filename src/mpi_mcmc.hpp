@@ -44,7 +44,7 @@ class MpiMCMC : public MCMC {
         if (compoGM::p.rank != 0) { move(std::forward<Args>(args)...); }
     }
 
-    void go(int nb_iterations, int nb_rep) const {
+    void go(int nb_iterations, int nb_rep_master, int np_rep_slave) const {
         // instantiating assembly
         Assembly a(model);
 
@@ -56,8 +56,7 @@ class MpiMCMC : public MCMC {
         compoGM::p.message("Reaching go barrier");
         MPI_Barrier(MPI_COMM_WORLD);
         compoGM::p.message("Go!");
-        Chrono total_time;
-        Chrono computing_time;
+        Chrono total_time, computing_time, acquire_time, release_time;
         // master ==================================================================================
         if (!compoGM::p.rank) {
             compoGM::p.message("Setting up trace");
@@ -70,9 +69,11 @@ class MpiMCMC : public MCMC {
 
             Chrono writing_time;
             for (int iteration = 0; iteration < nb_iterations; iteration++) {
+                acquire_time.start();
                 for (auto proxy : proxies) { proxy->acquire(); }
+                acquire_time.end();
                 computing_time.start();
-                for (int i = 0; i < nb_rep; i++) {
+                for (int i = 0; i < nb_rep_master; i++) {
                     for (auto move : moves) {
                         move->move(1.0);
                         move->move(0.1);
@@ -80,23 +81,23 @@ class MpiMCMC : public MCMC {
                     }
                 }
                 computing_time.end();
+                release_time.start();
                 for (auto proxy : proxies) { proxy->release(); }
+                release_time.end();
                 writing_time.start();
                 trace.line();
                 writing_time.end();
             }
-            double elapsed_time = total_time.end();
-            compoGM::p.message("MCMC chain has finished in %fms (%fms/iteration)", elapsed_time,
-                elapsed_time / nb_iterations);
-            compoGM::p.message("Average computing time is %fms", computing_time.mean());
             compoGM::p.message("Average writing time is %fms", writing_time.mean());
             // slaves ==============================================================================
         } else {
             for (auto proxy : proxies) { proxy->release(); }
             for (int iteration = 0; iteration < nb_iterations; iteration++) {
+                acquire_time.start();
                 for (auto proxy : proxies) { proxy->acquire(); }
+                acquire_time.end();
                 computing_time.start();
-                for (int i = 0; i < nb_rep; i++) {
+                for (int i = 0; i < np_rep_slave; i++) {
                     for (auto move : moves) {
                         move->move(1.0);
                         move->move(0.1);
@@ -104,12 +105,16 @@ class MpiMCMC : public MCMC {
                     }
                 }
                 computing_time.end();
+                release_time.start();
                 for (auto proxy : proxies) { proxy->release(); }
+                release_time.end();
             }
-            double elapsed_time = total_time.end();
-            compoGM::p.message("MCMC chain has finished in %fms (%fms/iteration)", elapsed_time,
-                elapsed_time / nb_iterations);
-            compoGM::p.message("Average computing time is %fms", computing_time.mean());
         }
+        double elapsed_time = total_time.end();
+        compoGM::p.message("MCMC chain has finished in %fms (%fms/iteration)", elapsed_time,
+            elapsed_time / nb_iterations);
+        compoGM::p.message("Average computing time is %fms", computing_time.mean());
+        compoGM::p.message("Average acquire time is %fms", acquire_time.mean());
+        compoGM::p.message("Average release time is %fms", release_time.mean());
     }
 };

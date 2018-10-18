@@ -51,7 +51,7 @@ struct M0 : public Composite {
 
 void compute(int, char**) {
     IndexSet experiments = gen_indexset("e", (p.size - 1) * 10);
-    IndexSet samples = gen_indexset("s", 5000);
+    IndexSet samples = gen_indexset("s", 500);
     auto data = gen_data(experiments, samples);
     Partition experiment_partition(experiments, p.size - 1, 1);
     auto my_experiments = experiment_partition.my_partition();
@@ -72,7 +72,7 @@ void compute(int, char**) {
     mcmc.slave_add("lambda", scale);
     mcmc.declare_moves();
 
-    mcmc.go(100, 10);
+    mcmc.go(100, 10, 100);
 }
 
 int main(int argc, char** argv) {
