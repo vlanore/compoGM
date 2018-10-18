@@ -25,10 +25,7 @@ more generally, to use and operate it in the same conditions as regards security
 The fact that you are presently reading this means that you have had knowledge of the CeCILL-C
 license and that you accept its terms.*/
 
-#include <iomanip>
 #include "compoGM.hpp"
-#include "partition.hpp"
-#include "thread_helpers.hpp"
 
 using namespace std;
 using namespace compoGM;
