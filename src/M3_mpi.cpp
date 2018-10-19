@@ -47,7 +47,7 @@ struct M3 : public Composite {
 
         // has to be on master because l10(alpha) depends on l10(alpha_bar) which depends on q_bar
         // no need to get q/log10(q) because q_bar won't change with moves on a0/a1/sigma_alpha
-        m.component<Array<Sum>>("q_bar", genes);
+        m.component<Array<Mean>>("q_bar", genes);
         if (p.rank) { m.connect<ArrayToValueMatrixLines>(PortAddress("parent", "q_bar"), "q"); }
         m.component<Array<DeterministicTernaryNode<double>>>("log10(alpha_bar)", genes,
              [](double a0, double a1, double q_bar) { return log10(a0 + a1 / q_bar); })

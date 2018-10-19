@@ -42,7 +42,7 @@ struct M3 : public Composite {
         m.component<Matrix<OrphanNormal>>("log10(q)", genes, conditions, 1, 2, 2);  // changed
         m.connect<MapPower10>("log10(q)", "q");
 
-        m.component<Array<Sum>>("q_bar", genes).connect<ArrayToValueMatrixLines>("parent", "q");
+        m.component<Array<Mean>>("q_bar", genes).connect<ArrayToValueMatrixLines>("parent", "q");
 
         m.component<Array<DeterministicTernaryNode<double>>>("log10(alpha_bar)", genes,
              [](double a0, double a1, double q_bar) { return log10(a0 + a1 / q_bar); })

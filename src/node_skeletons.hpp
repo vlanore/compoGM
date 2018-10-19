@@ -104,6 +104,37 @@ class Sum : public Value<double>, public tc::Component {
     }
 };
 
+class Mean : public Value<double>, public tc::Component {
+    std::vector<Value<double>*> parents;
+    mutable double x;  // just a buffer for computation of f(parents)
+    void add_parent(Value<double>* ptr) { parents.push_back(ptr); }
+    bool proxy_mode{false};  // no computation when in proxy mode
+
+  public:
+    Mean() {
+        port("parent", &Mean::add_parent);
+        port("proxy_mode", &Mean::proxy_mode);
+    }
+
+    double& get_ref() final {
+        if (!proxy_mode) {
+            x = accumulate(parents.begin(), parents.end(), 0., [](double acc, Value<double>* ptr) {
+                return acc + ptr->get_ref();
+            }) / parents.size();
+        }
+        return x;
+    }
+
+    const double& get_ref() const final {
+        if (!proxy_mode) {
+            x = accumulate(parents.begin(), parents.end(), 0., [](double acc, Value<double>* ptr) {
+                return acc + ptr->get_ref();
+            }) / parents.size();
+        }
+        return x;
+    }
+};
+
 /*
 ====================================================================================================
   ~*~ DeterministicTernaryNode ~*~
