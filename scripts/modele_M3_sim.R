@@ -42,7 +42,7 @@ save_sim <- function(sample) {
   d <- cbind(gene_names, data.frame(m))
   colnames(d) <- c("gene", sample_names)
   system(paste0("mkdir -p ", dest))
-  write.table(sf, file = size_factor_file, sep = "\t", quote = F, row.names = F)
+  write.table(data.frame(sample = sample_names, size_factor = sf), file = size_factor_file, sep = "\t", quote = F, row.names = F)
   write.table(d, file = counts_file, sep = "\t", quote = F, row.names = F)
   write.table(data.frame(sample = sample_names, condition = cond), file = sample_file, sep = "\t", quote = F, row.names = F)
 }
