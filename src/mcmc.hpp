@@ -224,10 +224,12 @@ class MCMC {
                 }
                 ps.second.first->release();
             }
-            for (auto m : other_moves) {
-                m->move(1.0);
-                m->move(0.1);
-                m->move(0.01);
+            for (int rep = 0; rep < nb_rep; rep++) {
+                for (auto m : other_moves) {
+                    m->move(1.0);
+                    m->move(0.1);
+                    m->move(0.01);
+                }
             }
             trace.line();
         }

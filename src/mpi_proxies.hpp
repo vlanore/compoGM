@@ -140,7 +140,7 @@ class MasterGather : public tc::Component, public Proxy {
 
     size_t nb_partitions;
     size_t buffer_size;
-    std::vector<int> displs{1, 0}, revcounts{1, 0};
+    std::vector<int> displs{0}, revcounts{0};
 
   public:
     MasterGather(Partition partition)
@@ -155,7 +155,7 @@ class MasterGather : public tc::Component, public Proxy {
         port("target", &MasterGather::add_target);
 
         // preparing gatherv parameters once and for all
-        data.assign(buffer_size, -1);
+        data.assign(buffer_size, -2);
         int displ = 0;
         for (size_t i = 1; i <= nb_partitions; i++) {
             revcounts.push_back(partition.partition_size(i));
