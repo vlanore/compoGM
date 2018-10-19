@@ -6,6 +6,5 @@ input <- args[1]
 output <- args[2]
 d <- read.table(input, header = T, sep = '\t')
 r <- raftery.diag(mcmc(d))
-print(r)
 write.table(r$resmatrix[,1], file = output, row.names = T, col.names = F, sep = '\t', quote=F)
 

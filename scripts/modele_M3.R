@@ -11,7 +11,7 @@ model <- "model {
 
   for(i in 1:ngenes) {
     for(k in 1:ncond) {
-      log10_q[i, k] ~ dnorm(2, 1 / (2 ** 2))
+      log10_q[i, k] ~ dnorm(2, 1 / (1 ** 2))
     }
   }
 
