@@ -39,19 +39,28 @@ struct M3 : public Composite {
         m.component<OrphanNormal>("a1", 1, 0, 2);
         m.component<OrphanExp>("sigma_alpha", 1, 1);
 
-        // has to be on master's ghost to compute logprob of log10(alpha) which is affected by globs
-        m.component<Matrix<OrphanNormal>>("log10(q)", genes, conditions, 1, 2, 2);  // changed
+        // slave only
+        if (p.rank) {
+            m.component<Matrix<OrphanNormal>>("log10(q)", genes, conditions, 1, 2, 2);  // changed
+            m.connect<MapPower10>("log10(q)", "q");
+        }
 
-        // deterministic nodes
-        m.connect<MapPower10>("log10(q)", "q");
-        m.component<Array<Sum>>("q_bar", genes).connect<ArrayToValueMatrixLines>("parent", "q");
+        // has to be on master because l10(alpha) depends on l10(alpha_bar) which depends on q_bar
+        // no need to get q/log10(q) because q_bar won't change with moves on a0/a1/sigma_alpha
+        m.component<Array<Sum>>("q_bar", genes);
+        if (p.rank) { m.connect<ArrayToValueMatrixLines>(PortAddress("parent", "q_bar"), "q"); }
         m.component<Array<DeterministicTernaryNode<double>>>("log10(alpha_bar)", genes,
              [](double a0, double a1, double q_bar) { return log10(a0 + a1 / q_bar); })
             .connect<ArrayToValue>("a", "a0")
             .connect<ArrayToValue>("b", "a1")
             .connect<ArrayToValueArray>("c", "q_bar");
+        if (!p.rank) {
+            for (auto g : genes) {
+                m.connect<tc::Set<bool>>(PortAddress("proxy_mode", "q_bar", g), true);
+            }
+        }
 
-        // has to be on master's ghost because it is in the balnket of a0/a1/sigma_alpha
+        // has to be on master's ghost because it is in the blanket of a0/a1/sigma_alpha
         m.component<Array<Normal>>("log10(alpha)", genes, 1)
             .connect<ArrayToValueArray>("a", "log10(alpha_bar)")
             .connect<ArrayToValue>("b", "sigma_alpha");
@@ -123,8 +132,11 @@ void compute(int argc, char** argv) {
         .connect<UseValue>("target", Address("model", "a1"))
         .connect<UseValue>("target", Address("model", "sigma_alpha"));
 
-    m.component<Gather>("log10(q)_log10(alpha)_handler", gene_partition)
+    m.component<Gather>("log10(alpha)_handler", gene_partition)
         .connect<OneToMany<UseValue>>("target", Address("model", "log10(alpha)"));
+
+    m.component<Gather>("q_bar_handler", gene_partition)
+        .connect<OneToMany<UseValue>>("target", Address("model", "q_bar"));
 
     // suffstats and metropolis hastings moves
     MpiMCMC mcmc(m, "model");

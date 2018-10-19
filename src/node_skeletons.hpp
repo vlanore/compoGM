@@ -79,19 +79,27 @@ class Sum : public Value<double>, public tc::Component {
     std::vector<Value<double>*> parents;
     mutable double x;  // just a buffer for computation of f(parents)
     void add_parent(Value<double>* ptr) { parents.push_back(ptr); }
+    bool proxy_mode{false};  // no computation when in proxy mode
 
   public:
-    Sum() { port("parent", &Sum::add_parent); }
+    Sum() {
+        port("parent", &Sum::add_parent);
+        port("proxy_mode", &Sum::proxy_mode);
+    }
 
     double& get_ref() final {
-        x = accumulate(parents.begin(), parents.end(), 0.,
-            [](double acc, Value<double>* ptr) { return acc + ptr->get_ref(); });
+        if (!proxy_mode) {
+            x = accumulate(parents.begin(), parents.end(), 0.,
+                [](double acc, Value<double>* ptr) { return acc + ptr->get_ref(); });
+        }
         return x;
     }
 
     const double& get_ref() const final {
-        x = accumulate(parents.begin(), parents.end(), 0.,
-            [](double acc, Value<double>* ptr) { return acc + ptr->get_ref(); });
+        if (!proxy_mode) {
+            x = accumulate(parents.begin(), parents.end(), 0.,
+                [](double acc, Value<double>* ptr) { return acc + ptr->get_ref(); });
+        }
         return x;
     }
 };
