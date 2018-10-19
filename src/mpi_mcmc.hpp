@@ -44,17 +44,31 @@ class MpiMCMC : public MCMC {
         if (compoGM::p.rank != 0) { move(std::forward<Args>(args)...); }
     }
 
-    void go(int nb_iterations, int nb_rep_master, int np_rep_slave) const {
+    struct MoveExecData {
+        std::vector<Move*> moves;
+        int move_rep;
+        double tuning_mult;
+    };
+    void go(int nb_iterations, int nb_rep_master, int nb_rep_slave) const {
         // instantiating assembly
         Assembly a(model);
 
         // gathering pointers and preparing trace
-        auto moves = a.get_all<Move>().pointers();
+        std::vector<MoveExecData> move_exec;
+        for (auto m : moves) {
+            move_exec.emplace_back();
+            move_exec.back().moves =
+                a.get_all<Move>(
+                     std::set<tc::Address>{tc::Address(m.target.to_string("-") + "_move")})
+                    .pointers();
+            move_exec.back().tuning_mult = m.tuning_mult;
+            move_exec.back().move_rep = m.move_rep;
+        }
         auto proxies = a.get_all<Proxy>().pointers();
 
         // main loop
         compoGM::p.message("Reaching go barrier");
-        MPI_Barrier(MPI_COMM_WORLD);
+        // MPI_Barrier(MPI_COMM_WORLD);
         compoGM::p.message("Go!");
         Chrono total_time, computing_time, acquire_time, release_time;
         // master ==================================================================================
@@ -74,10 +88,14 @@ class MpiMCMC : public MCMC {
                 acquire_time.end();
                 computing_time.start();
                 for (int i = 0; i < nb_rep_master; i++) {
-                    for (auto move : moves) {
-                        move->move(1.0);
-                        move->move(0.1);
-                        move->move(0.01);
+                    for (auto move : move_exec) {
+                        for (int r = 0; r < move.move_rep; r++) {
+                            for (auto ptr : move.moves) {
+                                ptr->move(move.tuning_mult * 1.0);
+                                ptr->move(move.tuning_mult * 0.1);
+                                ptr->move(move.tuning_mult * 0.01);
+                            }
+                        }
                     }
                 }
                 computing_time.end();
@@ -97,11 +115,15 @@ class MpiMCMC : public MCMC {
                 for (auto proxy : proxies) { proxy->acquire(); }
                 acquire_time.end();
                 computing_time.start();
-                for (int i = 0; i < np_rep_slave; i++) {
-                    for (auto move : moves) {
-                        move->move(1.0);
-                        move->move(0.1);
-                        move->move(0.01);
+                for (int i = 0; i < nb_rep_slave; i++) {
+                    for (auto move : move_exec) {
+                        for (int r = 0; r < move.move_rep; r++) {
+                            for (auto ptr : move.moves) {
+                                ptr->move(move.tuning_mult * 1.0);
+                                ptr->move(move.tuning_mult * 0.1);
+                                ptr->move(move.tuning_mult * 0.01);
+                            }
+                        }
                     }
                 }
                 computing_time.end();

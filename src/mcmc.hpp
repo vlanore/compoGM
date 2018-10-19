@@ -48,6 +48,8 @@ namespace compoGM {
         tc::Address target;
         compoGM::MoveType move_type;
         compoGM::DataType data_type;
+        int move_rep;
+        double tuning_mult;
     };
 
     struct _SuffstatDecl {
@@ -83,8 +85,8 @@ class MCMC {
     MCMC(tc::Model& model, tc::Address gm) : model(model), gm(gm) {}
 
     void move(tc::Address target, compoGM::MoveType move_type,
-        compoGM::DataType data_type = compoGM::fp) {
-        moves.push_back({target, move_type, data_type});
+        compoGM::DataType data_type = compoGM::fp, int move_rep = 1, double tuning_mult = 1.0) {
+        moves.push_back({target, move_type, data_type, move_rep, tuning_mult});
     }
 
     void suffstat(
@@ -140,8 +142,8 @@ class MCMC {
         }
     }
 
-    void declare_move(tc::Address target, compoGM::MoveType move_type,
-        compoGM::DataType data_type = compoGM::fp) const {
+    void declare_move(tc::Address target, compoGM::MoveType move_type, compoGM::DataType data_type,
+        int, double) const {
         compoGM::p.message("Adding move on %s in model %s", target.c_str(), gm.c_str());
         tc::Address target_glob(gm, target);
         tc::Address move_address(target.to_string("-") + "_move");
@@ -167,7 +169,9 @@ class MCMC {
     }
 
     void declare_moves() const {
-        for (auto m : moves) { declare_move(m.target, m.move_type, m.data_type); }
+        for (auto m : moves) {
+            declare_move(m.target, m.move_type, m.data_type, m.move_rep, m.tuning_mult);
+        }
         for (auto s : suffstats) { declare_suffstat(s.target, s.affected_moves, s.type); }
     }
 

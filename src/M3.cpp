@@ -25,7 +25,7 @@ more generally, to use and operate it in the same conditions as regards security
 The fact that you are presently reading this means that you have had knowledge of the CeCILL-C
 license and that you accept its terms.*/
 
-#include "compoGM.hpp"
+#include "compoGM_mpi.hpp"
 
 using namespace std;
 using namespace compoGM;
@@ -94,16 +94,16 @@ void compute(int argc, char** argv) {
         counts.counts, samples.condition_mapping, size_factors.size_factors);
 
     // suffstats and metropolis hastings moves
-    MCMC mcmc(m, "model");
-    mcmc.move("a0", scale);
-    mcmc.move("a1", scale);
-    mcmc.move("sigma_alpha", scale);
-    mcmc.move("log10(q)", shift);
-    mcmc.move("tau", scale);
-    mcmc.move("log10(alpha)", shift);
+    MpiMCMC mcmc(m, "model");
+    mcmc.move("a0", shift, 10);
+    mcmc.move("a1", shift, 10);
+    mcmc.move("sigma_alpha", scale, fp, 10);
+    mcmc.move("log10(q)", shift, fp, 10);
+    mcmc.move("tau", scale, fp, 10);
+    mcmc.move("log10(alpha)", shift, fp, 10);
     mcmc.declare_moves();
 
-    mcmc.go(1000, 100);
+    mcmc.go(5000, 1, 0);
 }
 
 int main(int argc, char** argv) { compute(argc, argv); }
