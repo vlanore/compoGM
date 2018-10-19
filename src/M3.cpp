@@ -94,16 +94,16 @@ void compute(int argc, char** argv) {
         counts.counts, samples.condition_mapping, size_factors.size_factors);
 
     // suffstats and metropolis hastings moves
-    MpiMCMC mcmc(m, "model");
-    mcmc.move("a0", shift, fp, 10);
-    mcmc.move("a1", shift, fp, 10);
-    mcmc.move("sigma_alpha", scale, fp, 10);
-    mcmc.move("log10(q)", shift, fp, 10);
-    mcmc.move("tau", scale, fp, 10);
-    mcmc.move("log10(alpha)", shift, fp, 100);
+    MCMC mcmc(m, "model");
+    mcmc.move("a0", shift);
+    mcmc.move("a1", shift);
+    mcmc.move("sigma_alpha", scale);
+    mcmc.move("log10(q)", shift);
+    mcmc.move("tau", scale);
+    mcmc.move("log10(alpha)", shift);
     mcmc.declare_moves();
 
-    mcmc.go(5000, 1, 0);
+    mcmc.go(22000, 1, {"model__log10(q)", "model__sigma_alpha", "model__log10(alpha)"});
 }
 
 int main(int argc, char** argv) { compute(argc, argv); }

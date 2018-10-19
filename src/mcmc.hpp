@@ -175,14 +175,16 @@ class MCMC {
         for (auto s : suffstats) { declare_suffstat(s.target, s.affected_moves, s.type); }
     }
 
-    void go(int nb_iterations, int nb_rep) const {
+    void go(int nb_iterations, int nb_rep, std::set<tc::Address> to_trace = {}) const {
         compoGM::p.message("Instantiating component assembly");
         tc::Assembly a(model);
 
         compoGM::p.message("Setting up trace");
+
         std::set<tc::Address> all_moved;
         for (auto m : moves) { all_moved.insert(tc::Address(gm, m.target)); }
-        auto trace = make_trace(a.get_all<Value<double>>(all_moved), "tmp.dat");
+        auto trace = make_trace(
+            a.get_all<Value<double>>((to_trace.size() == 0) ? all_moved : to_trace), "tmp.dat");
         trace.header();
 
         // set of all moves, used to determine which ones are not covered by suffstats

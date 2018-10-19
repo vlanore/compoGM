@@ -49,7 +49,7 @@ class MpiMCMC : public MCMC {
         int move_rep;
         double tuning_mult;
     };
-    void go(int nb_iterations, int nb_rep_master, int nb_rep_slave) const {
+    void go(int nb_iterations, int nb_rep_master, int nb_rep_slave, int burnin = 0) const {
         // instantiating assembly
         Assembly a(model);
 
@@ -103,7 +103,7 @@ class MpiMCMC : public MCMC {
                 for (auto proxy : proxies) { proxy->release(); }
                 release_time.end();
                 writing_time.start();
-                trace.line();
+                if (iteration >= burnin) { trace.line(); }
                 writing_time.end();
             }
             compoGM::p.message("Average writing time is %fms", writing_time.mean());
