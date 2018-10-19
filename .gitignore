@@ -7,3 +7,6 @@ csv-parser*
 *.slurm
 *_slurmgen
 trace_*.dat
+*.bur
+*.eff
+*.trace
