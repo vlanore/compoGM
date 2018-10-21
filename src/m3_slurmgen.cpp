@@ -40,8 +40,7 @@ int main(int argc, char** argv) {
       << "\n#SBATCH --ntasks=" << 24 * nb_nodes
       << "\n#SBTACH --ntasks-per-node=24\n#SBATCH --threads-per-core=1\n#SBATCH "
          "--time=00:20:00\n#SBATCH --output m3_"
-      << nb_nodes
-      << "_nodes.output\n#SBATCH --constraint=HSW24\n\nmodule purge\nmodule load "
-         "intel/18.1 gcc/6.2.0 openmpi/gnu/2.0.2\nsrun -n $SLURM_NTASKS "
-         "~/code_directory/compoGM/M3_mpi_bin ~/rnaseq";
+      << nb_nodes << "_nodes.output\n#SBATCH --constraint=HSW24\n\nmodule purge\nmodule load "
+                     "intel/18.1 gcc/6.2.0 openmpi/gnu/2.0.2\nsrun -n $SLURM_NTASKS "
+                     "~/code_directory/compoGM/M3_mpi_bin ~/rnaseq";
 }

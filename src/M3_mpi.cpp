@@ -107,7 +107,7 @@ void compute(int argc, char** argv) {
     IndexSet genes;
     bool weak = true;
     if (weak) {
-        int nb_genes_total = (p.size - 1) * 8;
+        int nb_genes_total = (p.size - 1) * 16;
         int i = 0;
         for (auto g : counts.genes) {
             genes.insert(g);
@@ -140,8 +140,8 @@ void compute(int argc, char** argv) {
 
     // suffstats and metropolis hastings moves
     MpiMCMC mcmc(m, "model");
-    mcmc.master_add("a0", scale);
-    mcmc.master_add("a1", scale);
+    mcmc.master_add("a0", shift);
+    mcmc.master_add("a1", shift);
     mcmc.master_add("sigma_alpha", scale);
     mcmc.slave_add("log10(q)", shift);
     mcmc.slave_add("tau", scale);

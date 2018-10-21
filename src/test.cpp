@@ -34,7 +34,7 @@ using tc::Component;
 using tc::Model;
 using tc::Use;
 
-class Mean : public Component {
+class MyMean : public Component {
     double sum;
     int count;
 
@@ -73,21 +73,19 @@ int main() {
         .connect<DirectedLogProb>("logprob", "theta", LogProbSelector::B)
         .connect<DirectedLogProb>("logprob", "gammasuffstat", LogProbSelector::Full);
 
-    m.component<Mean>("meank");
-    m.component<Mean>("meantheta");
+    m.component<MyMean>("meank");
+    m.component<MyMean>("meantheta");
 
-    m.driver("movescheduler",
-         [](Move* move, Move* move2, Value<double>* k, Value<double>* theta, Mean* mean,
-             Mean* mean2) {
-             for (int i = 0; i < 100000; i++) {
-                 move->move(0.5);
-                 move2->move(0.5);
-                 mean->add(k->get_ref());
-                 mean2->add(theta->get_ref());
-             }
-             cout << "Mean: " << mean->mean() * mean2->mean() << endl;
-         })
-        .connect("move1", "move2", "k", "theta", "meank", "meantheta");
+    m.driver("movescheduler", [](Move* move, Move* move2, Value<double>* k, Value<double>* theta,
+                                  MyMean* mean, MyMean* mean2) {
+         for (int i = 0; i < 100000; i++) {
+             move->move(0.5);
+             move2->move(0.5);
+             mean->add(k->get_ref());
+             mean2->add(theta->get_ref());
+         }
+         cout << "Mean: " << mean->mean() * mean2->mean() << endl;
+     }).connect("move1", "move2", "k", "theta", "meank", "meantheta");
 
     Assembly a(m);
     a.at<Proxy>("gammasuffstat").acquire();

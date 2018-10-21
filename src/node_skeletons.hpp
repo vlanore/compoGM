@@ -118,18 +118,18 @@ class Mean : public Value<double>, public tc::Component {
 
     double& get_ref() final {
         if (!proxy_mode) {
-            x = accumulate(parents.begin(), parents.end(), 0., [](double acc, Value<double>* ptr) {
-                return acc + ptr->get_ref();
-            }) / parents.size();
+            x = accumulate(parents.begin(), parents.end(), 0.,
+                    [](double acc, Value<double>* ptr) { return acc + ptr->get_ref(); }) /
+                parents.size();
         }
         return x;
     }
 
     const double& get_ref() const final {
         if (!proxy_mode) {
-            x = accumulate(parents.begin(), parents.end(), 0., [](double acc, Value<double>* ptr) {
-                return acc + ptr->get_ref();
-            }) / parents.size();
+            x = accumulate(parents.begin(), parents.end(), 0.,
+                    [](double acc, Value<double>* ptr) { return acc + ptr->get_ref(); }) /
+                parents.size();
         }
         return x;
     }
@@ -141,7 +141,7 @@ class Mean : public Value<double>, public tc::Component {
 ==================================================================================================*/
 template <class ValueType>
 class DeterministicTernaryNode : public Value<ValueType>, public tc::Component {
-    Value<double>*a, *b, *c;
+    Value<double> *a, *b, *c;
     ValueType (*f)(double, double, double);
     mutable ValueType x;  // just a buffer for computation of f(a, b, c)
 

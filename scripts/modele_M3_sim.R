@@ -8,8 +8,8 @@ counts_file <- paste0(dest, "/counts.tsv")
 sample_file <- paste0(dest, "/samples.tsv")
 size_factor_file <- paste0(dest, "/size_factors.tsv")
 
-ngenes <- 100
-nsamples <- 2 * 10
+ngenes <- 24 * 16 * 256 # up to ~6000 cores times 16 genes
+nsamples <- 2 * 100 # slightly more than what appears in real data
 ncond <- 2
 cond <- c(rep(1, nsamples / 2),
           rep(2, nsamples / 2))

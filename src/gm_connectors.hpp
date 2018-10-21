@@ -86,7 +86,7 @@ struct ConnectIndividualMove : tc::Meta {
         // Algorithm: blanket(targets, graph) =
         //   [prob nodes pointing to targets] U blanket([det nodes pointing to targets])
         std::function<NameSet(NameSet)> compute_blanket = [&compute_blanket, edges, gmref,
-                                                              is_supported](NameSet targets) {
+            is_supported](NameSet targets) {
             if (targets.size() == 0) {
                 return NameSet{};
             } else {
